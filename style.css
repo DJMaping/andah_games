@@ -1,0 +1,26 @@
+#game-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    text-align: center;
+    /* Remove fixed width here so the card can grow/shrink */
+    display: inline-block; 
+    min-width: 300px;
+}
+
+#flag-container {
+    /* This is the secret: it will wrap tightly around the image */
+    display: inline-block;
+    border: 4px solid #555; 
+    border-radius: 4px;
+    margin-bottom: 20px;
+    line-height: 0; /* Prevents tiny gaps at the bottom of images */
+}
+
+#flag-img {
+    /* Remove fixed height/width! */
+    max-width: 400px; /* Limits how big it can get on screen */
+    max-height: 250px;
+    display: block;
+}
