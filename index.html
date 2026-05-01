@@ -2,55 +2,108 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Andah Games</title>
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="page-shell">
-    <div class="page-card">
-        <div class="page-header">
-            <p class="eyebrow">Andah Country Games</p>
-            <h1 class="huge-title">Explore Andah</h1>
-            <p class="subtitle">Choose a geography game and practice your memory of the world of Andah.</p>
-        </div>
-
-        <div class="game-category">
-            <h2>Flag Games</h2>
-            <div class="action-grid">
-                <a href="flag-quiz.html" class="link-button">Guess the Flag</a>
-                <a href="flag-name-quiz.html" class="link-button">Guess Flag Name</a>
-            </div>
-        </div>
-
-        <div class="game-category">
-            <h2>Bigger or Smaller</h2>
-            <div class="action-grid">
-                <a href="bigger-smaller.html?mode=population" class="link-button">Larger Population</a>
-                <a href="bigger-smaller.html?mode=area" class="link-button">Larger Area</a>
-            </div>
-        </div>
-
-        <div class="game-category">
-            <h2>Richer or Poorer</h2>
-            <div class="action-grid">
-                <a href="richer-poorer.html?mode=nominal" class="link-button">Larger GDP</a>
-                <a href="richer-poorer.html?mode=ppp" class="link-button">Larger GDP PPP</a>
-                <a href="richer-poorer.html?mode=perPerson" class="link-button">GDP Per Person</a>
-            </div>
-        </div>
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
     </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah Country Games collection</p>
+            <h1 class="huge-title">Explore Andah</h1>
+            <p class="subtitle">A collection of geography games for the fictional world of Andah. Choose a category below to test your memory of its flags, populations, and economies.</p>
+        </div>
+
+        <section class="game-category">
+            <h2>Flag games</h2>
+            <ul class="action-grid">
+                <li><a href="flag-quiz.html" class="link-button">Guess the Flag</a></li>
+                <li><a href="flag-name-quiz.html" class="link-button">Guess Flag Name</a></li>
+                <li><a href="silhouette-quiz.html" class="link-button">Silhouette Flag</a></li>
+            </ul>
+        </section>
+
+        <section class="game-category">
+            <h2>Bigger or smaller</h2>
+            <ul class="action-grid">
+                <li><a href="bigger-smaller.html?mode=population" class="link-button">Larger Population</a></li>
+                <li><a href="bigger-smaller.html?mode=area" class="link-button">Larger Area</a></li>
+            </ul>
+        </section>
+
+        <section class="game-category">
+            <h2>Richer or poorer</h2>
+            <ul class="action-grid">
+                <li><a href="richer-poorer.html?mode=nominal" class="link-button">Larger GDP</a></li>
+                <li><a href="richer-poorer.html?mode=ppp" class="link-button">Larger GDP PPP</a></li>
+                <li><a href="richer-poorer.html?mode=perPerson" class="link-button">GDP Per Person</a></li>
+            </ul>
+        </section>
+
+        <section class="game-category">
+            <h2>Higher or lower</h2>
+            <ul class="action-grid">
+                <li><a href="higher-lower.html?mode=population" class="link-button">Population</a></li>
+                <li><a href="higher-lower.html?mode=area" class="link-button">Area</a></li>
+                <li><a href="higher-lower.html?mode=density" class="link-button">Density</a></li>
+                <li><a href="higher-lower.html?mode=nominal" class="link-button">GDP</a></li>
+                <li><a href="higher-lower.html?mode=ppp" class="link-button">GDP PPP</a></li>
+                <li><a href="higher-lower.html?mode=perNominal" class="link-button">GDP / person</a></li>
+                <li><a href="higher-lower.html?mode=perPpp" class="link-button">GDP / person PPP</a></li>
+            </ul>
+        </section>
+
+        <section class="game-category">
+            <h2>Closest match</h2>
+            <ul class="action-grid">
+                <li><a href="closest-match.html?mode=population" class="link-button">Population</a></li>
+                <li><a href="closest-match.html?mode=area" class="link-button">Area</a></li>
+                <li><a href="closest-match.html?mode=density" class="link-button">Density</a></li>
+                <li><a href="closest-match.html?mode=nominal" class="link-button">GDP</a></li>
+                <li><a href="closest-match.html?mode=ppp" class="link-button">GDP PPP</a></li>
+                <li><a href="closest-match.html?mode=perPerson" class="link-button">GDP / person</a></li>
+            </ul>
+        </section>
+
+        <section class="game-category">
+            <h2>Trivia</h2>
+            <ul class="action-grid">
+                <li><a href="capital-quiz.html" class="link-button">Capital Quiz</a></li>
+            </ul>
+        </section>
+    </article>
 
     <footer>
-        <div style="margin-bottom: 12px; font-size: 0.9rem;">
-            <p style="margin: 0 0 6px;">Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank">Andah Miraheze Wiki</a></p>
-        </div>
-        <div style="border-top: 1px solid rgba(255,255,255,0.12); padding-top: 12px; font-size: 0.85rem; color: #8b96b8;">
-            <p style="margin: 0;">Made by <strong>DJMapping</strong></p>
-            <p style="margin: 4px 0 0;">© 2026 Andah Games. All rights reserved.</p>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
         </div>
     </footer>
 </div>
 
+<script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Higher or Lower — Andah Games</title>
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah Higher or Lower collection</p>
+            <h1 class="huge-title">Higher or Lower</h1>
+            <p class="subtitle" id="game-prompt">Is the next country higher or lower than the current one? Build the longest streak you can.</p>
+        </div>
+
+        <div class="mode-tabs" aria-label="Game mode">
+            <button class="mode-tab" data-mode="population" type="button">Population</button>
+            <button class="mode-tab" data-mode="area" type="button">Area</button>
+            <button class="mode-tab" data-mode="density" type="button">Density</button>
+            <button class="mode-tab" data-mode="nominal" type="button">GDP</button>
+            <button class="mode-tab" data-mode="ppp" type="button">GDP PPP</button>
+            <button class="mode-tab" data-mode="perNominal" type="button">GDP / person</button>
+            <button class="mode-tab" data-mode="perPpp" type="button">GDP / person PPP</button>
+        </div>
+
+        <div id="board" class="hl-board"></div>
+
+        <div id="result" class="result-text" aria-live="polite"></div>
+
+        <div class="score-panel">
+            <div class="score-block"><label>Streak</label><strong id="score">0</strong></div>
+            <div class="score-block"><label>Best streak</label><strong id="highscore">0</strong></div>
+        </div>
+
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="script.js"></script>
+<script src="andah-stats.js"></script>
+<script>
+    function formatCompactCurrency(value) {
+        const units = [
+            { amount: 1e12, suffix: 'T' },
+            { amount: 1e9, suffix: 'B' },
+            { amount: 1e6, suffix: 'M' }
+        ];
+        const unit = units.find(u => value >= u.amount);
+        if (!unit) return value.toLocaleString();
+        const compact = value / unit.amount;
+        const digits = compact >= 100 ? 0 : compact >= 10 ? 1 : 2;
+        return `${compact.toFixed(digits).replace(/\.0+$/, '')}${unit.suffix}`;
+    }
+
+    const modes = {
+        population: {
+            highScoreKey: 'higherLowerPopulationHighScore',
+            label: 'Population',
+            prompt: 'Does the next country have a higher or lower population?',
+            value: c => c.population,
+            format: v => v.toLocaleString()
+        },
+        area: {
+            highScoreKey: 'higherLowerAreaHighScore',
+            label: 'Area',
+            prompt: 'Does the next country have a higher or lower area?',
+            value: c => c.areaKm,
+            format: v => `${v.toLocaleString()} km2`
+        },
+        density: {
+            highScoreKey: 'higherLowerDensityHighScore',
+            label: 'Density',
+            prompt: 'Does the next country have a higher or lower population density?',
+            value: c => (c.areaKm > 0 ? c.population / c.areaKm : 0),
+            format: v => `${v.toFixed(1)} /km2`
+        },
+        nominal: {
+            highScoreKey: 'higherLowerNominalHighScore',
+            label: 'GDP',
+            prompt: 'Does the next country have a higher or lower GDP?',
+            value: c => c.gdpNominal,
+            format: v => `<span class="currency-value"><img src="flags/Lanh.png" alt="">${formatCompactCurrency(v)}</span>`
+        },
+        ppp: {
+            highScoreKey: 'higherLowerPppHighScore',
+            label: 'GDP PPP',
+            prompt: 'Does the next country have a higher or lower GDP (PPP)?',
+            value: c => c.gdpPpp,
+            format: v => `<span class="currency-value"><img src="flags/Lanh.png" alt="">${formatCompactCurrency(v)}</span>`
+        },
+        perNominal: {
+            highScoreKey: 'higherLowerPerNominalHighScore',
+            label: 'GDP / person',
+            prompt: 'Does the next country have a higher or lower GDP per person?',
+            value: c => c.gdpPerNominal,
+            format: v => `<span class="currency-value"><img src="flags/Lanh.png" alt="">${formatCompactCurrency(v)}</span>`
+        },
+        perPpp: {
+            highScoreKey: 'higherLowerPerPppHighScore',
+            label: 'GDP / person PPP',
+            prompt: 'Does the next country have a higher or lower GDP per person (PPP)?',
+            value: c => c.gdpPerPpp,
+            format: v => `<span class="currency-value"><img src="flags/Lanh.png" alt="">${formatCompactCurrency(v)}</span>`
+        }
+    };
+
+    let mode = new URLSearchParams(window.location.search).get('mode');
+    if (!modes[mode]) mode = 'population';
+
+    let score = 0;
+    let highScore = 0;
+    let reference = null;
+    let challenge = null;
+    let locked = false;
+
+    function getFlagUrl(name) {
+        return `flags/${encodeURIComponent(name)}.png`;
+    }
+
+    function loadHighScore() {
+        const stored = localStorage.getItem(modes[mode].highScoreKey);
+        highScore = stored ? Number(stored) : 0;
+    }
+
+    function saveHighScore() {
+        localStorage.setItem(modes[mode].highScoreKey, highScore);
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score').innerText = score;
+        document.getElementById('highscore').innerText = highScore;
+    }
+
+    function pickCountry(exclude) {
+        const m = modes[mode];
+        const valid = andahStats.filter(c => m.value(c) > 0 && c.name !== (exclude && exclude.name));
+        let pick;
+        let attempts = 0;
+        do {
+            pick = valid[Math.floor(Math.random() * valid.length)];
+            attempts++;
+        } while (exclude && m.value(pick) === m.value(exclude) && attempts < 50);
+        return pick;
+    }
+
+    function setMode(nextMode) {
+        mode = nextMode;
+        score = 0;
+        loadHighScore();
+        updateScoreDisplay();
+        document.getElementById('game-prompt').innerText = modes[mode].prompt;
+        document.querySelectorAll('.mode-tab').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === mode);
+        });
+        const url = new URL(window.location.href);
+        url.searchParams.set('mode', mode);
+        history.replaceState(null, '', url);
+        startNewRun();
+    }
+
+    function startNewRun() {
+        reference = pickCountry(null);
+        challenge = pickCountry(reference);
+        renderBoard();
+    }
+
+    function renderBoard() {
+        locked = false;
+        document.getElementById('result').innerText = '';
+        const m = modes[mode];
+        const board = document.getElementById('board');
+        board.innerHTML = `
+            <div class="hl-card" id="hl-reference">
+                <img class="hl-flag" src="${getFlagUrl(reference.name)}" alt="" onerror="this.style.visibility='hidden'">
+                <div class="hl-name">${reference.name}</div>
+                <div class="hl-label">${m.label}</div>
+                <div class="hl-value">${m.format(m.value(reference))}</div>
+            </div>
+            <div class="hl-card" id="hl-challenge">
+                <img class="hl-flag" src="${getFlagUrl(challenge.name)}" alt="" onerror="this.style.visibility='hidden'">
+                <div class="hl-name">${challenge.name}</div>
+                <div class="hl-label">${m.label}</div>
+                <div class="hl-value" id="hl-challenge-value">?</div>
+                <div class="hl-actions">
+                    <button class="hl-button" type="button" data-guess="higher">Higher</button>
+                    <button class="hl-button" type="button" data-guess="lower">Lower</button>
+                </div>
+            </div>
+        `;
+        board.querySelectorAll('.hl-button').forEach(btn => {
+            btn.addEventListener('click', () => guess(btn.dataset.guess));
+        });
+    }
+
+    function guess(direction) {
+        if (locked) return;
+        locked = true;
+
+        const m = modes[mode];
+        const refValue = m.value(reference);
+        const chValue = m.value(challenge);
+        const isHigher = chValue > refValue;
+        const correct = (direction === 'higher' && isHigher) || (direction === 'lower' && !isHigher);
+
+        document.getElementById('hl-challenge-value').innerHTML = m.format(chValue);
+        const challengeCard = document.getElementById('hl-challenge');
+        challengeCard.classList.add(correct ? 'correct' : 'wrong');
+        challengeCard.querySelectorAll('.hl-button').forEach(b => b.disabled = true);
+
+        if (correct) {
+            score++;
+            if (score > highScore) {
+                highScore = score;
+                saveHighScore();
+            }
+            updateScoreDisplay();
+            document.getElementById('result').innerText = 'Correct.';
+            setTimeout(() => {
+                reference = challenge;
+                challenge = pickCountry(reference);
+                renderBoard();
+            }, 1300);
+        } else {
+            score = 0;
+            updateScoreDisplay();
+            document.getElementById('result').innerText = `Wrong. ${challenge.name} is ${isHigher ? 'higher' : 'lower'} than ${reference.name}.`;
+            setTimeout(startNewRun, 1800);
+        }
+    }
+
+    document.querySelectorAll('.mode-tab').forEach(b => {
+        b.addEventListener('click', () => setMode(b.dataset.mode));
+    });
+
+    setMode(mode);
+</script>
+</body>
+</html>

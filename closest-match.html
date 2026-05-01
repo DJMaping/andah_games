@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Closest Match — Andah Games</title>
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah Closest Match collection</p>
+            <h1 class="huge-title">Closest Match</h1>
+            <p class="subtitle" id="game-prompt">Pick the country whose population is closest to the target.</p>
+        </div>
+
+        <div class="mode-tabs" aria-label="Game mode">
+            <button class="mode-tab" data-mode="population" type="button">Population</button>
+            <button class="mode-tab" data-mode="area" type="button">Area</button>
+            <button class="mode-tab" data-mode="density" type="button">Density</button>
+            <button class="mode-tab" data-mode="nominal" type="button">GDP</button>
+            <button class="mode-tab" data-mode="ppp" type="button">GDP PPP</button>
+            <button class="mode-tab" data-mode="perPerson" type="button">GDP / person</button>
+        </div>
+
+        <div id="target" class="closest-target"></div>
+
+        <div id="comparison" class="closest-grid"></div>
+
+        <div id="result" class="result-text" aria-live="polite"></div>
+
+        <div class="score-panel">
+            <div class="score-block"><label>Score</label><strong id="score">0</strong></div>
+            <div class="score-block"><label>High score</label><strong id="highscore">0</strong></div>
+        </div>
+
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="script.js"></script>
+<script src="andah-stats.js"></script>
+<script>
+    function formatCompactCurrency(value) {
+        const units = [
+            { amount: 1e12, suffix: 'T' },
+            { amount: 1e9, suffix: 'B' },
+            { amount: 1e6, suffix: 'M' }
+        ];
+        const unit = units.find(u => value >= u.amount);
+        if (!unit) return value.toLocaleString();
+        const compact = value / unit.amount;
+        const digits = compact >= 100 ? 0 : compact >= 10 ? 1 : 2;
+        return `${compact.toFixed(digits).replace(/\.0+$/, '')}${unit.suffix}`;
+    }
+
+    const modes = {
+        population: {
+            highScoreKey: 'closestMatchPopulationHighScore',
+            prompt: 'Pick the country whose population is closest to the target.',
+            label: 'Population',
+            value: c => c.population,
+            format: v => v.toLocaleString()
+        },
+        area: {
+            highScoreKey: 'closestMatchAreaHighScore',
+            prompt: 'Pick the country whose area is closest to the target.',
+            label: 'Area',
+            value: c => c.areaKm,
+            format: v => `${v.toLocaleString()} km2`
+        },
+        density: {
+            highScoreKey: 'closestMatchDensityHighScore',
+            prompt: 'Pick the country whose population density is closest to the target.',
+            label: 'Density',
+            value: c => (c.areaKm > 0 ? c.population / c.areaKm : 0),
+            format: v => `${v.toFixed(1)} /km2`
+        },
+        nominal: {
+            highScoreKey: 'closestMatchNominalHighScore',
+            prompt: 'Pick the country whose GDP is closest to the target.',
+            label: 'GDP',
+            value: c => c.gdpNominal,
+            format: v => `<span class="currency-value"><img src="flags/Lanh.png" alt="">${formatCompactCurrency(v)}</span>`
+        },
+        ppp: {
+            highScoreKey: 'closestMatchPppHighScore',
+            prompt: 'Pick the country whose GDP (PPP) is closest to the target.',
+            label: 'GDP PPP',
+            value: c => c.gdpPpp,
+            format: v => `<span class="currency-value"><img src="flags/Lanh.png" alt="">${formatCompactCurrency(v)}</span>`
+        },
+        perPerson: {
+            highScoreKey: 'closestMatchPerPersonHighScore',
+            prompt: 'Pick the country whose GDP per person is closest to the target.',
+            label: 'GDP / person',
+            value: c => c.gdpPerNominal,
+            format: v => `<span class="currency-value"><img src="flags/Lanh.png" alt="">${formatCompactCurrency(v)}</span>`
+        }
+    };
+
+    let mode = new URLSearchParams(window.location.search).get('mode');
+    if (!modes[mode]) mode = 'population';
+
+    let score = 0;
+    let highScore = 0;
+    let target = null;
+    let correct = null;
+    let locked = false;
+
+    function getFlagUrl(name) {
+        return `flags/${encodeURIComponent(name)}.png`;
+    }
+
+    function loadHighScore() {
+        const stored = localStorage.getItem(modes[mode].highScoreKey);
+        highScore = stored ? Number(stored) : 0;
+    }
+
+    function saveHighScore() {
+        localStorage.setItem(modes[mode].highScoreKey, highScore);
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score').innerText = score;
+        document.getElementById('highscore').innerText = highScore;
+    }
+
+    function setMode(nextMode) {
+        mode = nextMode;
+        score = 0;
+        loadHighScore();
+        updateScoreDisplay();
+        document.getElementById('game-prompt').innerText = modes[mode].prompt;
+        document.querySelectorAll('.mode-tab').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === mode);
+        });
+        const url = new URL(window.location.href);
+        url.searchParams.set('mode', mode);
+        history.replaceState(null, '', url);
+        initRound();
+    }
+
+    function pickRound() {
+        const m = modes[mode];
+        const valid = andahStats.filter(c => m.value(c) > 0);
+        const t = valid[Math.floor(Math.random() * valid.length)];
+        const others = valid.filter(c => c.name !== t.name);
+        const sorted = [...others].sort((a, b) =>
+            Math.abs(m.value(a) - m.value(t)) - Math.abs(m.value(b) - m.value(t))
+        );
+        const winner = sorted[0];
+        const pool = sorted.slice(5);
+        const distractors = [];
+        while (distractors.length < 3 && pool.length > 0) {
+            const idx = Math.floor(Math.random() * pool.length);
+            distractors.push(pool.splice(idx, 1)[0]);
+        }
+        // Fall back if dataset is too small
+        let i = 1;
+        while (distractors.length < 3 && i < sorted.length) {
+            if (sorted[i].name !== winner.name && !distractors.includes(sorted[i])) {
+                distractors.push(sorted[i]);
+            }
+            i++;
+        }
+        const choices = [winner, ...distractors].sort(() => 0.5 - Math.random());
+        return { target: t, correct: winner, choices };
+    }
+
+    function initRound() {
+        locked = false;
+        document.getElementById('result').innerText = '';
+        const round = pickRound();
+        target = round.target;
+        correct = round.correct;
+        const m = modes[mode];
+
+        const targetEl = document.getElementById('target');
+        targetEl.innerHTML = `
+            <div class="closest-target-prompt">Target country</div>
+            <div class="closest-target-name"><img src="${getFlagUrl(target.name)}" alt="" onerror="this.style.visibility='hidden'">${target.name}</div>
+            <div class="closest-target-value">${m.label}: ${m.format(m.value(target))}</div>
+        `;
+
+        const comparison = document.getElementById('comparison');
+        comparison.innerHTML = '';
+        round.choices.forEach(country => {
+            const button = document.createElement('button');
+            button.className = 'country-choice';
+            button.type = 'button';
+            button.dataset.name = country.name;
+            button.onclick = () => checkAnswer(button, country);
+            button.innerHTML = `
+                <span class="choice-name"><img src="${getFlagUrl(country.name)}" alt="" onerror="this.style.visibility='hidden'">${country.name}</span>
+                <span class="choice-label">Pick this country</span>
+                <span class="choice-value">${m.format(m.value(country))}</span>
+            `;
+            comparison.appendChild(button);
+        });
+    }
+
+    function checkAnswer(button, country) {
+        if (locked) return;
+        locked = true;
+
+        const m = modes[mode];
+        const buttons = document.querySelectorAll('.country-choice');
+        buttons.forEach(choice => {
+            choice.disabled = true;
+            choice.classList.add('revealed');
+            if (choice.dataset.name === correct.name) choice.classList.add('correct');
+        });
+
+        if (country.name === correct.name) {
+            score++;
+            if (score > highScore) {
+                highScore = score;
+                saveHighScore();
+            }
+            document.getElementById('result').innerHTML = `Correct. ${correct.name} is closest to ${target.name}.`;
+        } else {
+            button.classList.add('wrong');
+            if (score > highScore) {
+                highScore = score;
+                saveHighScore();
+            }
+            score = 0;
+            document.getElementById('result').innerHTML = `${correct.name} was closest to ${target.name}.`;
+        }
+
+        updateScoreDisplay();
+        setTimeout(initRound, 1800);
+    }
+
+    document.querySelectorAll('.mode-tab').forEach(b => {
+        b.addEventListener('click', () => setMode(b.dataset.mode));
+    });
+
+    setMode(mode);
+</script>
+</body>
+</html>

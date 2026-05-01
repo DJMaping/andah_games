@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Guess Flag Name — Andah Games</title>
+    <title>Silhouette Flag Quiz — Andah Games</title>
     <script>
         (function () {
             try {
@@ -32,13 +32,24 @@
 <div class="page-shell">
     <article class="page-card">
         <div class="page-header">
-            <p class="eyebrow">From the Andah Flag Match collection</p>
-            <h1 class="huge-title">Guess Flag Name</h1>
-            <p class="subtitle">Pick the flag that belongs to the country named below.</p>
+            <p class="eyebrow">From the Andah Flag Quiz collection</p>
+            <h1 class="huge-title">Silhouette Flag Quiz</h1>
+            <p class="subtitle">A blurred version of the flag is shown below. Identify the country from its rough colour pattern.</p>
         </div>
 
-        <div id="country-name" class="country-name-prompt">Country Name</div>
-        <div id="options" class="flags-grid"></div>
+        <div class="mode-tabs" aria-label="Difficulty">
+            <button class="mode-tab" data-mode="easy" type="button">Easy</button>
+            <button class="mode-tab" data-mode="medium" type="button">Medium</button>
+            <button class="mode-tab" data-mode="hard" type="button">Hard</button>
+        </div>
+
+        <div id="flag-display">
+            <div id="flag-outline">
+                <img id="flag-img" class="silhouette--medium" src="" alt="Blurred flag">
+            </div>
+        </div>
+
+        <div id="options" class="options"></div>
 
         <div class="score-panel">
             <div class="score-block"><label>Score</label><strong id="score">0</strong></div>
@@ -61,17 +72,26 @@
 <script>
     const nations = ["Dahe", "Areoix Lie", "Raledria", "Pelugrotoa", "Estijan", "Ztesh", "Emara", "Etirha", "Inania", "Lycroa", "United Delet", "Quidic", "Verusa", "Ukhdari", "Ealdorii", "Seytinemas", "Sunsokua", "New Misos", "Ashain", "Wundry", "Vayvele", "Vesozata", "Taval", "Dual Cenryia", "Verste", "Sanagara", "Easuhura", "Siana", "Suenan", "Praesyu", "Terressin", "Pelines", "Myla", "Trian", "Ahokini", "Finae", "Erkizil", "Ohtina", "Oyreain", "Desaki", "Merela Sta", "Etretes", "Anymna", "Yaxuto", "Genaire", "Selaja", "Darewa", "Astye", "Otiiric", "Isnti", "Lydroa", "Chaenia", "Sadain", "Ocaun", "Haiza", "Heiso", "Hkuqo", "United Mihili", "Iareva", "Volver", "North Ayre", "Acrana", "Gaeiya", "Sivoso", "Maalle", "Deschon", "Isari", "Laselteh", "Fermori", "Acetoa", "Ucrua", "Umarcia", "Kusierna", "Arbiya", "Iainoa", "Phuris", "Mendereide", "Nia", "Disal Nila", "Iquir", "Eldavpir", "Nheyes Si", "Othya", "Exilium", "Eldjo", "Oscairia", "Feio Lie", "Lieri", "Reerica", "Pelan", "Prstreula", "Jshain", "Onphello", "Ruylku", "Curata", "Fire Coast", "Pha Hii", "Uularin", "Ilicuhe", "Viussi", "Kaastini", "Fincen", "Galca", "Zenashan", "Rijan bu", "Palina", "Mesjan Hyaa", "Taoisia", "Shinam", "Ihner", "Grazail", "Prystr Hii", "Yihnurda", "Taing", "Jathua", "Andsaudare", "Ozinia", "Taniduna", "Byllu", "Candenat", "Jau", "Umendel", "Inrea", "lasri", "Baluyde", "Rtesania", "Peka", "Tomscilus", "Eparia", "Walporein", "Aetintio", "Slyiaduun", "Ikzen", "Crila Republic", "Sattle", "Pruim Fijan", "Welenu Fana", "Saa", "Guise", "Aplasia", "Danocia", "Koruch", "Canldives", "Yutnitu", "Migoku", "Hyelen", "Stinebar", "Amcha", "Urbiqu", "Metndria", "New Kizura", "Veelmit", "Niretui and Anulan", "Rinew", "Zhanshe", "Yoprioq", "Elja and Munusia", "Shomjind", "Niul Spijan", "Rkmepuia", "Hiwush", "Western Migoku", "Cloja", "Rethern", "Enina", "Far Lands", "Tonder", "Isuibul", "Letan", "Tvecoca", "Trevilla", "Cruthi Anoso"];
 
+    const difficulties = {
+        easy: { highScoreKey: 'silhouetteEasyHighScore', cssClass: 'silhouette--easy' },
+        medium: { highScoreKey: 'silhouetteMediumHighScore', cssClass: 'silhouette--medium' },
+        hard: { highScoreKey: 'silhouetteHardHighScore', cssClass: 'silhouette--hard' }
+    };
+
+    let mode = new URLSearchParams(window.location.search).get('mode');
+    if (!difficulties[mode]) mode = 'medium';
+
     let score = 0;
     let highScore = 0;
     let correctAnswer = "";
 
     function loadHighScore() {
-        const stored = localStorage.getItem('flagNameQuizHighScore');
+        const stored = localStorage.getItem(difficulties[mode].highScoreKey);
         highScore = stored ? Number(stored) : 0;
     }
 
     function saveHighScore() {
-        localStorage.setItem('flagNameQuizHighScore', highScore);
+        localStorage.setItem(difficulties[mode].highScoreKey, highScore);
     }
 
     function updateScoreDisplay() {
@@ -79,8 +99,18 @@
         document.getElementById('highscore').innerText = highScore;
     }
 
-    function getFlagUrl(name) {
-        return `flags/${encodeURIComponent(name)}.png`;
+    function setMode(nextMode) {
+        mode = nextMode;
+        score = 0;
+        loadHighScore();
+        updateScoreDisplay();
+        document.querySelectorAll('.mode-tab').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === mode);
+        });
+        const url = new URL(window.location.href);
+        url.searchParams.set('mode', mode);
+        history.replaceState(null, '', url);
+        initGame();
     }
 
     function initGame() {
@@ -88,55 +118,53 @@
         const choices = shuffled.slice(0, 4);
         correctAnswer = choices[Math.floor(Math.random() * 4)];
 
-        document.getElementById('country-name').innerText = correctAnswer;
+        const imgElement = document.getElementById('flag-img');
+        imgElement.className = difficulties[mode].cssClass;
+        imgElement.src = `flags/${encodeURIComponent(correctAnswer)}.png`;
+        imgElement.onerror = function() {
+            this.src = `https://via.placeholder.com/250x250/222/fff?text=${correctAnswer}`;
+        };
 
         const optionsDiv = document.getElementById('options');
         optionsDiv.innerHTML = '';
-
         choices.forEach(name => {
             const btn = document.createElement('button');
-            btn.className = 'flag-btn';
-            btn.dataset.name = name;
+            btn.className = 'option-button';
+            btn.innerText = name;
             btn.onclick = () => checkAnswer(btn, name);
-
-            const img = document.createElement('img');
-            img.src = getFlagUrl(name);
-            img.alt = name;
-            img.onerror = function() {
-                this.src = `https://via.placeholder.com/260x160/1f2d3b/ffffff?text=${encodeURIComponent(name)}`;
-            };
-
-            btn.appendChild(img);
             optionsDiv.appendChild(btn);
         });
     }
 
     function checkAnswer(btn, name) {
-        const buttons = document.querySelectorAll('#options .flag-btn');
+        const buttons = document.querySelectorAll('.option-button');
         buttons.forEach(b => b.disabled = true);
+
+        // Reveal the unblurred flag while feedback shows
+        const imgElement = document.getElementById('flag-img');
+        imgElement.classList.remove('silhouette--easy', 'silhouette--medium', 'silhouette--hard');
 
         if (name === correctAnswer) {
             score++;
             btn.classList.add('correct');
         } else {
             btn.classList.add('wrong');
-            buttons.forEach(b => {
-                if (b.dataset.name === correctAnswer) b.classList.add('correct');
-            });
+            buttons.forEach(b => { if (b.innerText === correctAnswer) b.classList.add('correct'); });
             if (score > highScore) {
                 highScore = score;
                 saveHighScore();
             }
             score = 0;
         }
-
         updateScoreDisplay();
-        setTimeout(initGame, 1200);
+        setTimeout(initGame, 1500);
     }
 
-    loadHighScore();
-    updateScoreDisplay();
-    initGame();
+    document.querySelectorAll('.mode-tab').forEach(b => {
+        b.addEventListener('click', () => setMode(b.dataset.mode));
+    });
+
+    setMode(mode);
 </script>
 </body>
 </html>

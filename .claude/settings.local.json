@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"c:/Users/Danny James Moyles/Desktop/Andah Game/andah_games\" status --short)",
+      "WebFetch(domain:andah.miraheze.org)"
+    ]
+  }
+}

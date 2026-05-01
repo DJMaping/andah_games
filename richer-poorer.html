@@ -2,15 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Richer or Poorer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Richer or Poorer — Andah Games</title>
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
 <div class="page-shell">
-    <div class="page-card">
+    <article class="page-card">
         <div class="page-header">
-            <p class="eyebrow">Andah Economy Games</p>
+            <p class="eyebrow">From the Andah Economy Games collection</p>
             <h1 class="huge-title">Richer or Poorer?</h1>
             <p class="subtitle" id="game-prompt">Choose the country with the larger economy.</p>
         </div>
@@ -27,23 +49,22 @@
 
         <div class="score-panel">
             <div class="score-block"><label>Score</label><strong id="score">0</strong></div>
-            <div class="score-block"><label>High Score</label><strong id="highscore">0</strong></div>
+            <div class="score-block"><label>High score</label><strong id="highscore">0</strong></div>
         </div>
 
-        <button class="back-button" onclick="window.location.href='index.html'">Back to Main Page</button>
-    </div>
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
 
     <footer>
-        <div style="margin-bottom: 12px; font-size: 0.9rem;">
-            <p style="margin: 0 0 6px;">Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank">Andah Miraheze Wiki</a></p>
-        </div>
-        <div style="border-top: 1px solid rgba(255,255,255,0.12); padding-top: 12px; font-size: 0.85rem; color: #8b96b8;">
-            <p style="margin: 0;">Made by <strong>DJMapping</strong></p>
-            <p style="margin: 4px 0 0;">&copy; 2026 Andah Games. All rights reserved.</p>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
         </div>
     </footer>
 </div>
 
+<script src="script.js"></script>
 <script src="andah-stats.js"></script>
 <script>
     function formatCompactNumber(value) {
