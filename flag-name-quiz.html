@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fictional Nation Flag Quiz</title>
+    <title>Flag Match Quiz</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -10,18 +10,13 @@
 <div class="page-shell">
     <div class="page-card">
         <div class="page-header">
-            <p class="eyebrow">Andah Flag Quiz</p>
-            <h1 class="huge-title">Guess the Flag</h1>
-            <p class="subtitle">Guess the correct country name for the displayed flag.</p>
+            <p class="eyebrow">Andah Flag Match</p>
+            <h1 class="huge-title">Guess Flag Name</h1>
+            <p class="subtitle">Pick the correct flag for the country shown above.</p>
         </div>
 
-        <div id="flag-display">
-            <div id="flag-outline">
-                <img id="flag-img" src="" alt="Flag">
-            </div>
-        </div>
-
-        <div id="options" class="options"></div>
+        <div id="country-name" class="subtitle" style="font-size:1.45rem; color:#fff1b6; margin-bottom:18px;">Country Name</div>
+        <div id="options" class="flags-grid"></div>
 
         <div class="score-panel">
             <div class="score-block"><label>Score</label><strong id="score">0</strong></div>
@@ -37,7 +32,7 @@
         </div>
         <div style="border-top: 1px solid rgba(255,255,255,0.12); padding-top: 12px; font-size: 0.85rem; color: #8b96b8;">
             <p style="margin: 0;">Made by <strong>DJMapping</strong></p>
-            <p style="margin: 4px 0 0;">© 2026. All rights reserved.</p>
+            <p style="margin: 4px 0 0;">© 2026 Andah Games. All rights reserved.</p>
         </div>
     </footer>
 </div>
@@ -50,17 +45,21 @@
     let correctAnswer = "";
 
     function loadHighScore() {
-        const stored = localStorage.getItem('nationQuizHighScore');
+        const stored = localStorage.getItem('flagNameQuizHighScore');
         highScore = stored ? Number(stored) : 0;
     }
 
     function saveHighScore() {
-        localStorage.setItem('nationQuizHighScore', highScore);
+        localStorage.setItem('flagNameQuizHighScore', highScore);
     }
 
     function updateScoreDisplay() {
-        document.getElementById('score').innerText = `Score: ${score}`;
-        document.getElementById('highscore').innerText = `High Score: ${highScore}`;
+        document.getElementById('score').innerText = score;
+        document.getElementById('highscore').innerText = highScore;
+    }
+
+    function getFlagUrl(name) {
+        return `flags/${encodeURIComponent(name)}.png`;
     }
 
     function initGame() {
@@ -68,26 +67,31 @@
         const choices = shuffled.slice(0, 4);
         correctAnswer = choices[Math.floor(Math.random() * 4)];
 
-        const imgElement = document.getElementById('flag-img');
-        imgElement.src = `flags/${correctAnswer}.png`;
-        
-        imgElement.onerror = function() {
-            this.src = `https://via.placeholder.com/250x250/222/fff?text=${correctAnswer}`;
-        };
+        document.getElementById('country-name').innerText = correctAnswer;
 
         const optionsDiv = document.getElementById('options');
-        optionsDiv.innerHTML = "";
+        optionsDiv.innerHTML = '';
+
         choices.forEach(name => {
             const btn = document.createElement('button');
-            btn.className = 'option-button';
-            btn.innerText = name;
+            btn.className = 'flag-btn';
+            btn.dataset.name = name;
             btn.onclick = () => checkAnswer(btn, name);
+
+            const img = document.createElement('img');
+            img.src = getFlagUrl(name);
+            img.alt = name;
+            img.onerror = function() {
+                this.src = `https://via.placeholder.com/260x160/1f2d3b/ffffff?text=${encodeURIComponent(name)}`;
+            };
+
+            btn.appendChild(img);
             optionsDiv.appendChild(btn);
         });
     }
 
     function checkAnswer(btn, name) {
-        const buttons = document.querySelectorAll('.option-button');
+        const buttons = document.querySelectorAll('#options .flag-btn');
         buttons.forEach(b => b.disabled = true);
 
         if (name === correctAnswer) {
@@ -95,13 +99,16 @@
             btn.classList.add('correct');
         } else {
             btn.classList.add('wrong');
-            buttons.forEach(b => { if(b.innerText === correctAnswer) b.classList.add('correct'); });
+            buttons.forEach(b => {
+                if (b.dataset.name === correctAnswer) b.classList.add('correct');
+            });
             if (score > highScore) {
                 highScore = score;
                 saveHighScore();
             }
             score = 0;
         }
+
         updateScoreDisplay();
         setTimeout(initGame, 1200);
     }

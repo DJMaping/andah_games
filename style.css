@@ -1,51 +1,257 @@
-body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #222; color: white; }
-#game-container { max-width: 500px; text-align: center; margin-top: 50px; background: #333; padding: 20px; border-radius: 15px; }
-
-/* THE FIX: Fixed container that acts as a hard anchor */
-#flag-display { 
-    position: relative;
-    width: 320px; 
-    height: 220px; 
-    margin: 0 auto 20px; 
-    background: transparent; 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+:root {
+    color-scheme: dark;
+    color: #e7edf9;
+    background: #0b1221;
+    font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* THE FIX: Absolute centering with 'contain' and hard-capped dimensions */
-#flag-outline { 
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px; 
-    border: 4px solid #555; 
-    border-radius: 8px; 
-    background: #444; 
+* {
     box-sizing: border-box;
-    /* Hard constraints */
-    width: auto;
-    height: auto;
-    max-width: 320px;
-    max-height: 220px;
 }
 
-/* THE FIX: This forces the image to never exceed the outline, 
-    no matter if it's square or rectangular. */
-#flag-img { 
+html, body {
+    margin: 0;
+    min-height: 100%;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at top, rgba(142, 177, 255, 0.1), transparent 25%),
+                linear-gradient(135deg, #081028 0%, #10213b 55%, #0d1524 100%);
+    color: #e7edf9;
+    min-height: 100vh;
+}
+
+.page-shell {
+    width: min(1080px, 96%);
+    padding: 32px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+}
+
+.page-card {
+    width: 100%;
+    background: rgba(12, 22, 42, 0.9);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 30px;
+    box-shadow: 0 24px 80px rgba(2, 8, 24, 0.35);
+    backdrop-filter: blur(16px);
+    padding: 36px;
+}
+
+.page-header {
+    max-width: 780px;
+    margin: 0 auto 24px;
+    text-align: center;
+}
+
+.huge-title {
+    margin: 0;
+    font-size: clamp(2.5rem, 4vw, 4rem);
+    letter-spacing: -0.06em;
+}
+
+.eyebrow {
+    margin: 0 0 12px;
+    font-size: 0.86rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: #82a6f5;
+}
+
+.subtitle {
+    margin: 0;
+    color: #bbc7dd;
+    font-size: 1rem;
+    line-height: 1.8;
+}
+
+.action-grid {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.link-button,
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 28px;
+    border-radius: 18px;
+    border: none;
+    text-decoration: none;
+    background: linear-gradient(135deg, #f7b500, #ff7f50);
+    color: #081028;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+    cursor: pointer;
+}
+
+.link-button:hover,
+.back-button:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.05);
+    box-shadow: 0 20px 40px rgba(247,181,59,0.18);
+}
+
+.options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.option-button,
+.flag-btn {
+    width: 100%;
+    min-height: 64px;
+    border-radius: 18px;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.05);
+    color: #eef3ff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    padding: 16px 18px;
+    text-align: center;
+}
+
+.option-button:hover,
+.flag-btn:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+}
+
+.option-button.correct,
+.flag-btn.correct {
+    background: #2b9b64;
+    border-color: #1f6f42;
+    color: #f4fff8;
+}
+
+.flag-btn.correct {
+    border: 2px solid #2ecc71 !important;
+    box-shadow: 0 0 12px rgba(46, 204, 113, 0.5), inset 0 0 6px rgba(46, 204, 113, 0.25) !important;
+}
+
+.option-button.wrong,
+.flag-btn.wrong {
+    background: #ce4d5a;
+    border-color: #8a262f;
+    color: #fff1f2;
+}
+
+.flag-btn.wrong {
+    border: 2px solid #e74c3c !important;
+    box-shadow: 0 0 12px rgba(231, 76, 60, 0.5), inset 0 0 6px rgba(231, 76, 60, 0.25) !important;
+}
+
+#flag-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+#flag-outline {
+    padding: 8px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#flag-img {
     display: block;
     width: auto;
     height: auto;
-    max-width: 100%; /* Relative to #flag-outline */
-    max-height: 204px; /* 220px minus padding/border */
-    object-fit: contain; /* Keeps square flags square! */
+    max-width: 380px;
+    max-height: 260px;
+    border-radius: 16px;
 }
 
-.options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-button { padding: 15px; cursor: pointer; border: none; border-radius: 5px; background: #007bff; color: white; font-weight: bold; transition: background 0.2s; }
-button:hover { background: #0056b3; }
-.correct { background: #28a745 !important; }
-.wrong { background: #dc3545 !important; }
-#score { margin-top: 20px; font-size: 1.2rem; }
-#highscore { margin-top: 10px; font-size: 1rem; color: #bbb; }
+.flags-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+}
+
+.flag-btn {
+    overflow: hidden;
+    padding: 0;
+    background: rgba(255,255,255,0.06);
+    aspect-ratio: 3 / 2;
+}
+
+.flag-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.flag-btn:focus-visible,
+.option-button:focus-visible,
+.back-button:focus-visible,
+.link-button:focus-visible {
+    outline: 3px solid rgba(134, 174, 255, 0.6);
+    outline-offset: 3px;
+}
+
+.score-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+    margin-top: 28px;
+}
+
+.score-block {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    padding: 18px 20px;
+    text-align: left;
+}
+
+.score-block label {
+    display: block;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #94a5ce;
+}
+
+.score-block strong {
+    display: block;
+    margin-top: 10px;
+    font-size: 1.75rem;
+    color: #f7f8fb;
+}
+
+footer {
+    margin-top: 16px;
+    color: #9cb1d8;
+    font-size: 0.94rem;
+}
+
+footer a {
+    color: #f5d16b;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}

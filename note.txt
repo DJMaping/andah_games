@@ -1,0 +1,30 @@
+
+**Comparison Games:**
+- **Bigger or Smaller?** - Show two countries, guess which has larger population/area
+- **Older or Newer?** - If you have founding dates, compare country ages
+- **Richer or Poorer?** - Compare GDP/economy statistics
+
+**Matching Games:**
+- **Country to Capital** - Name the capital city
+- **Country to Language** - Match nations to their primary languages
+- **Country to Government Type** - Match countries to their government systems
+- **Country to Region** - Identify which continent/region a country belongs to
+
+**Trivia/Facts:**
+- **Multiple Choice Facts** - "What is the capital of [Country]?" with 4 options
+- **True/False Statements** - "Does [Country] border [Other Country]?"
+- **Statistics Trivia** - "What is the population of [Country]?" with option ranges
+
+**Map Game** (if you have a map):
+- **Click the Country** - Show a name, click the correct region on the map
+
+**What specific statistics do you have available?** Things like:
+- Capitals/major cities
+- Populations
+- Area/size
+- Languages
+- Government types
+- Borders/neighbors
+- Currency
+- Founding dates
+- Regional groupings

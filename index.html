@@ -3,100 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <title>Andah Games</title>
-    <style>
-        body { 
-            font-family: 'Arial', sans-serif; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; 
-            margin: 0;
-            min-height: 100vh;
-        }
-
-        #main-container { 
-            min-width: 400px; 
-            max-width: 600px; 
-            text-align: center; 
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 40px; 
-            border-radius: 20px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        h1 {
-            margin-bottom: 20px;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        p {
-            margin-bottom: 40px;
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .game-button {
-            display: inline-block;
-            width: auto;
-            min-width: 200px;
-            padding: 15px 30px; 
-            margin: 15px;
-            cursor: pointer; 
-            border: none; 
-            border-radius: 10px; 
-            background: linear-gradient(45deg, #ff6b6b, #ffa500);
-            color: white; 
-            font-weight: bold; 
-            font-size: 1.2rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .game-button:hover { 
-            background: linear-gradient(45deg, #ff5252, #ff8c00); 
-            transform: translateY(-2px); 
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        }
-        .game-button:active { transform: translateY(0); }
-
-        .game-button:before {
-            content: "🎮 ";
-        }
-
-        footer {
-            margin-top: 40px;
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-
-        footer a {
-            color: #ffd700;
-            text-decoration: none;
-        }
-
-        footer a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="main-container">
-    <h1>Andah Games</h1>
-    <p>Choose a game to play:</p>
-    <a href="flag-quiz.html" class="game-button">Flag Quiz</a>
-    <!-- Add more games here -->
-</div>
+<div class="page-shell">
+    <div class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">Andah Country Games</p>
+            <h1 class="huge-title">Explore Andah Flags</h1>
+            <p class="subtitle">Choose a geography game and practice your memory of the world of Andah.</p>
+        </div>
 
-<footer>
-    Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank">Andah Miraheze Wiki</a>
-</footer>
+        <div class="action-grid">
+            <a href="flag-quiz.html" class="link-button">Guess the Flag</a>
+            <a href="flag-name-quiz.html" class="link-button">Guess Flag Name</a>
+        </div>
+    </div>
+
+    <footer>
+        <div style="margin-bottom: 12px; font-size: 0.9rem;">
+            <p style="margin: 0 0 6px;">Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank">Andah Miraheze Wiki</a></p>
+        </div>
+        <div style="border-top: 1px solid rgba(255,255,255,0.12); padding-top: 12px; font-size: 0.85rem; color: #8b96b8;">
+            <p style="margin: 0;">Made by <strong>DJMapping</strong></p>
+            <p style="margin: 4px 0 0;">© 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
 
 </body>
 </html>
