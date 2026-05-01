@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Richer or Poorer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page-shell">
+    <div class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">Andah Economy Games</p>
+            <h1 class="huge-title">Richer or Poorer?</h1>
+            <p class="subtitle" id="game-prompt">Choose the country with the larger economy.</p>
+        </div>
+
+        <div class="mode-tabs" aria-label="Game mode">
+            <button class="mode-tab" data-mode="nominal" type="button">GDP</button>
+            <button class="mode-tab" data-mode="ppp" type="button">GDP PPP</button>
+            <button class="mode-tab" data-mode="perPerson" type="button">GDP Per Person</button>
+        </div>
+
+        <div id="comparison" class="comparison-grid"></div>
+
+        <div id="result" class="result-text" aria-live="polite"></div>
+
+        <div class="score-panel">
+            <div class="score-block"><label>Score</label><strong id="score">0</strong></div>
+            <div class="score-block"><label>High Score</label><strong id="highscore">0</strong></div>
+        </div>
+
+        <button class="back-button" onclick="window.location.href='index.html'">Back to Main Page</button>
+    </div>
+
+    <footer>
+        <div style="margin-bottom: 12px; font-size: 0.9rem;">
+            <p style="margin: 0 0 6px;">Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank">Andah Miraheze Wiki</a></p>
+        </div>
+        <div style="border-top: 1px solid rgba(255,255,255,0.12); padding-top: 12px; font-size: 0.85rem; color: #8b96b8;">
+            <p style="margin: 0;">Made by <strong>DJMapping</strong></p>
+            <p style="margin: 4px 0 0;">&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="andah-stats.js"></script>
+<script>
+    function formatCompactNumber(value) {
+        const units = [
+            { amount: 1000000000000, suffix: 'T' },
+            { amount: 1000000000, suffix: 'B' },
+            { amount: 1000000, suffix: 'M' }
+        ];
+
+        const unit = units.find(item => value >= item.amount);
+        if (!unit) return value.toLocaleString();
+
+        const compact = value / unit.amount;
+        const digits = compact >= 100 ? 0 : compact >= 10 ? 1 : 2;
+        return `${compact.toFixed(digits).replace(/\.0+$/, '')}${unit.suffix}`;
+    }
+
+    function formatCurrency(value) {
+        return `<span class="currency-value"><img src="flags/Lanh.png" alt="">${formatCompactNumber(value)}</span>`;
+    }
+
+    const modes = {
+        nominal: {
+            label: 'GDP',
+            field: 'gdpNominal',
+            highScoreKey: 'richerPoorerNominalHighScore',
+            prompt: 'Choose the country with the larger economy.',
+            result: 'has the larger economy',
+            format: formatCurrency
+        },
+        ppp: {
+            label: 'GDP PPP',
+            field: 'gdpPpp',
+            highScoreKey: 'richerPoorerPppHighScore',
+            prompt: 'Choose the country with the larger PPP economy.',
+            result: 'has the larger PPP economy',
+            format: formatCurrency
+        },
+        perPerson: {
+            label: 'GDP per person',
+            field: 'gdpPerNominal',
+            highScoreKey: 'richerPoorerPerPersonHighScore',
+            prompt: 'Choose the country with the richer population per person.',
+            result: 'is richer per person',
+            format: formatCurrency
+        }
+    };
+
+    let mode = new URLSearchParams(window.location.search).get('mode');
+    if (!modes[mode]) mode = 'nominal';
+
+    let score = 0;
+    let highScore = 0;
+    let correctCountry = null;
+    let currentPair = [];
+    let locked = false;
+
+    function getFlagUrl(name) {
+        return `flags/${encodeURIComponent(name)}.png`;
+    }
+
+    function loadHighScore() {
+        const stored = localStorage.getItem(modes[mode].highScoreKey);
+        highScore = stored ? Number(stored) : 0;
+    }
+
+    function saveHighScore() {
+        localStorage.setItem(modes[mode].highScoreKey, highScore);
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score').innerText = score;
+        document.getElementById('highscore').innerText = highScore;
+    }
+
+    function setMode(nextMode) {
+        mode = nextMode;
+        score = 0;
+        loadHighScore();
+        updateScoreDisplay();
+        document.getElementById('game-prompt').innerText = modes[mode].prompt;
+
+        document.querySelectorAll('.mode-tab').forEach(button => {
+            button.classList.toggle('active', button.dataset.mode === mode);
+        });
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('mode', mode);
+        history.replaceState(null, '', url);
+        initGame();
+    }
+
+    function pickPair() {
+        const validCountries = andahStats.filter(country => country[modes[mode].field] > 0);
+        let first = validCountries[Math.floor(Math.random() * validCountries.length)];
+        let second = validCountries[Math.floor(Math.random() * validCountries.length)];
+
+        while (first.name === second.name || first[modes[mode].field] === second[modes[mode].field]) {
+            second = validCountries[Math.floor(Math.random() * validCountries.length)];
+        }
+
+        return [first, second].sort(() => 0.5 - Math.random());
+    }
+
+    function initGame() {
+        locked = false;
+        document.getElementById('result').innerText = '';
+        const [first, second] = pickPair();
+        currentPair = [first, second];
+        correctCountry = first[modes[mode].field] > second[modes[mode].field] ? first : second;
+
+        const comparison = document.getElementById('comparison');
+        comparison.innerHTML = '';
+
+        [first, second].forEach(country => {
+            const button = document.createElement('button');
+            button.className = 'country-choice';
+            button.type = 'button';
+            button.dataset.name = country.name;
+            button.onclick = () => checkAnswer(button, country);
+
+            button.innerHTML = `
+                <span class="choice-name"><img src="${getFlagUrl(country.name)}" alt="" onerror="this.style.visibility='hidden'">${country.name}</span>
+                <span class="choice-label">Pick this country</span>
+                <span class="choice-value">${modes[mode].format(country[modes[mode].field])}</span>
+            `;
+
+            comparison.appendChild(button);
+        });
+    }
+
+    function checkAnswer(button, country) {
+        if (locked) return;
+        locked = true;
+
+        const buttons = document.querySelectorAll('.country-choice');
+        buttons.forEach(choice => {
+            choice.disabled = true;
+            choice.classList.add('revealed');
+            const isCorrect = choice.dataset.name === correctCountry.name;
+            choice.classList.toggle('correct', isCorrect);
+        });
+
+        const values = currentPair
+            .map(item => `${item.name}: ${modes[mode].format(item[modes[mode].field])}`)
+            .join(' | ');
+
+        if (country.name === correctCountry.name) {
+            score++;
+            if (score > highScore) {
+                highScore = score;
+                saveHighScore();
+            }
+            document.getElementById('result').innerHTML = `Correct. ${values}`;
+        } else {
+            button.classList.add('wrong');
+            if (score > highScore) {
+                highScore = score;
+                saveHighScore();
+            }
+            score = 0;
+            document.getElementById('result').innerHTML = `${correctCountry.name} ${modes[mode].result}. ${values}`;
+        }
+
+        updateScoreDisplay();
+        setTimeout(initGame, 1500);
+    }
+
+    document.querySelectorAll('.mode-tab').forEach(button => {
+        button.addEventListener('click', () => setMode(button.dataset.mode));
+    });
+
+    setMode(mode);
+</script>
+</body>
+</html>
