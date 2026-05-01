@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fictional Nation Flag Quiz</title>
+    <style>
+        /* The main grey background for the whole page */
+        body { 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; /* Centers the game vertically */
+            background: #414547; /* Medium Grey background */
+            color: white; 
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* The container for the game */
+        #game-container { 
+            min-width: 350px; 
+            max-width: 500px; 
+            text-align: center; 
+            background: #333333; /* Darker grey for the game box */
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); /* Adds a bit of depth */
+        }
+        
+        #flag-display { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            margin-bottom: 25px;
+            min-height: 150px; 
+        }
+
+        #flag-outline { 
+            display: inline-block; 
+            padding: 4px; 
+            border: 4px solid #666; 
+            border-radius: 8px; 
+            background: #222; /* Blackish background for the flag slot */
+            line-height: 0; 
+        }
+
+        #flag-img { 
+            display: block;
+            max-width: 320px; 
+            max-height: 300px; 
+            width: auto;
+            height: auto;
+        }
+
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+        
+        button { 
+            padding: 15px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 8px; 
+            background: #007bff; 
+            color: white; 
+            font-weight: bold; 
+            font-size: 1rem;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        button:hover { background: #0056b3; transform: scale(1.02); }
+        button:active { transform: scale(0.98); }
+        
+        .correct { background: #28a745 !important; }
+        .wrong { background: #dc3545 !important; }
+        
+        #score { margin-top: 25px; font-size: 1.3rem; font-weight: bold; }
+        #highscore { margin-top: 5px; font-size: 0.9rem; color: #aaa; }
+
+        #back-button {
+            margin-top: 20px;
+            background: #6c757d;
+        }
+
+        #back-button:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h1>Nation Quiz</h1>
+    <div id="flag-display">
+        <div id="flag-outline">
+            <img id="flag-img" src="" alt="Flag">
+        </div>
+    </div>
+    <div id="options" class="options"></div>
+    <div id="score">Score: 0</div>
+    <div id="highscore">High Score: 0</div>
+    <button id="back-button" onclick="window.location.href='index.html'">Back to Main Page</button>
+</div>
+
+<script>
+    const nations = ["Dahe", "Areoix Lie", "Raledria", "Pelugrotoa", "Estijan", "Ztesh", "Emara", "Etirha", "Inania", "Lycroa", "United Delet", "Quidic", "Verusa", "Ukhdari", "Ealdorii", "Seytinemas", "Sunsokua", "New Misos", "Ashain", "Wundry", "Vayvele", "Vesozata", "Taval", "Dual Cenryia", "Verste", "Sanagara", "Easuhura", "Siana", "Suenan", "Praesyu", "Terressin", "Pelines", "Myla", "Trian", "Ahokini", "Finae", "Erkizil", "Ohtina", "Oyreain", "Desaki", "Merela Sta", "Etretes", "Anymna", "Yaxuto", "Genaire", "Selaja", "Darewa", "Astye", "Otiiric", "Isnti", "Lydroa", "Chaenia", "Sadain", "Ocaun", "Haiza", "Heiso", "Hkuqo", "United Mihili", "Iareva", "Volver", "North Ayre", "Acrana", "Gaeiya", "Sivoso", "Maalle", "Deschon", "Isari", "Laselteh", "Fermori", "Acetoa", "Ucrua", "Umarcia", "Kusierna", "Arbiya", "Iainoa", "Phuris", "Mendereide", "Nia", "Disal Nila", "Iquir", "Eldavpir", "Nheyes Si", "Othya", "Exilium", "Eldjo", "Oscairia", "Feio Lie", "Lieri", "Reerica", "Pelan", "Prstreula", "Jshain", "Onphello", "Ruylku", "Curata", "Fire Coast", "Pha Hii", "Uularin", "Ilicuhe", "Viussi", "Kaastini", "Fincen", "Galca", "Zenashan", "Rijan bu", "Palina", "Mesjan Hyaa", "Taoisia", "Shinam", "Ihner", "Grazail", "Prystr Hii", "Yihnurda", "Taing", "Jathua", "Andsaudare", "Ozinia", "Taniduna", "Byllu", "Candenat", "Jau", "Umendel", "Inrea", "lasri", "Baluyde", "Rtesania", "Peka", "Tomscilus", "Eparia", "Walporein", "Aetintio", "Slyiaduun", "Ikzen", "Crila Republic", "Sattle", "Pruim Fijan", "Welenu Fana", "Saa", "Guise", "Aplasia", "Danocia", "Koruch", "Canldives", "Yutnitu", "Migoku", "Hyelen", "Stinebar", "Amcha", "Urbiqu", "Metndria", "New Kizura", "Veelmit", "Niretui and Anulan", "Rinew", "Zhanshe", "Yoprioq", "Elja and Munusia", "Shomjind", "Niul Spijan", "Rkmepuia", "Hiwush", "Western Migoku", "Cloja", "Rethern", "Enina", "Far Lands", "Tonder", "Isuibul", "Letan", "Tvecoca", "Trevilla", "Cruthi Anoso"];
+
+    let score = 0;
+    let highScore = 0;
+    let correctAnswer = "";
+
+    function loadHighScore() {
+        const stored = localStorage.getItem('nationQuizHighScore');
+        highScore = stored ? Number(stored) : 0;
+    }
+
+    function saveHighScore() {
+        localStorage.setItem('nationQuizHighScore', highScore);
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score').innerText = `Score: ${score}`;
+        document.getElementById('highscore').innerText = `High Score: ${highScore}`;
+    }
+
+    function initGame() {
+        const shuffled = [...nations].sort(() => 0.5 - Math.random());
+        const choices = shuffled.slice(0, 4);
+        correctAnswer = choices[Math.floor(Math.random() * 4)];
+
+        const imgElement = document.getElementById('flag-img');
+        imgElement.src = `flags/${correctAnswer}.png`;
+        
+        imgElement.onerror = function() {
+            this.src = `https://via.placeholder.com/250x250/222/fff?text=${correctAnswer}`;
+        };
+
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = "";
+        choices.forEach(name => {
+            const btn = document.createElement('button');
+            btn.innerText = name;
+            btn.onclick = () => checkAnswer(btn, name);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(btn, name) {
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(b => b.disabled = true);
+
+        if (name === correctAnswer) {
+            score++;
+            btn.classList.add('correct');
+        } else {
+            btn.classList.add('wrong');
+            buttons.forEach(b => { if(b.innerText === correctAnswer) b.classList.add('correct'); });
+            if (score > highScore) {
+                highScore = score;
+                saveHighScore();
+            }
+            score = 0;
+        }
+        updateScoreDisplay();
+        setTimeout(initGame, 1200);
+    }
+
+    loadHighScore();
+    updateScoreDisplay();
+    initGame();
+</script>
+</body>
+</html>
