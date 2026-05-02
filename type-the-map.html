@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Type the Map — Andah Games</title>
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .ttm-setup {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            margin: 12px 0;
+            padding: 14px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border-soft);
+            border-radius: 2px;
+        }
+        .ttm-setup[hidden] { display: none; }
+        .ttm-setup label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.92rem;
+        }
+        .ttm-setup input[type="number"] {
+            width: 64px;
+            padding: 4px 6px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font: inherit;
+        }
+        .ttm-setup .primary {
+            background: var(--bg-sunken);
+            border: 1px solid var(--text);
+            color: var(--text);
+            cursor: pointer;
+            font: inherit;
+            padding: 6px 18px;
+            margin-left: auto;
+            font-weight: 600;
+            border-radius: 2px;
+        }
+        .ttm-setup .primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .ttm-controls {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0 8px;
+        }
+        .ttm-input {
+            flex: 1 1 auto;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font: inherit;
+            font-size: 1.05rem;
+            padding: 8px 12px;
+            border-radius: 2px;
+        }
+        .ttm-input:focus {
+            outline: 2px solid var(--link);
+            outline-offset: -1px;
+            border-color: var(--link);
+        }
+        .ttm-give-up {
+            border: 1px solid var(--border);
+            background: var(--bg-soft);
+            color: var(--text);
+            cursor: pointer;
+            font: inherit;
+            padding: 8px 14px;
+            border-radius: 2px;
+        }
+        .ttm-give-up:hover {
+            background: var(--bg-sunken);
+            border-color: var(--text);
+        }
+        .ttm-give-up.flashing {
+            animation: ttm-flash 0.7s ease-in-out infinite;
+        }
+        @keyframes ttm-flash {
+            0%, 100% { background: var(--bg-soft); border-color: var(--border); color: var(--text); }
+            50% { background: var(--wrong-bg); border-color: var(--wrong-border); color: var(--wrong-text); }
+        }
+
+        .ttm-status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px 22px;
+            align-items: center;
+            margin: 0 0 12px;
+            padding: 8px 14px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border-soft);
+            font-family: var(--serif);
+            font-size: 1.02rem;
+        }
+        .ttm-status > div {
+            white-space: nowrap;
+        }
+        .ttm-status #time-display {
+            font-variant-numeric: tabular-nums;
+        }
+        .ttm-status .ttm-wrong {
+            color: var(--muted);
+            font-size: 0.92rem;
+            font-family: var(--sans);
+        }
+
+        .ttm-map-wrap {
+            margin: 12px 0;
+            border: 1px solid var(--border-soft);
+            background: #000;
+            position: relative;
+            line-height: 0;
+        }
+        .ttm-map-wrap canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        #overlay-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+        }
+        .ttm-map-loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-family: var(--serif);
+            font-size: 1.2rem;
+            line-height: 1.4;
+            background: #000;
+        }
+        .ttm-map-loading[hidden] { display: none; }
+
+        /* Animated label that appears at a country's centre on a correct guess */
+        .ttm-toast {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            background: rgba(18, 48, 34, 0.92);
+            color: #fff;
+            border: 1px solid #2b9b64;
+            padding: 3px 8px;
+            border-radius: 2px;
+            font-family: var(--sans);
+            font-size: 0.85rem;
+            font-weight: 500;
+            line-height: 1.2;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 5;
+            animation: ttm-toast 1.4s ease-out forwards;
+        }
+        .ttm-toast::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px solid #2b9b64;
+            transform: translate(-50%, -50%);
+            box-sizing: border-box;
+            animation: ttm-pulse 0.9s ease-out forwards;
+            z-index: -1;
+        }
+        @keyframes ttm-toast {
+            0%   { opacity: 0; transform: translate(-50%, -38%); }
+            15%  { opacity: 1; transform: translate(-50%, -50%); }
+            72%  { opacity: 1; transform: translate(-50%, -50%); }
+            100% { opacity: 0; transform: translate(-50%, -78%); }
+        }
+        @keyframes ttm-pulse {
+            0%   { width: 14px; height: 14px; opacity: 0.95; border-width: 4px; }
+            60%  { opacity: 0.5; }
+            100% { width: 90px; height: 90px; opacity: 0; border-width: 1px; }
+        }
+
+        .ttm-list-details {
+            margin-top: 14px;
+        }
+        .ttm-list-details > summary {
+            cursor: pointer;
+            color: var(--link);
+        }
+        .ttm-list-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 4px 18px;
+            font-size: 0.88rem;
+        }
+        .ttm-list-details li.found { color: var(--correct-text); }
+        .ttm-list-details li.given-up { color: var(--wrong-text); }
+        .ttm-list-details li.unfound { color: var(--muted); }
+    </style>
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah Map collection</p>
+            <h1 class="huge-title">Type the Map</h1>
+            <p class="subtitle">Type the name of every country to mark it on the map. Spelling needs to be exact, but case doesn't matter. Beat the clock.</p>
+        </div>
+
+        <div id="setup" class="ttm-setup">
+            <label>Time limit:
+                <input type="number" id="time-input" value="10" min="1" max="60" step="1">
+                minutes
+            </label>
+            <label><input type="checkbox" id="no-timer"> No timer</label>
+            <button type="button" id="start-button" class="primary" disabled>Loading map...</button>
+        </div>
+
+        <div id="game" hidden>
+            <div class="ttm-controls">
+                <input type="text" id="answer-input" class="ttm-input" placeholder="Type a country name..." autocomplete="off" autocapitalize="words" spellcheck="false">
+                <button type="button" id="give-up-button" class="ttm-give-up">Give up</button>
+            </div>
+
+            <div class="ttm-status">
+                <div><strong id="found-count">0</strong> / <strong id="total-count">172</strong> named</div>
+                <div id="time-display">10:00</div>
+                <div class="ttm-wrong" id="wrong-display">No wrong tries</div>
+            </div>
+        </div>
+
+        <div class="ttm-map-wrap" id="map-wrap">
+            <canvas id="map-canvas"></canvas>
+            <canvas id="overlay-canvas"></canvas>
+            <div id="map-loading" class="ttm-map-loading">Loading map…</div>
+        </div>
+
+        <div id="summary" class="game-summary" hidden>
+            <h3>Round complete</h3>
+            <div class="summary-score" id="summary-score"></div>
+            <div class="summary-percent" id="summary-percent"></div>
+            <button type="button" id="play-again">Play again</button>
+        </div>
+
+        <details class="ttm-list-details">
+            <summary>Show country list (<span id="list-count">0</span> / <span id="list-total">172</span>)</summary>
+            <ul id="ttm-list"></ul>
+        </details>
+
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="script.js"></script>
+<script src="andah-map-coords.js"></script>
+<script>
+    // ----- Country lookup -----
+    const validCountries = andahMapCoords.filter(c => c.x !== null && c.y !== null);
+    const TOTAL = validCountries.length;
+    function normalize(s) {
+        return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    // ----- Map + flood-fill setup -----
+    // The native map can be very large (~35 MP). Keep the working canvas
+    // under MAX_DIM in either axis so getImageData doesn't blow up memory.
+    const MAX_DIM = 3000;
+    const naturalW = andahMapSize.width;
+    const naturalH = andahMapSize.height;
+    const mapScale = Math.min(1, MAX_DIM / naturalW, MAX_DIM / naturalH);
+    const W = Math.round(naturalW * mapScale);
+    const H = Math.round(naturalH * mapScale);
+
+    // Pre-scale every country's coordinate into canvas space.
+    const countriesByKey = {};
+    const countryNames = [];
+    validCountries.forEach(c => {
+        const scaled = {
+            name: c.name,
+            x: Math.round(c.x * mapScale),
+            y: Math.round(c.y * mapScale)
+        };
+        countriesByKey[normalize(c.name)] = scaled;
+        countryNames.push(c.name);
+    });
+    countryNames.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+    document.getElementById('total-count').innerText = TOTAL;
+    document.getElementById('list-total').innerText = TOTAL;
+
+    const mapCanvas = document.getElementById('map-canvas');
+    const overlayCanvas = document.getElementById('overlay-canvas');
+    mapCanvas.width = overlayCanvas.width = W;
+    mapCanvas.height = overlayCanvas.height = H;
+    const mapCtx = mapCanvas.getContext('2d');
+    const overlayCtx = overlayCanvas.getContext('2d');
+
+    let landMask = null;
+    let totalLandPixels = 0;
+    let filledMask = null;
+    let mapReady = false;
+    let pixelAccessBlocked = false;
+
+    const LAND_BRIGHTNESS = 600; // R+G+B threshold for land vs border/ocean
+    const LEAK_FRACTION = 0.08;  // a single fill bigger than 8% of land = treat as leak
+
+    const mapImg = new Image();
+    mapImg.onload = () => {
+        console.log('[type-the-map] image loaded', mapImg.naturalWidth, 'x', mapImg.naturalHeight, '→ canvas', W, 'x', H);
+        try {
+            mapCtx.drawImage(mapImg, 0, 0, W, H);
+        } catch (err) {
+            console.error('[type-the-map] drawImage failed:', err);
+            document.getElementById('map-loading').innerText =
+                'Could not draw map: ' + (err && err.message ? err.message : 'unknown error');
+            return;
+        }
+
+        // Try to read pixel data for flood-fill. If the canvas is tainted
+        // (common when opening this file via file://), fall back to dots only.
+        try {
+            const imgData = mapCtx.getImageData(0, 0, W, H);
+            const px = imgData.data;
+            const total = W * H;
+            landMask = new Uint8Array(total);
+            filledMask = new Uint8Array(total);
+            for (let i = 0; i < total; i++) {
+                const o = i * 4;
+                if (px[o] + px[o + 1] + px[o + 2] > LAND_BRIGHTNESS) {
+                    landMask[i] = 1;
+                    totalLandPixels++;
+                }
+            }
+            console.log('[type-the-map] land mask built, totalLandPixels =', totalLandPixels);
+        } catch (err) {
+            console.warn('[type-the-map] pixel access blocked — falling back to dot mode. Reason:', err && err.message);
+            pixelAccessBlocked = true;
+            const note = document.createElement('div');
+            note.className = 'tagger-help';
+            note.style.color = 'var(--muted)';
+            note.style.fontSize = '0.85rem';
+            note.style.margin = '6px 0 12px';
+            note.innerHTML = 'Note: flood-fill is disabled because the browser is blocking pixel access on this canvas. ' +
+                'Each correct country will be marked with a dot instead. To enable flood-fill, open this game from a local web server ' +
+                '(e.g., run <code>python -m http.server</code> in the project folder and visit <code>http://localhost:8000/type-the-map.html</code>).';
+            document.getElementById('map-wrap').insertAdjacentElement('beforebegin', note);
+        }
+
+        mapReady = true;
+        document.getElementById('map-loading').hidden = true;
+        const startBtn = document.getElementById('start-button');
+        startBtn.disabled = false;
+        startBtn.innerText = 'Start';
+    };
+    mapImg.onerror = (e) => {
+        console.error('[type-the-map] image load error', e);
+        document.getElementById('map-loading').innerText = 'Map failed to load. Make sure maps/map.png exists.';
+    };
+    console.log('[type-the-map] requesting maps/map.png …');
+    mapImg.src = 'maps/map.png';
+
+    // ----- Flood fill -----
+    function findNearbyLand(seedX, seedY) {
+        const startIdx = seedY * W + seedX;
+        if (landMask[startIdx] && !filledMask[startIdx]) return { x: seedX, y: seedY };
+        for (let r = 1; r <= 60; r++) {
+            for (let dy = -r; dy <= r; dy++) {
+                for (let dx = -r; dx <= r; dx++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+                    const nx = seedX + dx;
+                    const ny = seedY + dy;
+                    if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+                    const idx = ny * W + nx;
+                    if (landMask[idx] && !filledMask[idx]) {
+                        return { x: nx, y: ny };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function floodFillCountry(seedX, seedY) {
+        if (!mapReady || pixelAccessBlocked || !landMask) return null;
+        const seed = findNearbyLand(Math.round(seedX), Math.round(seedY));
+        if (!seed) return null;
+        const startIdx = seed.y * W + seed.x;
+
+        const visited = new Uint8Array(W * H);
+        const stack = [startIdx];
+        visited[startIdx] = 1;
+        const filled = [];
+        const leakLimit = Math.floor(totalLandPixels * LEAK_FRACTION);
+
+        while (stack.length > 0) {
+            const idx = stack.pop();
+            if (!landMask[idx] || filledMask[idx]) continue;
+            filled.push(idx);
+            if (filled.length > leakLimit) return null;
+            const x = idx % W;
+            const y = (idx - x) / W;
+            if (x > 0) {
+                const ni = idx - 1;
+                if (!visited[ni]) { visited[ni] = 1; stack.push(ni); }
+            }
+            if (x < W - 1) {
+                const ni = idx + 1;
+                if (!visited[ni]) { visited[ni] = 1; stack.push(ni); }
+            }
+            if (y > 0) {
+                const ni = idx - W;
+                if (!visited[ni]) { visited[ni] = 1; stack.push(ni); }
+            }
+            if (y < H - 1) {
+                const ni = idx + W;
+                if (!visited[ni]) { visited[ni] = 1; stack.push(ni); }
+            }
+        }
+        return filled;
+    }
+
+    function highlightCountry(country, hexColor) {
+        const filled = floodFillCountry(country.x, country.y);
+        if (filled !== null) {
+            const overlayData = overlayCtx.getImageData(0, 0, W, H);
+            const data = overlayData.data;
+            const r = parseInt(hexColor.slice(1, 3), 16);
+            const g = parseInt(hexColor.slice(3, 5), 16);
+            const b = parseInt(hexColor.slice(5, 7), 16);
+            for (let i = 0; i < filled.length; i++) {
+                const idx = filled[i];
+                filledMask[idx] = 1;
+                const o = idx * 4;
+                data[o] = r;
+                data[o + 1] = g;
+                data[o + 2] = b;
+                data[o + 3] = 185;
+            }
+            overlayCtx.putImageData(overlayData, 0, 0);
+        } else {
+            // Dot fallback
+            const dotRadius = Math.max(8, Math.round(W * 0.006));
+            overlayCtx.save();
+            overlayCtx.globalAlpha = 0.85;
+            overlayCtx.fillStyle = hexColor;
+            overlayCtx.beginPath();
+            overlayCtx.arc(country.x, country.y, dotRadius, 0, Math.PI * 2);
+            overlayCtx.fill();
+            overlayCtx.globalAlpha = 1;
+            overlayCtx.lineWidth = Math.max(2, Math.round(dotRadius * 0.15));
+            overlayCtx.strokeStyle = '#ffffff';
+            overlayCtx.stroke();
+            overlayCtx.restore();
+        }
+    }
+
+    function drawLabel(country) {
+        // Static canvas label, used for the end-game red reveal so the user
+        // can identify each missed country.
+        const fontSize = Math.max(10, Math.round(W * 0.009));
+        overlayCtx.save();
+        overlayCtx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        overlayCtx.textAlign = 'center';
+        overlayCtx.textBaseline = 'middle';
+        overlayCtx.lineWidth = Math.max(2, Math.round(fontSize * 0.18));
+        overlayCtx.strokeStyle = 'rgba(255,255,255,0.95)';
+        overlayCtx.fillStyle = '#0d0d0d';
+        overlayCtx.strokeText(country.name, country.x, country.y);
+        overlayCtx.fillText(country.name, country.x, country.y);
+        overlayCtx.restore();
+    }
+
+    function showToast(country) {
+        const wrap = document.getElementById('map-wrap');
+        const toast = document.createElement('div');
+        toast.className = 'ttm-toast';
+        toast.style.left = (country.x / W * 100) + '%';
+        toast.style.top = (country.y / H * 100) + '%';
+        toast.textContent = country.name;
+        wrap.appendChild(toast);
+        setTimeout(() => toast.remove(), 1500);
+    }
+
+    // ----- Game state -----
+    const COLOR_FOUND = '#2b9b64';
+    const COLOR_GIVENUP = '#ce4d5a';
+    const HIGH_SCORE_KEY = 'typeMapHighScore';
+
+    let timerSeconds = 600;
+    let useTimer = true;
+    let timeRemaining = 0;
+    let elapsed = 0;
+    let timerInterval = null;
+    let foundCount = 0;
+    let consecutiveWrong = 0;
+    let foundSet = new Set();
+    let gameActive = false;
+    let highScore = Number(localStorage.getItem(HIGH_SCORE_KEY) || 0);
+
+    const setupEl = document.getElementById('setup');
+    const gameEl = document.getElementById('game');
+    const summaryEl = document.getElementById('summary');
+    const inputEl = document.getElementById('answer-input');
+    const giveUpBtn = document.getElementById('give-up-button');
+    const foundCountEl = document.getElementById('found-count');
+    const timeDisplayEl = document.getElementById('time-display');
+    const wrongDisplayEl = document.getElementById('wrong-display');
+    const startBtn = document.getElementById('start-button');
+    const playAgainBtn = document.getElementById('play-again');
+    const listEl = document.getElementById('ttm-list');
+    const listCountEl = document.getElementById('list-count');
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateWrongDisplay() {
+        if (consecutiveWrong === 0) {
+            wrongDisplayEl.innerText = 'No wrong tries';
+        } else if (consecutiveWrong === 1) {
+            wrongDisplayEl.innerText = '1 wrong try';
+        } else {
+            wrongDisplayEl.innerText = `${consecutiveWrong} wrong tries`;
+        }
+    }
+
+    function renderList(state) {
+        // state: 'live' shows only the countries the user has typed correctly so far.
+        //        'final' also shows the rest in red (after time-up / give-up / clear).
+        listEl.innerHTML = '';
+        countryNames.forEach(name => {
+            const isFound = foundSet.has(name);
+            if (state !== 'final' && !isFound) return;
+            const li = document.createElement('li');
+            li.innerText = name;
+            li.className = isFound ? 'found' : 'given-up';
+            listEl.appendChild(li);
+        });
+        listCountEl.innerText = foundSet.size;
+    }
+
+    function startGame() {
+        const minutes = Math.max(1, Math.min(60, parseInt(document.getElementById('time-input').value) || 10));
+        timerSeconds = minutes * 60;
+        useTimer = !document.getElementById('no-timer').checked;
+        timeRemaining = timerSeconds;
+        elapsed = 0;
+        foundCount = 0;
+        consecutiveWrong = 0;
+        foundSet.clear();
+        if (filledMask) filledMask.fill(0);
+        overlayCtx.clearRect(0, 0, W, H);
+
+        setupEl.hidden = true;
+        gameEl.hidden = false;
+        summaryEl.hidden = true;
+
+        foundCountEl.innerText = foundCount;
+        updateWrongDisplay();
+        timeDisplayEl.innerText = useTimer ? formatTime(timeRemaining) : '0:00';
+
+        inputEl.value = '';
+        inputEl.disabled = false;
+        giveUpBtn.classList.remove('flashing');
+        giveUpBtn.disabled = false;
+
+        gameActive = true;
+        renderList('live');
+
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(tick, 1000);
+        // Focus the input after the layout settles
+        setTimeout(() => inputEl.focus(), 0);
+    }
+
+    function tick() {
+        elapsed++;
+        if (useTimer) {
+            timeRemaining--;
+            timeDisplayEl.innerText = formatTime(Math.max(0, timeRemaining));
+            if (timeRemaining <= 0) {
+                endGame('time');
+            }
+        } else {
+            timeDisplayEl.innerText = formatTime(elapsed);
+        }
+    }
+
+    function tryMatch(value) {
+        const key = normalize(value);
+        if (!key) return null;
+        const c = countriesByKey[key];
+        if (!c) return null;
+        if (foundSet.has(c.name)) return null;
+        return c;
+    }
+
+    function handleCorrect(country) {
+        foundSet.add(country.name);
+        foundCount++;
+        foundCountEl.innerText = foundCount;
+        consecutiveWrong = 0;
+        updateWrongDisplay();
+        giveUpBtn.classList.remove('flashing');
+        highlightCountry(country, COLOR_FOUND);
+        showToast(country);
+        inputEl.value = '';
+        renderList('live');
+        if (foundCount >= TOTAL) {
+            endGame('complete');
+        }
+    }
+
+    function handleWrong() {
+        consecutiveWrong++;
+        updateWrongDisplay();
+        if (consecutiveWrong >= 3) {
+            giveUpBtn.classList.add('flashing');
+        }
+        // Briefly mark input as wrong for visual feedback
+        inputEl.style.borderColor = 'var(--wrong-border)';
+        setTimeout(() => { inputEl.style.borderColor = ''; }, 250);
+        inputEl.value = '';
+    }
+
+    inputEl.addEventListener('input', () => {
+        if (!gameActive) return;
+        const c = tryMatch(inputEl.value);
+        if (c) handleCorrect(c);
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+        if (!gameActive) return;
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const value = inputEl.value.trim();
+            if (!value) return;
+            const c = tryMatch(value);
+            if (c) {
+                handleCorrect(c);
+            } else {
+                handleWrong();
+            }
+        }
+    });
+
+    giveUpBtn.addEventListener('click', () => {
+        if (!gameActive) return;
+        if (confirm('Give up the round? All remaining countries will be revealed in red.')) {
+            endGame('giveup');
+        }
+    });
+
+    function endGame(reason) {
+        gameActive = false;
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        inputEl.disabled = true;
+        giveUpBtn.disabled = true;
+        giveUpBtn.classList.remove('flashing');
+
+        if (reason === 'giveup' || reason === 'time') {
+            countryNames.forEach(name => {
+                if (!foundSet.has(name)) {
+                    const c = countriesByKey[normalize(name)];
+                    if (c) {
+                        highlightCountry(c, COLOR_GIVENUP);
+                        drawLabel(c);
+                    }
+                }
+            });
+        }
+
+        if (foundCount > highScore) {
+            highScore = foundCount;
+            localStorage.setItem(HIGH_SCORE_KEY, highScore);
+        }
+
+        const finalElapsed = useTimer ? (timerSeconds - Math.max(0, timeRemaining)) : elapsed;
+        document.getElementById('summary-score').innerText = `${foundCount} / ${TOTAL}`;
+        const pct = TOTAL > 0 ? Math.round((foundCount / TOTAL) * 100) : 0;
+        let extra = `${pct}% correct · ${formatTime(finalElapsed)}`;
+        if (reason === 'complete') extra += ' · full clear';
+        else if (reason === 'time') extra += ' · time’s up';
+        else if (reason === 'giveup') extra += ' · gave up';
+        if (highScore > 0) extra += ` · best: ${highScore}`;
+        document.getElementById('summary-percent').innerText = extra;
+        summaryEl.hidden = false;
+        renderList('final');
+    }
+
+    playAgainBtn.addEventListener('click', () => {
+        summaryEl.hidden = true;
+        gameEl.hidden = true;
+        setupEl.hidden = false;
+        overlayCtx.clearRect(0, 0, W, H);
+        if (filledMask) filledMask.fill(0);
+        foundSet.clear();
+        renderList('live');
+    });
+
+    startBtn.addEventListener('click', () => {
+        if (!mapReady) return;
+        startGame();
+    });
+
+    // No-timer toggle disables the time input visually
+    document.getElementById('no-timer').addEventListener('change', (e) => {
+        document.getElementById('time-input').disabled = e.target.checked;
+    });
+
+    renderList('live');
+</script>
+</body>
+</html>

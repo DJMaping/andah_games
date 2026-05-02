@@ -76,7 +76,7 @@ const andahCapitals = [
     { name: "Koruch", capital: "Basturah" },
     { name: "Kusierna", capital: "Mikavasi" },
     { name: "Laselteh", capital: "Dariya" },
-    { name: "lasri", capital: "Rukara" },
+    { name: "Lasri", capital: "Rukara" },
     { name: "Letan", capital: "Actilica" },
     { name: "Lieri", capital: "Nabruik" },
     { name: "Lycroa", capital: "Jungui" },

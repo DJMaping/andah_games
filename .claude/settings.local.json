@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(git -C \"c:/Users/Danny James Moyles/Desktop/Andah Game/andah_games\" status --short)",
-      "WebFetch(domain:andah.miraheze.org)"
+      "WebFetch(domain:andah.miraheze.org)",
+      "Bash(python -c ' *)",
+      "PowerShell($c = Get-Content \"c:/Users/Danny James Moyles/Desktop/Andah Game/andah_games/flag-quiz.html\" -Raw; if \\($c -match 'const nations = \\\\[\\([^\\\\]]+\\)\\\\]'\\) { \\($Matches[1] -split ','\\).Count })",
+      "Bash(grep -iE \"\\\\.\\(png|jpg|jpeg|gif|webp|bmp|svg\\)$\")",
+      "Bash(git -C \"c:/Users/Danny James Moyles/Desktop/Andah Game/andah_games\" mv \"flags/lasri.png\" \"flags/Lasri.png\")",
+      "Bash(git -C \"c:/Users/Danny James Moyles/Desktop/Andah Game/andah_games\" mv -f \"flags/lasri.png\" \"flags/Lasri-tmp.png\")",
+      "Bash(git -C \"c:/Users/Danny James Moyles/Desktop/Andah Game/andah_games\" mv \"flags/Lasri-tmp.png\" \"flags/Lasri.png\")"
     ]
   }
 }

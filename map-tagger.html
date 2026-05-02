@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Map Tagger — Andah Games</title>
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .tagger-status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+            margin: 12px 0;
+            padding: 12px 14px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border-soft);
+            border-radius: 2px;
+        }
+        .tagger-current { flex: 1 1 200px; }
+        .tagger-target-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+        }
+        .tagger-target {
+            font-family: var(--serif);
+            font-size: 1.8rem;
+            line-height: 1.2;
+            margin: 4px 0;
+        }
+        .tagger-target[data-state="done"] {
+            color: var(--correct-text);
+        }
+        .tagger-progress {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+        .tagger-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .tagger-actions button {
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.85rem;
+            padding: 6px 10px;
+            border-radius: 2px;
+        }
+        .tagger-actions button:hover {
+            background: var(--bg-sunken);
+            border-color: var(--text);
+        }
+        .tagger-actions button.primary {
+            background: var(--bg-sunken);
+            border-color: var(--text);
+            font-weight: 600;
+        }
+        .tag-map-wrap {
+            position: relative;
+            margin: 12px 0;
+            border: 1px solid var(--border-soft);
+            background: #000;
+            overflow: hidden;
+        }
+        .tag-map {
+            width: 100%;
+            display: block;
+            cursor: crosshair;
+        }
+        .tag-markers {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .tag-marker {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ff3b3b;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+        }
+        .tag-marker.current {
+            background: #ffe14a;
+            width: 14px;
+            height: 14px;
+            z-index: 2;
+        }
+        .tagger-details { margin-top: 14px; }
+        .tagger-details > summary {
+            cursor: pointer;
+            color: var(--link);
+            margin-bottom: 8px;
+        }
+        .tagger-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 4px 18px;
+        }
+        .tagger-details li {
+            font-size: 0.88rem;
+        }
+        .tag-list-jump {
+            background: none;
+            border: none;
+            color: var(--link);
+            cursor: pointer;
+            padding: 0;
+            font: inherit;
+        }
+        .tag-list-jump:hover { text-decoration: underline; }
+        .tagger-help {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin: 8px 0 0;
+        }
+        .map-missing {
+            background: var(--wrong-bg);
+            border: 1px solid var(--wrong-border);
+            color: var(--wrong-text);
+            padding: 12px 14px;
+            border-radius: 2px;
+            margin: 12px 0;
+        }
+        .map-missing code {
+            background: var(--bg);
+            padding: 1px 5px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">Internal tooling</p>
+            <h1 class="huge-title">Map Tagger</h1>
+            <p class="subtitle">Click each country on the map to record its location. Progress is saved in your browser as you go. When the list reaches 172 / 172, click <strong>Download JSON</strong> and commit the file to the project.</p>
+        </div>
+
+        <div id="map-missing" class="map-missing" hidden>
+            Map image not found at <code>maps/map.png</code>. Save your Andah world map at that path, then reload this page.
+        </div>
+
+        <div id="tagger" hidden>
+            <div class="tagger-status">
+                <div class="tagger-current">
+                    <div class="tagger-target-label">Click on the map for:</div>
+                    <div class="tagger-target" id="target-name">—</div>
+                    <div class="tagger-progress" id="progress">0 / 0 tagged</div>
+                </div>
+                <div class="tagger-actions">
+                    <button type="button" id="prev-button">Previous</button>
+                    <button type="button" id="next-button">Next</button>
+                    <button type="button" id="undo-button">Clear this</button>
+                    <button type="button" id="reset-button">Reset all</button>
+                    <button type="button" id="download-button" class="primary">Download JSON</button>
+                </div>
+            </div>
+
+            <p class="tagger-help">Click anywhere inside a country to record its centre. Use <strong>Previous</strong> / <strong>Next</strong> to navigate, <strong>Clear this</strong> to remove the current country's coordinate, or click any tagged country in the list below to jump back to it.</p>
+
+            <div class="tag-map-wrap" id="map-wrap">
+                <img class="tag-map" id="map-img" src="maps/map.png" alt="Andah world map">
+                <div class="tag-markers" id="markers"></div>
+            </div>
+
+            <details class="tagger-details" open>
+                <summary>Tagged countries (<span id="tagged-count">0</span>)</summary>
+                <ul id="tagged-list"></ul>
+            </details>
+        </div>
+    </article>
+</div>
+
+<script src="script.js"></script>
+<script src="andah-capitals.js"></script>
+<script>
+    const STORAGE_KEY = 'andah-map-tags';
+    const countries = (typeof andahCapitals !== 'undefined' ? andahCapitals : [])
+        .map(c => c.name)
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+    let coords = loadCoords();
+    let cursor = firstUntagged();
+
+    function loadCoords() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveCoords() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(coords));
+    }
+
+    function firstUntagged() {
+        for (let i = 0; i < countries.length; i++) {
+            if (!coords[countries[i]]) return i;
+        }
+        return Math.max(0, countries.length - 1);
+    }
+
+    function render() {
+        const total = countries.length;
+        const taggedCount = Object.keys(coords).length;
+        document.getElementById('progress').innerText = `${taggedCount} / ${total} tagged`;
+        document.getElementById('tagged-count').innerText = taggedCount;
+
+        const targetEl = document.getElementById('target-name');
+        if (cursor >= 0 && cursor < total) {
+            const name = countries[cursor];
+            targetEl.innerText = name;
+            targetEl.setAttribute('data-state', coords[name] ? 'done' : 'todo');
+        } else {
+            targetEl.innerText = 'All countries tagged.';
+            targetEl.removeAttribute('data-state');
+        }
+
+        renderMarkers();
+        renderTaggedList();
+    }
+
+    function renderMarkers() {
+        const markers = document.getElementById('markers');
+        markers.innerHTML = '';
+        const img = document.getElementById('map-img');
+        if (!img.naturalWidth) return;
+        const currentName = countries[cursor];
+        Object.entries(coords).forEach(([name, p]) => {
+            const dot = document.createElement('div');
+            dot.className = 'tag-marker';
+            dot.style.left = (p.x / img.naturalWidth) * 100 + '%';
+            dot.style.top = (p.y / img.naturalHeight) * 100 + '%';
+            dot.title = name;
+            if (name === currentName) dot.classList.add('current');
+            markers.appendChild(dot);
+        });
+    }
+
+    function renderTaggedList() {
+        const list = document.getElementById('tagged-list');
+        list.innerHTML = '';
+        Object.entries(coords)
+            .sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+            .forEach(([name, p]) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<button type="button" class="tag-list-jump" data-name="${name}">${name}</button> <span style="color:var(--muted)">(${p.x}, ${p.y})</span>`;
+                list.appendChild(li);
+            });
+        list.querySelectorAll('.tag-list-jump').forEach(b => {
+            b.addEventListener('click', () => {
+                cursor = countries.indexOf(b.dataset.name);
+                render();
+            });
+        });
+    }
+
+    function advance() {
+        // After tagging, jump to the next still-untagged country (wrap around).
+        for (let i = 1; i <= countries.length; i++) {
+            const idx = (cursor + i) % countries.length;
+            if (!coords[countries[idx]]) {
+                cursor = idx;
+                return;
+            }
+        }
+        // All tagged — leave cursor where it was.
+    }
+
+    document.getElementById('map-img').addEventListener('click', function (e) {
+        if (cursor < 0 || cursor >= countries.length) return;
+        const rect = this.getBoundingClientRect();
+        const xRatio = (e.clientX - rect.left) / rect.width;
+        const yRatio = (e.clientY - rect.top) / rect.height;
+        const x = Math.round(xRatio * this.naturalWidth);
+        const y = Math.round(yRatio * this.naturalHeight);
+        coords[countries[cursor]] = { x, y };
+        saveCoords();
+        advance();
+        render();
+    });
+
+    document.getElementById('prev-button').addEventListener('click', () => {
+        if (cursor > 0) cursor--;
+        render();
+    });
+
+    document.getElementById('next-button').addEventListener('click', () => {
+        if (cursor < countries.length - 1) cursor++;
+        render();
+    });
+
+    document.getElementById('undo-button').addEventListener('click', () => {
+        const name = countries[cursor];
+        if (coords[name]) {
+            delete coords[name];
+            saveCoords();
+            render();
+        }
+    });
+
+    document.getElementById('reset-button').addEventListener('click', () => {
+        if (confirm('Reset every tagged coordinate? This cannot be undone.')) {
+            coords = {};
+            saveCoords();
+            cursor = 0;
+            render();
+        }
+    });
+
+    document.getElementById('download-button').addEventListener('click', () => {
+        const img = document.getElementById('map-img');
+        const data = countries.map(name => ({
+            name,
+            x: coords[name] ? coords[name].x : null,
+            y: coords[name] ? coords[name].y : null
+        }));
+        const header = `// Andah country map coordinates (pixel space of map.png).\n// Image dimensions: ${img.naturalWidth} x ${img.naturalHeight}.\n// Generated by map-tagger.html.\n`;
+        const body = `const andahMapCoords = ${JSON.stringify(data, null, 2)};\nconst andahMapSize = { width: ${img.naturalWidth}, height: ${img.naturalHeight} };\n`;
+        const blob = new Blob([header + body], { type: 'text/javascript' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'andah-map-coords.js';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('map-img').addEventListener('error', () => {
+        document.getElementById('tagger').hidden = true;
+        document.getElementById('map-missing').hidden = false;
+    });
+
+    document.getElementById('map-img').addEventListener('load', () => {
+        document.getElementById('map-missing').hidden = true;
+        document.getElementById('tagger').hidden = false;
+        render();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        const tag = (document.activeElement || {}).tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            document.getElementById('next-button').click();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            document.getElementById('prev-button').click();
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+            e.preventDefault();
+            document.getElementById('undo-button').click();
+        }
+    });
+</script>
+</body>
+</html>

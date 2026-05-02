@@ -40,6 +40,9 @@
         <div class="mode-tabs" aria-label="Game mode">
             <button class="mode-tab" data-mode="population" type="button">Population</button>
             <button class="mode-tab" data-mode="area" type="button">Area</button>
+            <button class="mode-tab" data-mode="nominal" type="button">GDP</button>
+            <button class="mode-tab" data-mode="ppp" type="button">GDP PPP</button>
+            <button class="mode-tab" data-mode="perPerson" type="button">GDP / person</button>
         </div>
 
         <div id="comparison" class="comparison-grid"></div>
@@ -66,20 +69,58 @@
 <script src="script.js"></script>
 <script src="andah-stats.js"></script>
 <script>
+    function formatCompactNumber(value) {
+        const units = [
+            { amount: 1e12, suffix: 'T' },
+            { amount: 1e9, suffix: 'B' },
+            { amount: 1e6, suffix: 'M' }
+        ];
+        const unit = units.find(u => value >= u.amount);
+        if (!unit) return value.toLocaleString();
+        const compact = value / unit.amount;
+        const digits = compact >= 100 ? 0 : compact >= 10 ? 1 : 2;
+        return `${compact.toFixed(digits).replace(/\.0+$/, '')}${unit.suffix}`;
+    }
+
+    function formatCurrency(value) {
+        return `<span class="currency-value"><img src="flags/Lanh.png" alt="">${formatCompactNumber(value)}</span>`;
+    }
+
     const modes = {
         population: {
-            label: 'population',
             field: 'population',
             highScoreKey: 'biggerSmallerPopulationHighScore',
             prompt: 'Choose the country with the larger population.',
+            result: 'is larger',
             format: value => value.toLocaleString()
         },
         area: {
-            label: 'area',
             field: 'areaKm',
             highScoreKey: 'biggerSmallerAreaHighScore',
             prompt: 'Choose the country with the larger area.',
+            result: 'is larger',
             format: value => `${value.toLocaleString()} km2`
+        },
+        nominal: {
+            field: 'gdpNominal',
+            highScoreKey: 'richerPoorerNominalHighScore',
+            prompt: 'Choose the country with the larger economy.',
+            result: 'has the larger economy',
+            format: formatCurrency
+        },
+        ppp: {
+            field: 'gdpPpp',
+            highScoreKey: 'richerPoorerPppHighScore',
+            prompt: 'Choose the country with the larger PPP economy.',
+            result: 'has the larger PPP economy',
+            format: formatCurrency
+        },
+        perPerson: {
+            field: 'gdpPerNominal',
+            highScoreKey: 'richerPoorerPerPersonHighScore',
+            prompt: 'Choose the country with the higher GDP per person.',
+            result: 'is richer per person',
+            format: formatCurrency
         }
     };
 
@@ -188,7 +229,7 @@
                 highScore = score;
                 saveHighScore();
             }
-            document.getElementById('result').innerText = `Correct. ${values}`;
+            document.getElementById('result').innerHTML = `Correct. ${values}`;
         } else {
             button.classList.add('wrong');
             if (score > highScore) {
@@ -196,7 +237,7 @@
                 saveHighScore();
             }
             score = 0;
-            document.getElementById('result').innerText = `${correctCountry.name} is larger. ${values}`;
+            document.getElementById('result').innerHTML = `${correctCountry.name} ${modes[mode].result}. ${values}`;
         }
 
         updateScoreDisplay();

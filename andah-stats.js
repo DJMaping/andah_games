@@ -750,7 +750,7 @@
         "gdpPerPpp":  28183
     },
     {
-        "name":  "lasri",
+        "name":  "Lasri",
         "population":  2170550,
         "areaKm":  41453,
         "areaMi":  16005,
