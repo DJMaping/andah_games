@@ -7,6 +7,7 @@
   "scripts": {
     "build": "node scripts/build.js",
     "build:data": "node scripts/build-data.js",
+    "build:intros": "node scripts/extract-intros.js",
     "build:wiki": "node scripts/fetch-wiki.js",
     "serve": "npx --yes serve ."
   },

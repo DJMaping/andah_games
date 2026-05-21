@@ -4,6 +4,7 @@
 
 import { buildData } from './build-data.js';
 import { fetchWiki } from './fetch-wiki.js';
+import { extractIntros } from './extract-intros.js';
 
 async function main() {
     if (process.env.SKIP_DATA !== '1') {
@@ -11,6 +12,13 @@ async function main() {
         await buildData();
     } else {
         console.log('SKIP_DATA=1, skipping data pipeline.');
+    }
+
+    if (process.env.SKIP_INTROS !== '1') {
+        console.log('--- build:intros ---');
+        await extractIntros();
+    } else {
+        console.log('SKIP_INTROS=1, skipping intros pipeline.');
     }
 
     if (process.env.SKIP_WIKI !== '1') {
