@@ -1,0 +1,21 @@
+{
+  "name": "andah-games",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Andah country games + visualization + wiki mirror.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:data": "node scripts/build-data.js",
+    "build:wiki": "node scripts/fetch-wiki.js",
+    "serve": "npx --yes serve ."
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@netlify/functions": "^2.8.0",
+    "cheerio": "^1.0.0",
+    "xlsx": "^0.18.5"
+  }
+}

@@ -829,3 +829,406 @@ footer .footer-meta {
         flex-wrap: wrap;
     }
 }
+
+/* ============================================================
+   Explore (viz) + Wiki sections
+   ============================================================ */
+
+.viz-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 14px 0 18px;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.viz-tab {
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: transparent;
+    color: var(--link);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.92rem;
+    padding: 8px 14px;
+    margin-bottom: -1px;
+    border-radius: 2px 2px 0 0;
+}
+
+.viz-tab:hover {
+    background: var(--bg-soft);
+    text-decoration: underline;
+}
+
+.viz-tab.active {
+    background: var(--bg);
+    border-color: var(--border-soft);
+    border-bottom-color: var(--bg);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.viz-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    margin: 4px 0 16px;
+}
+
+.viz-controls label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.viz-controls select,
+.chart-controls select,
+.ts-controls select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font: inherit;
+    font-size: 0.95rem;
+    padding: 6px 10px;
+    border-radius: 2px;
+}
+
+.viz-panel {
+    min-height: 360px;
+    margin: 8px 0;
+}
+
+/* Map */
+.map-frame {
+    position: relative;
+    border: 1px solid var(--border-soft);
+    background: var(--bg-soft);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.map-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--bg);
+}
+
+.map-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    box-shadow: var(--shadow);
+    z-index: 2;
+}
+
+.map-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border-top: 1px solid var(--border-soft);
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.map-legend-ramp {
+    flex: 1;
+    height: 10px;
+    background: linear-gradient(to right, rgb(220, 232, 244), rgb(40, 82, 194));
+    border: 1px solid var(--border-soft);
+    border-radius: 2px;
+}
+
+.map-legend-label {
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* Table */
+.table-controls {
+    display: flex;
+    gap: 10px;
+    margin: 0 0 10px;
+}
+
+.table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border-soft);
+    background: var(--bg);
+    border-radius: 2px;
+}
+
+.country-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+
+.country-table thead th {
+    background: var(--bg-soft);
+    color: var(--text);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.country-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.country-table th.sortable:hover {
+    background: var(--bg-sunken);
+}
+
+.country-table th.sorted::after {
+    content: ' \25BC';
+    font-size: 0.75em;
+}
+
+.country-table th.sorted[data-sort-dir="asc"]::after {
+    content: ' \25B2';
+    font-size: 0.75em;
+}
+
+.country-table th.numeric,
+.country-table td.numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.country-table tbody tr {
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.country-table tbody tr:hover {
+    background: var(--bg-soft);
+}
+
+.country-table td {
+    padding: 6px 12px;
+    color: var(--text);
+}
+
+.country-name {
+    font-family: var(--serif);
+    font-weight: 500;
+}
+
+/* Charts */
+.chart-controls {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 0 0 12px;
+}
+
+.chart-controls label,
+.ts-controls label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+#chart-canvas {
+    width: 100% !important;
+    height: 420px !important;
+}
+
+/* Time-series */
+.ts-controls {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin: 0 0 12px;
+}
+
+.ts-controls input[type="range"] {
+    width: 200px;
+}
+
+.ts-controls button {
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    color: var(--text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.92rem;
+    padding: 6px 14px;
+    border-radius: 2px;
+}
+
+.ts-controls button:hover {
+    background: var(--bg-sunken);
+    border-color: var(--text);
+}
+
+#ts-canvas {
+    width: 100% !important;
+    height: 420px !important;
+}
+
+/* Country detail */
+.country-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+    gap: 24px;
+    margin: 12px 0;
+}
+
+.detail-data .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: 2px;
+}
+
+.detail-table th,
+.detail-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-soft);
+    text-align: left;
+}
+
+.detail-table th[scope="row"] {
+    color: var(--muted);
+    font-weight: 500;
+    width: 45%;
+}
+
+.detail-wiki-link {
+    margin-top: 12px;
+    font-size: 0.88rem;
+}
+
+/* Wiki article styling (embedded MediaWiki HTML) */
+.wiki-article {
+    line-height: 1.65;
+}
+
+.wiki-article h1,
+.wiki-article h2,
+.wiki-article h3 {
+    font-family: var(--serif);
+    border-bottom: 1px solid var(--heading-underline);
+    padding-bottom: 4px;
+    margin: 18px 0 10px;
+    font-weight: 400;
+}
+
+.wiki-article h2 { font-size: 1.35rem; }
+.wiki-article h3 { font-size: 1.15rem; border-bottom: none; }
+
+.wiki-article p { margin: 0 0 10px; }
+
+.wiki-article a { color: var(--link); }
+.wiki-article a:visited { color: var(--link-visited); }
+
+.wiki-article ul,
+.wiki-article ol {
+    margin: 0 0 10px;
+    padding-left: 22px;
+}
+
+.wiki-article table.infobox,
+.wiki-article .infobox {
+    float: right;
+    margin: 0 0 12px 16px;
+    max-width: 320px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    font-size: 0.85rem;
+    border-collapse: collapse;
+}
+
+.wiki-article .infobox th,
+.wiki-article .infobox td {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: top;
+}
+
+.wiki-article .thumb,
+.wiki-article .thumbinner {
+    max-width: 100%;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    padding: 6px;
+    margin: 6px 0;
+}
+
+.wiki-article .thumb img,
+.wiki-article img {
+    max-width: 100%;
+    height: auto;
+}
+
+.wiki-article .reference,
+.wiki-article .mw-cite-backlink {
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+.wiki-page-header {
+    margin-bottom: 16px;
+}
+
+.wiki-page-meta {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 4px 0 0;
+}
+
+.wiki-page-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+    columns: 2;
+    column-gap: 28px;
+}
+
+.wiki-page-list li {
+    margin: 2px 0;
+    break-inside: avoid;
+}
+
+/* Detail responsive: stack on narrow screens */
+@media (max-width: 720px) {
+    .country-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .wiki-article .infobox {
+        float: none;
+        margin: 0 0 12px;
+        max-width: 100%;
+    }
+
+    .wiki-page-list {
+        columns: 1;
+    }
+}
