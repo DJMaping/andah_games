@@ -17,7 +17,7 @@ async function fallbackFromAndahStats() {
     // andah-stats.js is a classic script (sets window.andahStats). Load via a
     // dynamic <script> insertion so we don't need to convert it to an ES module.
     if (typeof window === 'undefined') return { countries: [], metricDefs: [] };
-    if (!window.andahStats) await loadClassicScript('andah-stats.js');
+    if (!window.andahStats) await loadClassicScript('andah-stats.js', 'andahStats');
 
     const stats = window.andahStats || [];
     const countries = stats.map(s => ({
@@ -48,11 +48,21 @@ async function fallbackFromAndahStats() {
     return { countries, metricDefs, _fallback: true };
 }
 
-function loadClassicScript(src) {
+function loadClassicScript(src, globalName) {
     return new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = src;
-        s.onload = resolve;
+        s.onload = () => {
+            // andah-*.js files declare their data with top-level `const`, which
+            // lives in classic-script scope and isn't visible to ES modules.
+            // Append a tiny bridge script that copies the binding onto window.
+            if (globalName) {
+                const bridge = document.createElement('script');
+                bridge.textContent = `try{if(typeof ${globalName}!=='undefined')window.${globalName}=${globalName};}catch(e){}`;
+                document.head.appendChild(bridge);
+            }
+            resolve();
+        };
         s.onerror = () => reject(new Error(`Failed to load ${src}`));
         document.head.appendChild(s);
     });
@@ -61,7 +71,7 @@ function loadClassicScript(src) {
 export async function loadMapCoords() {
     if (!window.andahMapCoords) {
         try {
-            await loadClassicScript('andah-map-coords.js');
+            await loadClassicScript('andah-map-coords.js', 'andahMapCoords');
         } catch {
             return [];
         }
@@ -69,9 +79,35 @@ export async function loadMapCoords() {
     return window.andahMapCoords || [];
 }
 
+export async function loadCapitals() {
+    if (typeof window === 'undefined') return [];
+    if (!window.andahCapitals) {
+        try { await loadClassicScript('andah-capitals.js', 'andahCapitals'); } catch { return []; }
+    }
+    return window.andahCapitals || [];
+}
+
+export async function loadCities() {
+    if (typeof window === 'undefined') return [];
+    if (!window.andahCities) {
+        try { await loadClassicScript('andah-cities.js', 'andahCities'); } catch { return []; }
+    }
+    return window.andahCities || [];
+}
+
 export async function loadWikiIndex() {
     try {
         const res = await fetch('data/wiki-index.json', { cache: 'no-cache' });
+        if (!res.ok) return { pages: [] };
+        return await res.json();
+    } catch {
+        return { pages: [] };
+    }
+}
+
+export async function loadIntros() {
+    try {
+        const res = await fetch('data/intros.json', { cache: 'no-cache' });
         if (!res.ok) return { pages: [] };
         return await res.json();
     } catch {
