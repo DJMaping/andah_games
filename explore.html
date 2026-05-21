@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Explore — Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <a href="/wiki/">Wiki</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card" id="page-card">
+        <div id="view-explore">
+            <div class="page-header">
+                <p class="eyebrow">From the Andah country dataset</p>
+                <h1 class="huge-title">Explore</h1>
+                <p class="subtitle" id="explore-subtitle">An interactive view of every country in Andah. Click a dot, row, or chart point to drill in.</p>
+            </div>
+
+            <div class="viz-tabs" role="tablist" aria-label="View">
+                <button type="button" class="viz-tab" data-view="map">Map</button>
+                <button type="button" class="viz-tab" data-view="table">Table</button>
+                <button type="button" class="viz-tab" data-view="charts">Charts</button>
+                <button type="button" class="viz-tab" data-view="time">Time-series</button>
+            </div>
+
+            <section class="viz-controls" id="viz-controls"></section>
+
+            <section class="viz-panel" id="viz-panel">
+                <p class="result-text">Loading data...</p>
+            </section>
+        </div>
+
+        <div id="view-detail" hidden></div>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="script.js"></script>
+<script type="module" src="explore.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wiki — Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="/index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="/index.html">Main page</a>
+            <a href="/explore.html">Explore</a>
+            <a href="/wiki/">All pages</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card" id="wiki-root">
+        <p class="result-text">Loading...</p>
+    </article>
+
+    <footer>
+        <p>Wiki content mirrored from <a href="https://andah.miraheze.org" target="_blank" rel="noopener">andah.miraheze.org</a>. Edit there; this site re-syncs daily.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="/script.js"></script>
+<script type="module">
+    import { loadWikiIndex } from '/views/data.js';
+    import { renderWikiPage, renderWikiIndex } from '/views/wiki-view.js';
+
+    const root = document.getElementById('wiki-root');
+    const params = new URLSearchParams(window.location.search);
+    const slug = (params.get('p') || '').trim();
+
+    loadWikiIndex().then(index => {
+        if (!slug) {
+            renderWikiIndex({ container: root, wikiIndex: index });
+        } else {
+            renderWikiPage({ container: root, slug, wikiIndex: index });
+        }
+    });
+</script>
+</body>
+</html>

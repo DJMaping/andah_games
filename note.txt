@@ -1,9 +1,4 @@
 
-**Comparison Games:**
-- **Bigger or Smaller?** - Show two countries, guess which has larger population/area
-- **Older or Newer?** - If you have founding dates, compare country ages
-- **Richer or Poorer?** - Compare GDP/economy statistics
-
 **Matching Games:**
 - **Country to Capital** - Name the capital city
 - **Country to Language** - Match nations to their primary languages
