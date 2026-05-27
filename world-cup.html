@@ -441,7 +441,7 @@
         <div class="page-header">
             <p class="eyebrow">Simulations</p>
             <h1 class="huge-title">1764 World Cup Simulator</h1>
-            <p class="subtitle">Simulate the 1764 Andah World Cup — from continental qualifiers through to the final. Results are weighted by FIFA rankings, but upsets happen.</p>
+            <p class="subtitle">Simulate the 1764 Andah World Cup — from continental qualifiers through to the final. Results are weighted by FLLA rankings, but upsets happen.</p>
         </div>
 
         <div class="wc-controls">
@@ -477,7 +477,7 @@
             </div>
             <div class="score-block">
                 <label>Most Dominant</label>
-                <strong id="stat-dominant">—</strong>
+                <strong id="stat-dominant"></strong>
             </div>
         </div>
 
@@ -1014,7 +1014,7 @@
             }
 
             html += '<p style="font-size:0.85rem;margin-top:4px"><strong>Qualified:</strong> ' +
-                q.qualified.map(n => '<span class="wc-team-cell" style="display:inline-flex;margin:2px 6px 2px 0">' +
+                q.qualified.map(n => '<span class="wc-team-cell" style="display:inline-flex;margin:2px 6px 2px 0" title="FLLA #' + (rankLookup[n] || '?') + '">' +
                     '<img src="' + flagUrl(n) + '" alt="">' + esc(n) + '</span>').join('') + '</p>';
             html += '</div>';
         }
@@ -1057,7 +1057,7 @@
         for (let i = 0; i < table.length; i++) {
             const r = table[i];
             const cls = i < nAdvance ? ' class="wc-advancing"' : '';
-            h += '<tr' + cls + '><td><span class="wc-team-cell"><img src="' + flagUrl(r.team.name) + '" alt="">' + esc(r.team.name) + '</span></td>';
+            h += '<tr' + cls + '><td>' + teamSpan(r.team.name) + '</td>';
             h += '<td>' + r.p + '</td><td>' + r.w + '</td><td>' + r.d + '</td><td>' + r.l + '</td>';
             h += '<td>' + r.gf + '</td><td>' + r.ga + '</td><td>' + (r.gf - r.ga > 0 ? '+' : '') + (r.gf - r.ga) + '</td>';
             h += '<td><strong>' + r.pts + '</strong></td></tr>';
@@ -1072,9 +1072,9 @@
             const homeWin = m.outcome === 'A';
             const awayWin = m.outcome === 'B';
             h += '<div class="wc-match-line">';
-            h += '<span class="' + (homeWin ? 'wc-match-winner' : '') + '">' + esc(m.home.name) + '</span>';
+            h += '<a href="' + wikiUrl(m.home.name) + '" target="_blank" rel="noopener" class="' + (homeWin ? 'wc-match-winner' : '') + '" style="text-decoration:none;color:inherit" title="FLLA #' + (rankLookup[m.home.name] || '?') + '">' + esc(m.home.name) + '</a>';
             h += ' ' + m.goalsA + ' – ' + m.goalsB + ' ';
-            h += '<span class="' + (awayWin ? 'wc-match-winner' : '') + '">' + esc(m.away.name) + '</span>';
+            h += '<a href="' + wikiUrl(m.away.name) + '" target="_blank" rel="noopener" class="' + (awayWin ? 'wc-match-winner' : '') + '" style="text-decoration:none;color:inherit" title="FLLA #' + (rankLookup[m.away.name] || '?') + '">' + esc(m.away.name) + '</a>';
             h += '</div>';
         }
         return h;
@@ -1093,15 +1093,18 @@
         const teamAWin = resolved && match.result.outcome === 'A';
         const teamBWin = resolved && match.result.outcome === 'B';
 
-        h += '<div class="wc-match-team' + (teamAWin ? ' winner' : (teamBWin && resolved ? ' loser' : '')) + '">';
+        const rA = rankLookup[match.teamA.name] || '?';
+        const rB = rankLookup[match.teamB.name] || '?';
+
+        h += '<div class="wc-match-team' + (teamAWin ? ' winner' : (teamBWin && resolved ? ' loser' : '')) + '" title="FLLA #' + rA + '">';
         h += '<img src="' + flagUrl(match.teamA.name) + '" alt="">';
-        h += '<span class="wc-match-team-name">' + esc(match.teamA.name) + '</span>';
-        if (resolved) h += '<span class="wc-match-team-score">' + match.result.goalsA + (match.result.penA != null && teamAWin ? '' : '') + '</span>';
+        h += '<a href="' + wikiUrl(match.teamA.name) + '" target="_blank" rel="noopener" class="wc-match-team-name" style="text-decoration:none;color:inherit">' + esc(match.teamA.name) + '</a>';
+        if (resolved) h += '<span class="wc-match-team-score">' + match.result.goalsA + '</span>';
         h += '</div>';
 
-        h += '<div class="wc-match-team' + (teamBWin ? ' winner' : (teamAWin && resolved ? ' loser' : '')) + '">';
+        h += '<div class="wc-match-team' + (teamBWin ? ' winner' : (teamAWin && resolved ? ' loser' : '')) + '" title="FLLA #' + rB + '">';
         h += '<img src="' + flagUrl(match.teamB.name) + '" alt="">';
-        h += '<span class="wc-match-team-name">' + esc(match.teamB.name) + '</span>';
+        h += '<a href="' + wikiUrl(match.teamB.name) + '" target="_blank" rel="noopener" class="wc-match-team-name" style="text-decoration:none;color:inherit">' + esc(match.teamB.name) + '</a>';
         if (resolved) h += '<span class="wc-match-team-score">' + match.result.goalsB + '</span>';
         h += '</div>';
 
@@ -1175,8 +1178,11 @@
         const fourth = t.knockout.thirdPlace.loser;
 
         let html = '<div class="wc-champion">';
+        html += '<a href="' + wikiUrl(champ.name) + '" target="_blank" rel="noopener" style="text-decoration:none">';
         html += '<img class="wc-champion-flag" src="' + flagUrl(champ.name) + '" alt="">';
         html += '<div class="wc-champion-name">' + esc(champ.name) + '</div>';
+        html += '</a>';
+        html += '<div style="font-size:0.92rem;color:var(--correct-text);margin-top:2px">FLLA Ranking: #' + champ.rank + '</div>';
         html += '<div class="wc-champion-subtitle">1764 World Cup Champions</div>';
         html += '<div style="font-size:0.88rem;color:var(--correct-text);margin-top:4px">';
         html += 'Final: ' + esc(t.knockout.final.teamA.name) + ' ' + formatScore(t.knockout.final.result, t.knockout.final.teamA, t.knockout.final.teamB) + ' ' + esc(t.knockout.final.teamB.name);
@@ -1187,18 +1193,23 @@
 
         // Podium
         html += '<div class="wc-recap-card"><div class="wc-recap-label">Runner-up</div><div class="wc-recap-value">' +
-            '<span class="wc-team-cell"><img src="' + flagUrl(runnerUp.name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(runnerUp.name) + '</span></div></div>';
+            teamLink(runnerUp.name) + '</div>' +
+            '<div class="wc-recap-detail">FLLA #' + runnerUp.rank + '</div></div>';
         html += '<div class="wc-recap-card"><div class="wc-recap-label">3rd Place</div><div class="wc-recap-value">' +
-            '<span class="wc-team-cell"><img src="' + flagUrl(third.name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(third.name) + '</span></div></div>';
+            teamLink(third.name) + '</div>' +
+            '<div class="wc-recap-detail">FLLA #' + third.rank + '</div></div>';
         html += '<div class="wc-recap-card"><div class="wc-recap-label">4th Place</div><div class="wc-recap-value">' +
-            '<span class="wc-team-cell"><img src="' + flagUrl(fourth.name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(fourth.name) + '</span></div></div>';
+            teamLink(fourth.name) + '</div>' +
+            '<div class="wc-recap-detail">FLLA #' + fourth.rank + '</div></div>';
 
         // Golden Boot
         const topScorers = Object.entries(t.goalTally).sort((a, b) => b[1] - a[1]);
         if (topScorers.length > 0) {
+            const gbName = topScorers[0][0];
+            const gbRank = rankLookup[gbName] || '?';
             html += '<div class="wc-recap-card"><div class="wc-recap-label">Golden Boot</div><div class="wc-recap-value">' +
-                '<span class="wc-team-cell"><img src="' + flagUrl(topScorers[0][0]) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(topScorers[0][0]) + '</span></div>' +
-                '<div class="wc-recap-detail">' + topScorers[0][1] + ' goals</div></div>';
+                teamLink(gbName) + '</div>' +
+                '<div class="wc-recap-detail">' + topScorers[0][1] + ' goals · FLLA #' + gbRank + '</div></div>';
         }
 
         // Biggest upset
@@ -1227,9 +1238,10 @@
             }
         }
         if (cinderella) {
+            const cRank = rankLookup[cinderella.name] || '?';
             html += '<div class="wc-recap-card"><div class="wc-recap-label">Cinderella Run</div><div class="wc-recap-value">' +
-                '<span class="wc-team-cell"><img src="' + flagUrl(cinderella.name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(cinderella.name) + '</span></div>' +
-                '<div class="wc-recap-detail">Seed #' + cinderella.qRank + ' reached ' + roundLabel[cinderella.round] + '</div></div>';
+                teamLink(cinderella.name) + '</div>' +
+                '<div class="wc-recap-detail">FLLA #' + cRank + ' · Seed #' + cinderella.qRank + ' reached ' + roundLabel[cinderella.round] + '</div></div>';
         }
 
         html += '</div>';
@@ -1274,7 +1286,7 @@
         const uniqueChamps = Object.keys(session.champions).length;
         document.getElementById('stat-unique').textContent = uniqueChamps;
         const topChamp = Object.entries(session.champions).sort((a, b) => b[1] - a[1])[0];
-        document.getElementById('stat-dominant').textContent = topChamp ? topChamp[0] + ' (' + topChamp[1] + ')' : '—';
+        document.getElementById('stat-dominant').textContent = topChamp ? topChamp[0] + ' (' + topChamp[1] + ')' : '';
 
         // Tally table
         let html = '<h3 style="font-family:var(--serif);font-weight:400;font-size:1.1rem;margin:0 0 8px">Champion Frequency</h3>';
@@ -1285,7 +1297,7 @@
         for (const [name, wins] of champEntries) {
             const pct = (wins / session.count * 100).toFixed(1);
             const barW = Math.max(4, (wins / maxWins) * 120);
-            html += '<tr><td><span class="wc-team-cell"><img src="' + flagUrl(name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(name) + '</span></td>';
+            html += '<tr><td>' + teamSpan(name) + '</td>';
             html += '<td class="numeric">' + wins + '</td>';
             html += '<td><span class="wc-freq-bar" style="width:' + barW + 'px"></span>' + pct + '%</td></tr>';
         }
@@ -1319,7 +1331,6 @@
         btnNextBottom.style.display = '';
         btnNextBottom.disabled = false;
         updateStepButton();
-        btnSim.disabled = true;
     }
 
     function updateStepButton() {
@@ -1437,6 +1448,7 @@
         updateSession(t);
         renderTally();
         btnSim.textContent = 'Simulate Again';
+        btnSim.disabled = false;
         btnStep.disabled = false;
         btnReset.style.display = '';
         syncButtons();
@@ -1446,10 +1458,10 @@
     }
 
     function doStepStart() {
-        btnStep.disabled = true;
-        btnStepBottom.disabled = true;
         btnReset.style.display = '';
         startStepMode();
+        btnSim.disabled = false;
+        btnStep.disabled = false;
         syncButtons();
     }
 
@@ -1474,6 +1486,23 @@
         const d = document.createElement('div');
         d.textContent = str;
         return d.innerHTML;
+    }
+
+    const rankLookup = {};
+    for (const t of andahFifaData) rankLookup[t.name] = t.rank;
+
+    function wikiUrl(name) {
+        return 'https://andah.miraheze.org/wiki/' + encodeURIComponent(name.replace(/\s+/g, '_'));
+    }
+
+    function teamSpan(name) {
+        const r = rankLookup[name] || '?';
+        return '<a href="' + wikiUrl(name) + '" target="_blank" rel="noopener" class="wc-team-cell" title="FLLA #' + r + '" style="text-decoration:none;color:inherit"><img src="' + flagUrl(name) + '" alt="">' + esc(name) + '</a>';
+    }
+
+    function teamLink(name) {
+        const r = rankLookup[name] || '?';
+        return '<a href="' + wikiUrl(name) + '" target="_blank" rel="noopener" class="wc-team-cell" title="FLLA #' + r + '" style="text-decoration:none;color:var(--link)"><img src="' + flagUrl(name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(name) + '</a>';
     }
 
     // ── Skeleton on page load ──
@@ -1548,7 +1577,7 @@
         html += '<div class="wc-recap-skeleton">';
         const recapLabels = ['Runner-up', '3rd Place', '4th Place', 'Golden Boot', 'Biggest Upset'];
         for (const label of recapLabels) {
-            html += '<div class="wc-recap-card"><div class="wc-recap-label">' + label + '</div><div class="wc-recap-value" style="color:var(--muted)">—</div></div>';
+            html += '<div class="wc-recap-card"><div class="wc-recap-label">' + label + '</div><div class="wc-recap-value"></div></div>';
         }
         html += '</div>';
 
