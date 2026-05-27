@@ -7,7 +7,7 @@
   functions = "netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
   # MIRAHEZE_USER_AGENT must be set in the Netlify UI (Site settings >
   # Environment variables). Miraheze rejects requests without a descriptive UA.
   # Example value: "AndahGames/1.0 (https://www.djmapping.com)"
