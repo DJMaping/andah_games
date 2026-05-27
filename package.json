@@ -13,7 +13,7 @@
     "serve": "npx --yes serve ."
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
     "@netlify/functions": "^2.8.0",
