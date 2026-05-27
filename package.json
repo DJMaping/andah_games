@@ -9,6 +9,7 @@
     "build:data": "node scripts/build-data.js",
     "build:intros": "node scripts/extract-intros.js",
     "build:wiki": "node scripts/fetch-wiki.js",
+    "build:fifa": "node scripts/build-fifa-data.js",
     "serve": "npx --yes serve ."
   },
   "engines": {
