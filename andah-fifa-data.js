@@ -27,20 +27,20 @@ const andahFifaData = [
     "debuff": 0
   },
   {
-    "name": "Ztesh",
-    "continent": "Quia",
-    "adjustedPoints": 1428.91,
+    "name": "Verusa",
+    "continent": "Ayuma",
+    "adjustedPoints": 1523.46,
     "rank": 4,
-    "population": 425141434,
+    "population": 69480631,
     "sportEarth": "Football",
     "debuff": 0
   },
   {
-    "name": "Verusa",
+    "name": "Easuhura",
     "continent": "Ayuma",
-    "adjustedPoints": 1523.46,
+    "adjustedPoints": 1490.9,
     "rank": 5,
-    "population": 69480631,
+    "population": 29913650,
     "sportEarth": "Football",
     "debuff": 0
   },
@@ -54,29 +54,11 @@ const andahFifaData = [
     "debuff": 0
   },
   {
-    "name": "Ukhdari",
-    "continent": "Ayuma",
-    "adjustedPoints": 1427.06,
-    "rank": 7,
-    "population": 85678806,
-    "sportEarth": "Football",
-    "debuff": 0
-  },
-  {
     "name": "New Misos",
     "continent": "Atirha",
     "adjustedPoints": 1473.02,
-    "rank": 8,
+    "rank": 7,
     "population": 53637198,
-    "sportEarth": "Football",
-    "debuff": 0
-  },
-  {
-    "name": "Inania",
-    "continent": "Mahea",
-    "adjustedPoints": 1372.48,
-    "rank": 9,
-    "population": 236475569,
     "sportEarth": "Football",
     "debuff": 0
   },
@@ -84,7 +66,7 @@ const andahFifaData = [
     "name": "Seytinemas",
     "continent": "Mahea",
     "adjustedPoints": 1470.54,
-    "rank": 10,
+    "rank": 8,
     "population": 71957346,
     "sportEarth": "Football",
     "debuff": 0
@@ -93,7 +75,7 @@ const andahFifaData = [
     "name": "Quidic",
     "continent": "Quia",
     "adjustedPoints": 1467.21,
-    "rank": 11,
+    "rank": 9,
     "population": 143972723,
     "sportEarth": "Football",
     "debuff": 0
@@ -102,7 +84,7 @@ const andahFifaData = [
     "name": "Etirha",
     "continent": "Atirha",
     "adjustedPoints": 1466.07,
-    "rank": 12,
+    "rank": 10,
     "population": 74667447,
     "sportEarth": "Etirhan Football",
     "debuff": 100.0
@@ -111,35 +93,8 @@ const andahFifaData = [
     "name": "Siana",
     "continent": "Ayuma",
     "adjustedPoints": 1462.84,
-    "rank": 13,
+    "rank": 11,
     "population": 39335005,
-    "sportEarth": "Football",
-    "debuff": 0
-  },
-  {
-    "name": "Ealdorii",
-    "continent": "Ayuma",
-    "adjustedPoints": 1422.35,
-    "rank": 14,
-    "population": 137992638,
-    "sportEarth": "Football",
-    "debuff": 0
-  },
-  {
-    "name": "Easuhura",
-    "continent": "Ayuma",
-    "adjustedPoints": 1490.9,
-    "rank": 15,
-    "population": 29913650,
-    "sportEarth": "Football",
-    "debuff": 0
-  },
-  {
-    "name": "Sanagara",
-    "continent": "Massir",
-    "adjustedPoints": 1434.07,
-    "rank": 16,
-    "population": 38792291,
     "sportEarth": "Football",
     "debuff": 0
   },
@@ -147,8 +102,17 @@ const andahFifaData = [
     "name": "Praesyu",
     "continent": "Ayuma",
     "adjustedPoints": 1459.06,
-    "rank": 17,
+    "rank": 12,
     "population": 39227750,
+    "sportEarth": "Football",
+    "debuff": 0
+  },
+  {
+    "name": "Sanagara",
+    "continent": "Massir",
+    "adjustedPoints": 1434.07,
+    "rank": 13,
+    "population": 38792291,
     "sportEarth": "Football",
     "debuff": 0
   },
@@ -156,26 +120,26 @@ const andahFifaData = [
     "name": "Dahe",
     "continent": "Massir",
     "adjustedPoints": 1432.49,
-    "rank": 18,
+    "rank": 14,
     "population": 890601322,
     "sportEarth": "Rugby",
     "debuff": 250.0
   },
   {
-    "name": "Taval",
-    "continent": "Massir",
-    "adjustedPoints": 1427.17,
-    "rank": 19,
-    "population": 44529546,
+    "name": "Ztesh",
+    "continent": "Quia",
+    "adjustedPoints": 1428.91,
+    "rank": 15,
+    "population": 425141434,
     "sportEarth": "Football",
     "debuff": 0
   },
   {
-    "name": "Etretes",
+    "name": "Taval",
     "continent": "Massir",
-    "adjustedPoints": 1405.41,
-    "rank": 20,
-    "population": 21374692,
+    "adjustedPoints": 1427.17,
+    "rank": 16,
+    "population": 44529546,
     "sportEarth": "Football",
     "debuff": 0
   },
@@ -183,17 +147,26 @@ const andahFifaData = [
     "name": "Trian",
     "continent": "Mahea",
     "adjustedPoints": 1427.13,
-    "rank": 21,
+    "rank": 17,
     "population": 27844193,
     "sportEarth": "Football",
     "debuff": 0
   },
   {
-    "name": "Vesozata",
-    "continent": "Massir",
-    "adjustedPoints": 1375.19,
-    "rank": 22,
-    "population": 121753072,
+    "name": "Ukhdari",
+    "continent": "Ayuma",
+    "adjustedPoints": 1427.06,
+    "rank": 18,
+    "population": 85678806,
+    "sportEarth": "Football",
+    "debuff": 0
+  },
+  {
+    "name": "Ealdorii",
+    "continent": "Ayuma",
+    "adjustedPoints": 1422.35,
+    "rank": 19,
+    "population": 137992638,
     "sportEarth": "Football",
     "debuff": 0
   },
@@ -201,17 +174,17 @@ const andahFifaData = [
     "name": "Terressin",
     "continent": "Acrola",
     "adjustedPoints": 1408.89,
-    "rank": 23,
+    "rank": 20,
     "population": 74091042,
     "sportEarth": "Football",
     "debuff": 0
   },
   {
-    "name": "Wundry",
-    "continent": "Quia",
-    "adjustedPoints": 1370.96,
-    "rank": 24,
-    "population": 140080976,
+    "name": "Etretes",
+    "continent": "Massir",
+    "adjustedPoints": 1405.41,
+    "rank": 21,
+    "population": 21374692,
     "sportEarth": "Football",
     "debuff": 0
   },
@@ -219,7 +192,7 @@ const andahFifaData = [
     "name": "Finae",
     "continent": "Quia",
     "adjustedPoints": 1399.6,
-    "rank": 25,
+    "rank": 22,
     "population": 31745420,
     "sportEarth": "Football",
     "debuff": 0
@@ -228,7 +201,7 @@ const andahFifaData = [
     "name": "Dual Cenryia",
     "continent": "Mahea",
     "adjustedPoints": 1399.02,
-    "rank": 26,
+    "rank": 23,
     "population": 95001457,
     "sportEarth": "Football",
     "debuff": 0
@@ -237,7 +210,7 @@ const andahFifaData = [
     "name": "Yaxuto",
     "continent": "Ayuma",
     "adjustedPoints": 1395.81,
-    "rank": 27,
+    "rank": 24,
     "population": 18401158,
     "sportEarth": "Football",
     "debuff": 0
@@ -246,7 +219,7 @@ const andahFifaData = [
     "name": "Merela Sta",
     "continent": "Ayuma",
     "adjustedPoints": 1395.26,
-    "rank": 28,
+    "rank": 25,
     "population": 23361657,
     "sportEarth": "Football",
     "debuff": 0
@@ -255,7 +228,7 @@ const andahFifaData = [
     "name": "Myla",
     "continent": "Quia",
     "adjustedPoints": 1394.27,
-    "rank": 29,
+    "rank": 26,
     "population": 42672208,
     "sportEarth": "Football",
     "debuff": 0
@@ -264,7 +237,7 @@ const andahFifaData = [
     "name": "Ohtina",
     "continent": "New Ayre",
     "adjustedPoints": 1387.11,
-    "rank": 30,
+    "rank": 27,
     "population": 33245174,
     "sportEarth": "Football",
     "debuff": 0
@@ -273,7 +246,7 @@ const andahFifaData = [
     "name": "Genaire",
     "continent": "Atirha",
     "adjustedPoints": 1383.52,
-    "rank": 31,
+    "rank": 28,
     "population": 15795087,
     "sportEarth": "Football",
     "debuff": 0
@@ -282,8 +255,17 @@ const andahFifaData = [
     "name": "Oyreain",
     "continent": "Massir",
     "adjustedPoints": 1375.8,
-    "rank": 32,
+    "rank": 29,
     "population": 31491757,
+    "sportEarth": "Football",
+    "debuff": 0
+  },
+  {
+    "name": "Vesozata",
+    "continent": "Massir",
+    "adjustedPoints": 1375.19,
+    "rank": 30,
+    "population": 121753072,
     "sportEarth": "Football",
     "debuff": 0
   },
@@ -291,8 +273,26 @@ const andahFifaData = [
     "name": "Pelines",
     "continent": "Acrola",
     "adjustedPoints": 1372.56,
-    "rank": 33,
+    "rank": 31,
     "population": 88057485,
+    "sportEarth": "Football",
+    "debuff": 0
+  },
+  {
+    "name": "Inania",
+    "continent": "Mahea",
+    "adjustedPoints": 1372.48,
+    "rank": 32,
+    "population": 236475569,
+    "sportEarth": "Football",
+    "debuff": 0
+  },
+  {
+    "name": "Wundry",
+    "continent": "Quia",
+    "adjustedPoints": 1370.96,
+    "rank": 33,
+    "population": 140080976,
     "sportEarth": "Football",
     "debuff": 0
   },
