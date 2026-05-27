@@ -69,31 +69,46 @@
         .wc-section-body.hidden { display: none; }
 
         /* Qualifier continent sections */
-        .wc-continent { margin: 14px 0; }
+        .wc-qualifiers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 12px;
+        }
+        .wc-continent {
+            border: 1px solid var(--border-soft);
+            background: var(--bg-soft);
+            padding: 12px 14px;
+            border-radius: 2px;
+        }
         .wc-continent h3 {
             font-family: var(--serif);
             font-size: 1.05rem;
             font-weight: 500;
-            margin: 0 0 6px;
+            margin: 0;
             color: var(--text);
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-soft);
         }
         .wc-continent-slots {
             font-size: 0.82rem;
             color: var(--muted);
-            margin: 0 0 8px;
+            margin: 4px 0 8px;
         }
-        .wc-qual-group { margin: 8px 0 14px; }
+        .wc-qual-group { margin: 8px 0 10px; }
         .wc-qual-group h4 {
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             font-weight: 600;
             margin: 0 0 4px;
             color: var(--muted);
         }
-        .wc-qual-matches {
-            font-size: 0.82rem;
-            color: var(--muted);
-            line-height: 1.7;
-            margin-top: 6px;
+        .wc-qualified-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border-soft);
+            font-size: 0.85rem;
         }
 
         /* Group stage */
@@ -410,17 +425,26 @@
             opacity: 0.5;
         }
 
+        /* Mobile bracket: round-by-round vertical list */
+        .wc-bracket-mobile { display: none; }
+        .wc-bracket-mobile-round { margin: 14px 0; }
+        .wc-bracket-mobile-round h3 {
+            font-family: var(--serif);
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin: 0 0 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--heading-underline);
+        }
+        .wc-bracket-mobile-round .wc-match { margin: 6px 0; }
+
         @media (max-width: 640px) {
-            .wc-bracket {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-                min-width: 0;
-            }
-            .wc-bracket-scroll { overflow-x: visible; }
-            .wc-bracket-round { gap: 6px; }
+            .wc-bracket-scroll { display: none; }
+            .wc-bracket-mobile { display: block; }
             .wc-groups { grid-template-columns: 1fr; }
+            .wc-qualifiers-grid { grid-template-columns: 1fr; }
             .wc-recap { grid-template-columns: 1fr; }
+            .wc-recap-skeleton { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -995,10 +1019,11 @@
         html += '<div class="wc-section">';
         html += '<h2 class="wc-section-title collapsed" data-target="qual-body">Continental Qualifiers</h2>';
         html += '<div class="wc-section-body hidden" id="qual-body">';
+        html += '<div class="wc-qualifiers-grid">';
         for (const q of t.qualData) {
             html += '<div class="wc-continent">';
             html += '<h3>' + esc(q.continent) + '</h3>';
-            html += '<p class="wc-continent-slots">' + q.slots + ' slot' + (q.slots > 1 ? 's' : '') + ' — ' + q.qualified.length + ' qualified</p>';
+            html += '<p class="wc-continent-slots">' + q.slots + ' slot' + (q.slots > 1 ? 's' : '') + ' allocated</p>';
 
             if (q.directQual) {
                 html += '<p style="font-size:0.85rem;color:var(--muted)">All teams qualify directly.</p>';
@@ -1006,19 +1031,21 @@
                 for (let gi = 0; gi < q.groups.length; gi++) {
                     const gr = q.groups[gi];
                     html += '<div class="wc-qual-group">';
-                    html += '<h4>Qualifier Group ' + (gi + 1) + '</h4>';
+                    html += '<h4>Group ' + (gi + 1) + '</h4>';
                     html += renderGroupTable(gr.standings.table, gr.nQual);
-                    html += renderMatchList(gr.standings.matches);
                     html += '</div>';
                 }
             }
 
-            html += '<p style="font-size:0.85rem;margin-top:4px"><strong>Qualified:</strong> ' +
-                q.qualified.map(n => '<span class="wc-team-cell" style="display:inline-flex;margin:2px 6px 2px 0" title="FLLA #' + (rankLookup[n] || '?') + '">' +
-                    '<img src="' + flagUrl(n) + '" alt="">' + esc(n) + '</span>').join('') + '</p>';
+            html += '<div class="wc-qualified-list">';
+            for (const n of q.qualified) {
+                html += teamSpan(n);
+            }
+            html += '</div>';
+
             html += '</div>';
         }
-        html += '</div></div>';
+        html += '</div></div></div>';
 
         // Group stage
         html += '<div class="wc-section">';
@@ -1168,6 +1195,25 @@
         h += '</div>';
 
         h += '</div></div>';
+
+        // Mobile bracket: round-by-round vertical list
+        h += '<div class="wc-bracket-mobile">';
+
+        function mobileRound(title, matches) {
+            let m = '<div class="wc-bracket-mobile-round"><h3>' + title + '</h3>';
+            for (const match of matches) m += renderMatchCard(match);
+            m += '</div>';
+            return m;
+        }
+
+        h += mobileRound('Round of 16', ko.r16);
+        if (ko.qf.length) h += mobileRound('Quarter-Finals', ko.qf);
+        if (ko.sf.length) h += mobileRound('Semi-Finals', ko.sf);
+        if (ko.thirdPlace) h += mobileRound('3rd Place', [ko.thirdPlace]);
+        if (ko.final) h += mobileRound('Final', [ko.final]);
+
+        h += '</div>';
+
         return h;
     }
 
@@ -1568,6 +1614,17 @@
         html += '</div>';
 
         html += '</div></div>';
+
+        // Mobile bracket skeleton
+        html += '<div class="wc-bracket-mobile">';
+        const skelRounds = [['Round of 16', 8], ['Quarter-Finals', 4], ['Semi-Finals', 2], ['3rd Place', 1], ['Final', 1]];
+        for (const [rName, count] of skelRounds) {
+            html += '<div class="wc-bracket-mobile-round"><h3>' + rName + '</h3>';
+            for (let i = 0; i < count; i++) html += emptyMatch;
+            html += '</div>';
+        }
+        html += '</div>';
+
         html += '</div></div>';
 
         // Champion placeholder
@@ -1575,7 +1632,7 @@
 
         // Recap skeleton
         html += '<div class="wc-recap-skeleton">';
-        const recapLabels = ['Runner-up', '3rd Place', '4th Place', 'Golden Boot', 'Biggest Upset'];
+        const recapLabels = ['Runner-up', '3rd Place', '4th Place', 'Golden Boot', 'Biggest Upset', 'Cinderella Run'];
         for (const label of recapLabels) {
             html += '<div class="wc-recap-card"><div class="wc-recap-label">' + label + '</div><div class="wc-recap-value"></div></div>';
         }
