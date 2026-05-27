@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx';
 
 import { buildCountries } from './util/schema.js';
 
