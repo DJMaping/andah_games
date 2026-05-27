@@ -45,7 +45,7 @@ const andahMapCoords = [
   {
     "name": "Arbiya",
     "x": 3089,
-    "y": 45
+    "y": 452
   },
   {
     "name": "Areoix Lie",
