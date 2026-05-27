@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>1764 World Cup Simulator — Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .page-shell { width: min(1400px, 96%); max-width: none; }
+
+        .wc-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 0 0 18px;
+        }
+        .wc-btn {
+            border: 1px solid var(--border);
+            background: var(--bg-soft);
+            color: var(--text);
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.95rem;
+            padding: 8px 16px;
+            border-radius: 2px;
+        }
+        .wc-btn:hover { background: var(--bg-sunken); border-color: var(--text); }
+        .wc-btn:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+        .wc-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+        .wc-btn-primary {
+            background: var(--bg-sunken);
+            border-color: var(--text);
+            font-weight: 600;
+        }
+
+        .wc-section { margin: 24px 0; }
+        .wc-section-title {
+            font-family: var(--serif);
+            font-weight: 400;
+            font-size: 1.3rem;
+            margin: 0 0 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--heading-underline);
+            cursor: pointer;
+            user-select: none;
+        }
+        .wc-section-title::before {
+            content: '\25BC ';
+            font-size: 0.7em;
+            display: inline-block;
+            transition: transform 0.15s;
+        }
+        .wc-section-title.collapsed::before {
+            transform: rotate(-90deg);
+        }
+        .wc-section-body { margin-top: 12px; }
+        .wc-section-body.hidden { display: none; }
+
+        /* Qualifier continent sections */
+        .wc-continent { margin: 14px 0; }
+        .wc-continent h3 {
+            font-family: var(--serif);
+            font-size: 1.05rem;
+            font-weight: 500;
+            margin: 0 0 6px;
+            color: var(--text);
+        }
+        .wc-continent-slots {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin: 0 0 8px;
+        }
+        .wc-qual-group { margin: 8px 0 14px; }
+        .wc-qual-group h4 {
+            font-size: 0.88rem;
+            font-weight: 600;
+            margin: 0 0 4px;
+            color: var(--muted);
+        }
+        .wc-qual-matches {
+            font-size: 0.82rem;
+            color: var(--muted);
+            line-height: 1.7;
+            margin-top: 6px;
+        }
+
+        /* Group stage */
+        .wc-groups {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 10px;
+        }
+        .wc-group {
+            border: 1px solid var(--border-soft);
+            background: var(--bg-soft);
+            padding: 8px 10px;
+            border-radius: 2px;
+        }
+        .wc-group h3 {
+            font-family: var(--serif);
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin: 0 0 4px;
+        }
+        .wc-group table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .wc-group thead th {
+            text-align: center;
+            padding: 2px 4px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+        .wc-group thead th:first-child { text-align: left; }
+        .wc-group tbody td {
+            padding: 2px 4px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-soft);
+            font-variant-numeric: tabular-nums;
+        }
+        .wc-group tbody td:first-child { text-align: left; }
+        .wc-group tbody tr.wc-advancing {
+            background: var(--correct-bg);
+        }
+        .wc-team-cell {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .wc-team-cell img {
+            width: 18px;
+            height: 12px;
+            object-fit: contain;
+            border: 1px solid var(--border-soft);
+            background: var(--bg);
+        }
+        .wc-group-matches {
+            font-size: 0.75rem;
+            color: var(--muted);
+            line-height: 1.6;
+            margin-top: 4px;
+            display: none;
+        }
+        .wc-group-matches.open { display: block; }
+        .wc-matches-toggle {
+            font-size: 0.75rem;
+            color: var(--link);
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 2px 0;
+            font: inherit;
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+        .wc-matches-toggle:hover { text-decoration: underline; }
+        .wc-match-line { white-space: nowrap; }
+        .wc-match-winner { font-weight: 600; color: var(--text); }
+
+        /* Knockout bracket */
+        .wc-bracket-scroll { overflow-x: auto; margin: 12px 0; }
+        .wc-bracket {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 0.9fr 1fr 0.9fr 1fr 1.2fr;
+            gap: 4px 8px;
+            min-width: 900px;
+            align-items: stretch;
+        }
+        .wc-bracket-round {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            gap: 6px;
+        }
+        .wc-match {
+            border: 1px solid var(--border-soft);
+            background: var(--bg-soft);
+            border-radius: 2px;
+            font-size: 0.82rem;
+            overflow: hidden;
+        }
+        .wc-match-pending {
+            opacity: 0.6;
+        }
+        .wc-match-team {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 6px;
+            border-bottom: 1px solid var(--border-soft);
+            min-height: 24px;
+        }
+        .wc-match-team:last-of-type { border-bottom: none; }
+        .wc-match-team img {
+            width: 18px;
+            height: 12px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .wc-match-team-name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.78rem;
+        }
+        .wc-match-team-score {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            margin-left: auto;
+        }
+        .wc-match-team.winner {
+            background: var(--correct-bg);
+        }
+        .wc-match-team.loser {
+            opacity: 0.65;
+        }
+        .wc-match-note {
+            font-size: 0.68rem;
+            color: var(--muted);
+            text-align: center;
+            padding: 1px 4px;
+            background: var(--bg-sunken);
+        }
+        .wc-bracket-label {
+            text-align: center;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            padding: 4px 0;
+            margin-bottom: 4px;
+        }
+
+        /* Step-by-step controls */
+        .wc-step-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0;
+            padding: 10px 14px;
+            border: 1px solid var(--border-soft);
+            background: var(--bg-soft);
+            border-radius: 2px;
+        }
+        .wc-step-info {
+            font-size: 0.88rem;
+            color: var(--text);
+        }
+
+        /* Champion announcement */
+        .wc-champion {
+            text-align: center;
+            padding: 24px 18px;
+            margin: 18px 0;
+            border: 2px solid var(--correct-border);
+            background: var(--correct-bg);
+            border-radius: 2px;
+        }
+        .wc-champion-flag {
+            width: 96px;
+            height: auto;
+            max-height: 64px;
+            object-fit: contain;
+            border: 1px solid var(--border-soft);
+        }
+        .wc-champion-name {
+            font-family: var(--serif);
+            font-size: 2rem;
+            font-weight: 500;
+            margin: 8px 0 4px;
+            color: var(--correct-text);
+        }
+        .wc-champion-subtitle {
+            font-size: 0.95rem;
+            color: var(--correct-text);
+        }
+
+        /* Recap */
+        .wc-recap {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .wc-recap-card {
+            border: 1px solid var(--border-soft);
+            background: var(--bg-soft);
+            padding: 12px 14px;
+            border-radius: 2px;
+        }
+        .wc-recap-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        .wc-recap-value {
+            font-family: var(--serif);
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+        .wc-recap-detail {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* Tally */
+        .wc-tally table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+        .wc-tally th {
+            text-align: left;
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.78rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .wc-tally th.numeric { text-align: right; }
+        .wc-tally td {
+            padding: 5px 10px;
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .wc-tally td.numeric {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .wc-freq-bar {
+            display: inline-block;
+            height: 8px;
+            background: var(--link);
+            border-radius: 2px;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        .wc-upsets-list {
+            font-size: 0.88rem;
+            line-height: 1.7;
+        }
+        .wc-upsets-list li { margin: 2px 0; }
+
+        /* Third place match label */
+        .wc-third-place-label {
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin: 24px 0 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        /* Skeleton placeholders */
+        .wc-placeholder {
+            background: var(--bg-sunken);
+            border-radius: 2px;
+            height: 14px;
+            width: 80%;
+        }
+        .wc-placeholder.short { width: 50%; }
+        .wc-placeholder.tiny { width: 30%; height: 12px; }
+        .wc-group-skeleton table td .wc-placeholder {
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .wc-champion-skeleton {
+            text-align: center;
+            padding: 24px 18px;
+            margin: 18px 0;
+            border: 2px dashed var(--border-soft);
+            background: var(--bg-soft);
+            border-radius: 2px;
+            color: var(--muted);
+            font-family: var(--serif);
+            font-size: 1.4rem;
+        }
+        .wc-recap-skeleton {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .wc-recap-skeleton .wc-recap-card {
+            opacity: 0.5;
+        }
+
+        @media (max-width: 640px) {
+            .wc-bracket {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                min-width: 0;
+            }
+            .wc-bracket-scroll { overflow-x: visible; }
+            .wc-bracket-round { gap: 6px; }
+            .wc-groups { grid-template-columns: 1fr; }
+            .wc-recap { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Home</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">Simulations</p>
+            <h1 class="huge-title">1764 World Cup Simulator</h1>
+            <p class="subtitle">Simulate the 1764 Andah World Cup — from continental qualifiers through to the final. Results are weighted by FIFA rankings, but upsets happen.</p>
+        </div>
+
+        <div class="wc-controls">
+            <button class="wc-btn wc-btn-primary" id="btn-simulate">Simulate 1764 World Cup</button>
+            <button class="wc-btn" id="btn-step">Step-by-Step</button>
+            <button class="wc-btn" id="btn-next" style="display:none">Next Match ▸</button>
+            <button class="wc-btn" id="btn-reset" style="display:none">Reset Stats</button>
+        </div>
+
+        <div id="tournament-output"></div>
+
+        <div class="wc-controls" id="bottom-controls" style="display:none;margin-top:24px">
+            <button class="wc-btn wc-btn-primary" id="btn-simulate-bottom">Simulate Again</button>
+            <button class="wc-btn" id="btn-step-bottom">Step-by-Step</button>
+            <button class="wc-btn" id="btn-next-bottom" style="display:none">Next Match ▸</button>
+        </div>
+
+        <div id="tally-section" style="display:none">
+            <div class="wc-section">
+                <h2 class="wc-section-title" data-target="tally-body">Running Tally</h2>
+                <div class="wc-section-body" id="tally-body"></div>
+            </div>
+        </div>
+
+        <div class="score-panel" id="stats-panel" style="display:none">
+            <div class="score-block">
+                <label>Simulations</label>
+                <strong id="stat-sims">0</strong>
+            </div>
+            <div class="score-block">
+                <label>Unique Champions</label>
+                <strong id="stat-unique">0</strong>
+            </div>
+            <div class="score-block">
+                <label>Most Dominant</label>
+                <strong id="stat-dominant">—</strong>
+            </div>
+        </div>
+
+        <button class="back-button" onclick="location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="script.js"></script>
+<script src="andah-fifa-data.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const allTeams = andahFifaData.filter(c => c.adjustedPoints > 0);
+
+    // ── Session state ──
+    const session = {
+        count: 0,
+        champions: {},
+        runnersUp: {},
+        deepestRuns: {},
+        biggestUpsets: []
+    };
+
+    let currentTournament = null;
+    let stepMode = false;
+    let stepQueue = [];
+    let stepIndex = 0;
+
+    // ── DOM refs ──
+    const btnSim = document.getElementById('btn-simulate');
+    const btnStep = document.getElementById('btn-step');
+    const btnNext = document.getElementById('btn-next');
+    const btnReset = document.getElementById('btn-reset');
+    const outputEl = document.getElementById('tournament-output');
+    const tallySection = document.getElementById('tally-section');
+    const tallyBody = document.getElementById('tally-body');
+    const statsPanel = document.getElementById('stats-panel');
+    const bottomControls = document.getElementById('bottom-controls');
+    const btnSimBottom = document.getElementById('btn-simulate-bottom');
+    const btnStepBottom = document.getElementById('btn-step-bottom');
+    const btnNextBottom = document.getElementById('btn-next-bottom');
+
+    // ── Collapsible sections ──
+    document.addEventListener('click', e => {
+        const title = e.target.closest('.wc-section-title');
+        if (!title) return;
+        const targetId = title.dataset.target;
+        if (!targetId) return;
+        const body = document.getElementById(targetId);
+        if (!body) return;
+        title.classList.toggle('collapsed');
+        body.classList.toggle('hidden');
+    });
+
+    // ── Utilities ──
+    function flagUrl(name) {
+        return 'flags/' + encodeURIComponent(name) + '.png';
+    }
+
+    function poissonRandom(lambda) {
+        const L = Math.exp(-Math.min(lambda, 20));
+        let k = 0, p = 1;
+        do { k++; p *= Math.random(); } while (p > L);
+        return k - 1;
+    }
+
+    function winProb(ratingA, ratingB) {
+        return 1 / (1 + Math.pow(10, -(ratingA - ratingB) / 400));
+    }
+
+    function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // ── Match simulation ──
+    function simulateGroupMatch(teamA, teamB) {
+        const pA = winProb(teamA.adjustedPoints, teamB.adjustedPoints);
+        const drawProb = 0.26;
+        const adjPA = pA * (1 - drawProb);
+
+        const roll = Math.random();
+        let outcome;
+        if (roll < adjPA) outcome = 'A';
+        else if (roll < adjPA + drawProb) outcome = 'draw';
+        else outcome = 'B';
+
+        return generateGoals(outcome, teamA.adjustedPoints, teamB.adjustedPoints);
+    }
+
+    function generateGoals(outcome, ratingA, ratingB) {
+        const base = 1.25;
+        const factor = 0.002;
+        const diff = ratingA - ratingB;
+
+        if (outcome === 'draw') {
+            const lambda = base * 0.85;
+            const g = poissonRandom(lambda);
+            return { goalsA: g, goalsB: g, outcome: 'draw', resolution: 'fulltime' };
+        }
+
+        const winRating = outcome === 'A' ? ratingA : ratingB;
+        const loseRating = outcome === 'A' ? ratingB : ratingA;
+        const rd = winRating - loseRating;
+
+        const wLambda = Math.max(0.6, base + rd * factor);
+        const lLambda = Math.max(0.25, base - rd * factor * 0.5);
+
+        let wGoals = poissonRandom(wLambda);
+        let lGoals = poissonRandom(lLambda);
+        if (wGoals <= lGoals) wGoals = lGoals + 1;
+
+        const goalsA = outcome === 'A' ? wGoals : lGoals;
+        const goalsB = outcome === 'A' ? lGoals : wGoals;
+        return { goalsA, goalsB, outcome, resolution: 'fulltime' };
+    }
+
+    function simulateKnockoutMatch(teamA, teamB) {
+        const pA = winProb(teamA.adjustedPoints, teamB.adjustedPoints);
+        const drawProb90 = 0.22;
+        const adjPA = pA * (1 - drawProb90);
+
+        const roll = Math.random();
+        if (roll < adjPA) {
+            return generateGoals('A', teamA.adjustedPoints, teamB.adjustedPoints);
+        }
+        if (roll >= adjPA + drawProb90) {
+            return generateGoals('B', teamA.adjustedPoints, teamB.adjustedPoints);
+        }
+
+        // Extra time
+        const base = 1.25;
+        const drawLambda = base * 0.85;
+        const drawGoals = poissonRandom(drawLambda);
+
+        if (Math.random() < 0.45) {
+            const etWinner = Math.random() < pA ? 'A' : 'B';
+            const extraGoal = drawGoals + 1;
+            return {
+                goalsA: etWinner === 'A' ? extraGoal : drawGoals,
+                goalsB: etWinner === 'B' ? extraGoal : drawGoals,
+                outcome: etWinner,
+                resolution: 'extratime'
+            };
+        }
+
+        // Penalties
+        const penResult = simulatePenalties(pA);
+        return {
+            goalsA: drawGoals,
+            goalsB: drawGoals,
+            penA: penResult.penA,
+            penB: penResult.penB,
+            outcome: penResult.winner,
+            resolution: 'penalties'
+        };
+    }
+
+    function simulatePenalties(pA) {
+        const convBase = 0.75;
+        const convA = convBase + (pA - 0.5) * 0.04;
+        const convB = convBase - (pA - 0.5) * 0.04;
+
+        let penA = 0, penB = 0;
+        let missA = 0, missB = 0;
+
+        for (let i = 0; i < 5; i++) {
+            if (Math.random() < convA) penA++; else missA++;
+            if (Math.random() < convB) penB++; else missB++;
+            // Early exit if mathematically decided
+            const remainA = 5 - (i + 1);
+            const remainB = 5 - (i + 1);
+            if (penA > penB + remainB && i < 4) break;
+            if (penB > penA + remainA && i < 4) break;
+        }
+
+        // Sudden death if tied
+        while (penA === penB) {
+            if (Math.random() < convA) penA++; else missA++;
+            if (Math.random() < convB) penB++; else missB++;
+            if (penA !== penB) break;
+        }
+
+        return { penA, penB, winner: penA > penB ? 'A' : 'B' };
+    }
+
+    // ── Qualifier system ──
+    function allocateSlots(continents, total) {
+        const entries = Object.entries(continents);
+        const totalCountries = entries.reduce((s, [, c]) => s + c, 0);
+        const raw = entries.map(([name, count]) => ({
+            name, count,
+            exact: (count / totalCountries) * total,
+            floor: Math.max(1, Math.floor((count / totalCountries) * total))
+        }));
+
+        let assigned = raw.reduce((s, r) => s + r.floor, 0);
+        const remaining = total - assigned;
+
+        // Distribute by largest fractional remainder
+        const byRemainder = raw
+            .map(r => ({ ...r, frac: r.exact - r.floor }))
+            .sort((a, b) => b.frac - a.frac);
+
+        for (let i = 0; i < remaining && i < byRemainder.length; i++) {
+            byRemainder[i].floor++;
+        }
+
+        const result = {};
+        for (const r of byRemainder) result[r.name] = r.floor;
+        return result;
+    }
+
+    function runQualifiers() {
+        // Group countries by continent
+        const byCont = {};
+        for (const t of allTeams) {
+            const cont = t.continent.includes('/') ? t.continent.split('/')[0] : t.continent;
+            if (!byCont[cont]) byCont[cont] = [];
+            byCont[cont].push({ ...t, qualContinent: cont });
+        }
+
+        const contCounts = {};
+        for (const [k, v] of Object.entries(byCont)) contCounts[k] = v.length;
+
+        const slots = allocateSlots(contCounts, 32);
+        const qualifiers = [];
+        const qualData = [];
+
+        for (const [continent, teams] of Object.entries(byCont)) {
+            const nSlots = slots[continent];
+            const sorted = teams.slice().sort((a, b) => b.adjustedPoints - a.adjustedPoints);
+
+            if (sorted.length <= nSlots) {
+                for (const t of sorted) qualifiers.push(t);
+                qualData.push({ continent, slots: nSlots, groups: [], qualified: sorted.map(t => t.name), directQual: true });
+                continue;
+            }
+
+            // Simulate qualifier groups
+            const groupSize = 4;
+            const nGroups = Math.max(1, Math.ceil(sorted.length / groupSize));
+            const groups = Array.from({ length: nGroups }, () => []);
+
+            // Seed: distribute by ranking (snake draft)
+            for (let i = 0; i < sorted.length; i++) {
+                const gi = i % nGroups;
+                groups[gi].push(sorted[i]);
+            }
+
+            // Figure out how many qualify from each group
+            const qualPerGroup = Math.floor(nSlots / nGroups);
+            let extraSlots = nSlots - qualPerGroup * nGroups;
+
+            const continentQualified = [];
+            const groupResults = [];
+
+            for (const group of groups) {
+                const standings = simulateGroupStage(group);
+                const nQual = qualPerGroup + (extraSlots > 0 ? 1 : 0);
+                if (extraSlots > 0) extraSlots--;
+
+                for (let i = 0; i < nQual && i < standings.table.length; i++) {
+                    continentQualified.push(standings.table[i].team);
+                }
+                groupResults.push({ standings, nQual });
+            }
+
+            for (const t of continentQualified) qualifiers.push(t);
+            qualData.push({
+                continent, slots: nSlots,
+                groups: groupResults,
+                qualified: continentQualified.map(t => t.name)
+            });
+        }
+
+        return { qualifiers, qualData, slots };
+    }
+
+    function simulateGroupStage(teams) {
+        const table = teams.map(t => ({
+            team: t, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0
+        }));
+        const matches = [];
+
+        for (let i = 0; i < teams.length; i++) {
+            for (let j = i + 1; j < teams.length; j++) {
+                const result = simulateGroupMatch(teams[i], teams[j]);
+                matches.push({ home: teams[i], away: teams[j], ...result });
+
+                const ri = table.find(r => r.team === teams[i]);
+                const rj = table.find(r => r.team === teams[j]);
+
+                ri.p++; rj.p++;
+                ri.gf += result.goalsA; ri.ga += result.goalsB;
+                rj.gf += result.goalsB; rj.ga += result.goalsA;
+
+                if (result.outcome === 'draw') {
+                    ri.d++; rj.d++; ri.pts += 1; rj.pts += 1;
+                } else if (result.outcome === 'A') {
+                    ri.w++; rj.l++; ri.pts += 3;
+                } else {
+                    rj.w++; ri.l++; rj.pts += 3;
+                }
+            }
+        }
+
+        table.sort((a, b) => {
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            const gdA = a.gf - a.ga, gdB = b.gf - b.ga;
+            if (gdB !== gdA) return gdB - gdA;
+            if (b.gf !== a.gf) return b.gf - a.gf;
+            return Math.random() - 0.5;
+        });
+
+        return { table, matches };
+    }
+
+    // ── World Cup group draw ──
+    function drawGroups(qualifiers) {
+        const sorted = qualifiers.slice().sort((a, b) => b.adjustedPoints - a.adjustedPoints);
+        const pots = [[], [], [], []];
+        for (let i = 0; i < sorted.length; i++) {
+            pots[Math.floor(i / 8)].push(sorted[i]);
+        }
+        for (const pot of pots) shuffle(pot);
+
+        // Try to avoid same-continent teams in a group
+        for (let attempt = 0; attempt < 100; attempt++) {
+            const groups = Array.from({ length: 8 }, () => []);
+            let valid = true;
+
+            for (const pot of pots) {
+                const potCopy = shuffle(pot.slice());
+                for (let gi = 0; gi < 8; gi++) {
+                    const team = potCopy[gi];
+                    const cont = team.qualContinent || team.continent;
+                    const groupConts = groups[gi].map(t => t.qualContinent || t.continent);
+                    if (groupConts.includes(cont)) {
+                        valid = false;
+                        break;
+                    }
+                    groups[gi].push(team);
+                }
+                if (!valid) break;
+            }
+
+            if (valid) return groups;
+        }
+
+        // Fallback: just distribute without continent constraint
+        const groups = Array.from({ length: 8 }, () => []);
+        for (const pot of pots) {
+            const potCopy = shuffle(pot.slice());
+            for (let gi = 0; gi < 8; gi++) {
+                groups[gi].push(potCopy[gi]);
+            }
+        }
+        return groups;
+    }
+
+    // ── Full tournament ──
+    function runTournament() {
+        const { qualifiers, qualData, slots } = runQualifiers();
+        const groups = drawGroups(qualifiers);
+
+        const groupResults = [];
+        const goalTally = {};
+        const upsets = [];
+
+        function trackGoals(team, goals) {
+            if (!goalTally[team.name]) goalTally[team.name] = 0;
+            goalTally[team.name] += goals;
+        }
+
+        function trackUpset(winner, loser, round, result) {
+            const diff = loser.adjustedPoints - winner.adjustedPoints;
+            if (diff >= 150) {
+                upsets.push({
+                    winner: winner.name,
+                    loser: loser.name,
+                    ratingDiff: Math.round(diff),
+                    round,
+                    score: formatScore(result, winner, loser)
+                });
+            }
+        }
+
+        // Group stage
+        const groupLabels = 'ABCDEFGH';
+        for (let gi = 0; gi < 8; gi++) {
+            const result = simulateGroupStage(groups[gi]);
+            groupResults.push({ label: groupLabels[gi], ...result });
+
+            for (const m of result.matches) {
+                trackGoals(m.home, m.goalsA);
+                trackGoals(m.away, m.goalsB);
+                if (m.outcome === 'A') trackUpset(m.home, m.away, 'Group ' + groupLabels[gi], m);
+                else if (m.outcome === 'B') trackUpset(m.away, m.home, 'Group ' + groupLabels[gi], m);
+            }
+        }
+
+        // R16 matchups: A1vB2, C1vD2, E1vF2, G1vH2, B1vA2, D1vC2, F1vE2, H1vG2
+        const r16Matchups = [
+            [0, 0, 1, 1], [2, 0, 3, 1], [4, 0, 5, 1], [6, 0, 7, 1],
+            [1, 0, 0, 1], [3, 0, 2, 1], [5, 0, 4, 1], [7, 0, 6, 1]
+        ];
+
+        const r16 = r16Matchups.map(([ga, ra, gb, rb]) => ({
+            teamA: groupResults[ga].table[ra].team,
+            teamB: groupResults[gb].table[rb].team,
+            result: null,
+            round: 'Round of 16'
+        }));
+
+        const knockout = { r16, qf: [], sf: [], thirdPlace: null, final: null };
+
+        function resolveMatch(match) {
+            match.result = simulateKnockoutMatch(match.teamA, match.teamB);
+            trackGoals(match.teamA, match.result.goalsA);
+            trackGoals(match.teamB, match.result.goalsB);
+            const winner = match.result.outcome === 'A' ? match.teamA : match.teamB;
+            const loser = match.result.outcome === 'A' ? match.teamB : match.teamA;
+            trackUpset(winner, loser, match.round, match.result);
+            match.winner = winner;
+            match.loser = loser;
+        }
+
+        if (!stepMode) {
+            // Simulate all knockout matches
+            for (const m of r16) resolveMatch(m);
+
+            knockout.qf = [
+                { teamA: r16[0].winner, teamB: r16[1].winner, result: null, round: 'Quarter-Final' },
+                { teamA: r16[2].winner, teamB: r16[3].winner, result: null, round: 'Quarter-Final' },
+                { teamA: r16[4].winner, teamB: r16[5].winner, result: null, round: 'Quarter-Final' },
+                { teamA: r16[6].winner, teamB: r16[7].winner, result: null, round: 'Quarter-Final' }
+            ];
+            for (const m of knockout.qf) resolveMatch(m);
+
+            knockout.sf = [
+                { teamA: knockout.qf[0].winner, teamB: knockout.qf[1].winner, result: null, round: 'Semi-Final' },
+                { teamA: knockout.qf[2].winner, teamB: knockout.qf[3].winner, result: null, round: 'Semi-Final' }
+            ];
+            for (const m of knockout.sf) resolveMatch(m);
+
+            knockout.thirdPlace = {
+                teamA: knockout.sf[0].loser, teamB: knockout.sf[1].loser,
+                result: null, round: '3rd Place'
+            };
+            resolveMatch(knockout.thirdPlace);
+
+            knockout.final = {
+                teamA: knockout.sf[0].winner, teamB: knockout.sf[1].winner,
+                result: null, round: 'Final'
+            };
+            resolveMatch(knockout.final);
+        }
+
+        // Track deepest runs for all 32 teams
+        const teamRounds = {};
+        for (const gr of groupResults) {
+            for (let i = 0; i < gr.table.length; i++) {
+                teamRounds[gr.table[i].team.name] = i < 2 ? 'r16' : 'group';
+            }
+        }
+
+        if (!stepMode) {
+            for (const m of r16) {
+                if (teamRounds[m.winner.name] === 'r16') teamRounds[m.winner.name] = 'qf';
+            }
+            for (const m of knockout.qf) {
+                if (teamRounds[m.winner.name] === 'qf') teamRounds[m.winner.name] = 'sf';
+            }
+            for (const m of knockout.sf) {
+                if (teamRounds[m.winner.name] === 'sf') teamRounds[m.winner.name] = 'final';
+            }
+            if (knockout.final && knockout.final.winner) {
+                teamRounds[knockout.final.winner.name] = 'champion';
+            }
+        }
+
+        currentTournament = {
+            qualData, slots, groupResults, knockout, goalTally, upsets, teamRounds,
+            resolveMatch, trackGoals, trackUpset
+        };
+
+        return currentTournament;
+    }
+
+    // ── Rendering ──
+    function formatScore(result, teamA, teamB) {
+        let s = result.goalsA + ' – ' + result.goalsB;
+        if (result.resolution === 'extratime') s += ' (a.e.t.)';
+        if (result.resolution === 'penalties') s += ' (' + result.penA + '–' + result.penB + ' pen.)';
+        return s;
+    }
+
+    function renderTournament(t) {
+        let html = '';
+
+        // Qualifiers
+        html += '<div class="wc-section">';
+        html += '<h2 class="wc-section-title collapsed" data-target="qual-body">Continental Qualifiers</h2>';
+        html += '<div class="wc-section-body hidden" id="qual-body">';
+        for (const q of t.qualData) {
+            html += '<div class="wc-continent">';
+            html += '<h3>' + esc(q.continent) + '</h3>';
+            html += '<p class="wc-continent-slots">' + q.slots + ' slot' + (q.slots > 1 ? 's' : '') + ' — ' + q.qualified.length + ' qualified</p>';
+
+            if (q.directQual) {
+                html += '<p style="font-size:0.85rem;color:var(--muted)">All teams qualify directly.</p>';
+            } else {
+                for (let gi = 0; gi < q.groups.length; gi++) {
+                    const gr = q.groups[gi];
+                    html += '<div class="wc-qual-group">';
+                    html += '<h4>Qualifier Group ' + (gi + 1) + '</h4>';
+                    html += renderGroupTable(gr.standings.table, gr.nQual);
+                    html += renderMatchList(gr.standings.matches);
+                    html += '</div>';
+                }
+            }
+
+            html += '<p style="font-size:0.85rem;margin-top:4px"><strong>Qualified:</strong> ' +
+                q.qualified.map(n => '<span class="wc-team-cell" style="display:inline-flex;margin:2px 6px 2px 0">' +
+                    '<img src="' + flagUrl(n) + '" alt="">' + esc(n) + '</span>').join('') + '</p>';
+            html += '</div>';
+        }
+        html += '</div></div>';
+
+        // Group stage
+        html += '<div class="wc-section">';
+        html += '<h2 class="wc-section-title" data-target="groups-body">Group Stage</h2>';
+        html += '<div class="wc-section-body" id="groups-body">';
+        html += '<div class="wc-groups">';
+        for (const g of t.groupResults) {
+            const matchId = 'grp-matches-' + g.label;
+            html += '<div class="wc-group">';
+            html += '<h3>Group ' + g.label + '</h3>';
+            html += renderGroupTable(g.table, 2);
+            html += '<button class="wc-matches-toggle" onclick="var el=document.getElementById(\'' + matchId + '\');el.classList.toggle(\'open\');this.textContent=el.classList.contains(\'open\')?\'Hide matches\':\'Show matches\'">Show matches</button>';
+            html += '<div class="wc-group-matches" id="' + matchId + '">';
+            html += renderMatchListInner(g.matches);
+            html += '</div>';
+            html += '</div>';
+        }
+        html += '</div></div></div>';
+
+        // Knockout bracket
+        html += '<div class="wc-section">';
+        html += '<h2 class="wc-section-title" data-target="knockout-body">Knockout Stage</h2>';
+        html += '<div class="wc-section-body" id="knockout-body">';
+        html += renderBracket(t.knockout);
+        html += '</div></div>';
+
+        if (!stepMode && t.knockout.final && t.knockout.final.winner) {
+            html += renderChampionAndRecap(t);
+        }
+
+        outputEl.innerHTML = html;
+    }
+
+    function renderGroupTable(table, nAdvance) {
+        let h = '<table><thead><tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead><tbody>';
+        for (let i = 0; i < table.length; i++) {
+            const r = table[i];
+            const cls = i < nAdvance ? ' class="wc-advancing"' : '';
+            h += '<tr' + cls + '><td><span class="wc-team-cell"><img src="' + flagUrl(r.team.name) + '" alt="">' + esc(r.team.name) + '</span></td>';
+            h += '<td>' + r.p + '</td><td>' + r.w + '</td><td>' + r.d + '</td><td>' + r.l + '</td>';
+            h += '<td>' + r.gf + '</td><td>' + r.ga + '</td><td>' + (r.gf - r.ga > 0 ? '+' : '') + (r.gf - r.ga) + '</td>';
+            h += '<td><strong>' + r.pts + '</strong></td></tr>';
+        }
+        h += '</tbody></table>';
+        return h;
+    }
+
+    function renderMatchListInner(matches) {
+        let h = '';
+        for (const m of matches) {
+            const homeWin = m.outcome === 'A';
+            const awayWin = m.outcome === 'B';
+            h += '<div class="wc-match-line">';
+            h += '<span class="' + (homeWin ? 'wc-match-winner' : '') + '">' + esc(m.home.name) + '</span>';
+            h += ' ' + m.goalsA + ' – ' + m.goalsB + ' ';
+            h += '<span class="' + (awayWin ? 'wc-match-winner' : '') + '">' + esc(m.away.name) + '</span>';
+            h += '</div>';
+        }
+        return h;
+    }
+
+    function renderMatchList(matches) {
+        return '<div class="wc-group-matches open">' + renderMatchListInner(matches) + '</div>';
+    }
+
+    function renderMatchCard(match, pending) {
+        if (!match) return '<div class="wc-match wc-match-pending"><div class="wc-match-team"><span class="wc-match-team-name">TBD</span></div><div class="wc-match-team"><span class="wc-match-team-name">TBD</span></div></div>';
+
+        const resolved = match.result !== null;
+        let h = '<div class="wc-match' + (resolved ? '' : ' wc-match-pending') + '">';
+
+        const teamAWin = resolved && match.result.outcome === 'A';
+        const teamBWin = resolved && match.result.outcome === 'B';
+
+        h += '<div class="wc-match-team' + (teamAWin ? ' winner' : (teamBWin && resolved ? ' loser' : '')) + '">';
+        h += '<img src="' + flagUrl(match.teamA.name) + '" alt="">';
+        h += '<span class="wc-match-team-name">' + esc(match.teamA.name) + '</span>';
+        if (resolved) h += '<span class="wc-match-team-score">' + match.result.goalsA + (match.result.penA != null && teamAWin ? '' : '') + '</span>';
+        h += '</div>';
+
+        h += '<div class="wc-match-team' + (teamBWin ? ' winner' : (teamAWin && resolved ? ' loser' : '')) + '">';
+        h += '<img src="' + flagUrl(match.teamB.name) + '" alt="">';
+        h += '<span class="wc-match-team-name">' + esc(match.teamB.name) + '</span>';
+        if (resolved) h += '<span class="wc-match-team-score">' + match.result.goalsB + '</span>';
+        h += '</div>';
+
+        if (resolved && match.result.resolution !== 'fulltime') {
+            const note = match.result.resolution === 'extratime' ? 'a.e.t.' :
+                match.result.penA + '–' + match.result.penB + ' pen.';
+            h += '<div class="wc-match-note">' + note + '</div>';
+        }
+
+        h += '</div>';
+        return h;
+    }
+
+    function renderBracket(ko) {
+        const r16L = ko.r16.slice(0, 4);
+        const r16R = ko.r16.slice(4, 8);
+        const qfL = ko.qf.slice(0, 2);
+        const qfR = ko.qf.slice(2, 4);
+        const sfL = ko.sf[0] || null;
+        const sfR = ko.sf[1] || null;
+        const final = ko.final || null;
+
+        let h = '<div class="wc-bracket-scroll"><div class="wc-bracket">';
+
+        // Column headers
+        h += '<div class="wc-bracket-label">Round of 16</div>';
+        h += '<div class="wc-bracket-label">Quarter-Finals</div>';
+        h += '<div class="wc-bracket-label">Semi-Finals</div>';
+        h += '<div class="wc-bracket-label">Final</div>';
+        h += '<div class="wc-bracket-label">Semi-Finals</div>';
+        h += '<div class="wc-bracket-label">Quarter-Finals</div>';
+        h += '<div class="wc-bracket-label">Round of 16</div>';
+
+        // Match rows
+        h += '<div class="wc-bracket-round">';
+        for (const m of r16L) h += renderMatchCard(m);
+        h += '</div>';
+
+        h += '<div class="wc-bracket-round">';
+        for (const m of qfL) h += renderMatchCard(m);
+        h += '</div>';
+
+        h += '<div class="wc-bracket-round">' + renderMatchCard(sfL) + '</div>';
+
+        h += '<div class="wc-bracket-round">';
+        h += renderMatchCard(final);
+        if (ko.thirdPlace) {
+            h += '<div class="wc-third-place-label">3rd Place</div>';
+            h += renderMatchCard(ko.thirdPlace);
+        }
+        h += '</div>';
+
+        h += '<div class="wc-bracket-round">' + renderMatchCard(sfR) + '</div>';
+
+        h += '<div class="wc-bracket-round">';
+        for (const m of qfR) h += renderMatchCard(m);
+        h += '</div>';
+
+        h += '<div class="wc-bracket-round">';
+        for (const m of r16R) h += renderMatchCard(m);
+        h += '</div>';
+
+        h += '</div></div>';
+        return h;
+    }
+
+    function renderChampionAndRecap(t) {
+        const champ = t.knockout.final.winner;
+        const runnerUp = t.knockout.final.loser;
+        const third = t.knockout.thirdPlace.winner;
+        const fourth = t.knockout.thirdPlace.loser;
+
+        let html = '<div class="wc-champion">';
+        html += '<img class="wc-champion-flag" src="' + flagUrl(champ.name) + '" alt="">';
+        html += '<div class="wc-champion-name">' + esc(champ.name) + '</div>';
+        html += '<div class="wc-champion-subtitle">1764 World Cup Champions</div>';
+        html += '<div style="font-size:0.88rem;color:var(--correct-text);margin-top:4px">';
+        html += 'Final: ' + esc(t.knockout.final.teamA.name) + ' ' + formatScore(t.knockout.final.result, t.knockout.final.teamA, t.knockout.final.teamB) + ' ' + esc(t.knockout.final.teamB.name);
+        html += '</div></div>';
+
+        // Recap cards
+        html += '<div class="wc-recap">';
+
+        // Podium
+        html += '<div class="wc-recap-card"><div class="wc-recap-label">Runner-up</div><div class="wc-recap-value">' +
+            '<span class="wc-team-cell"><img src="' + flagUrl(runnerUp.name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(runnerUp.name) + '</span></div></div>';
+        html += '<div class="wc-recap-card"><div class="wc-recap-label">3rd Place</div><div class="wc-recap-value">' +
+            '<span class="wc-team-cell"><img src="' + flagUrl(third.name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(third.name) + '</span></div></div>';
+        html += '<div class="wc-recap-card"><div class="wc-recap-label">4th Place</div><div class="wc-recap-value">' +
+            '<span class="wc-team-cell"><img src="' + flagUrl(fourth.name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(fourth.name) + '</span></div></div>';
+
+        // Golden Boot
+        const topScorers = Object.entries(t.goalTally).sort((a, b) => b[1] - a[1]);
+        if (topScorers.length > 0) {
+            html += '<div class="wc-recap-card"><div class="wc-recap-label">Golden Boot</div><div class="wc-recap-value">' +
+                '<span class="wc-team-cell"><img src="' + flagUrl(topScorers[0][0]) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(topScorers[0][0]) + '</span></div>' +
+                '<div class="wc-recap-detail">' + topScorers[0][1] + ' goals</div></div>';
+        }
+
+        // Biggest upset
+        if (t.upsets.length > 0) {
+            const biggest = t.upsets.sort((a, b) => b.ratingDiff - a.ratingDiff)[0];
+            html += '<div class="wc-recap-card"><div class="wc-recap-label">Biggest Upset</div><div class="wc-recap-value">' +
+                esc(biggest.winner) + ' beat ' + esc(biggest.loser) + '</div>' +
+                '<div class="wc-recap-detail">' + biggest.score + ' (' + biggest.round + ', ' + biggest.ratingDiff + ' rating gap)</div></div>';
+        }
+
+        // Cinderella run
+        const qualRanks = {};
+        const allQualified = t.groupResults.flatMap(g => g.table.map(r => r.team));
+        allQualified.sort((a, b) => b.adjustedPoints - a.adjustedPoints);
+        allQualified.forEach((team, i) => qualRanks[team.name] = i + 1);
+
+        const roundOrder = { group: 0, r16: 1, qf: 2, sf: 3, final: 4, champion: 5 };
+        const roundLabel = { group: 'Group Stage', r16: 'Round of 16', qf: 'Quarter-Finals', sf: 'Semi-Finals', final: 'Final', champion: 'Champion' };
+        let cinderella = null;
+        for (const [name, round] of Object.entries(t.teamRounds)) {
+            const qRank = qualRanks[name] || 99;
+            if (qRank > 16 && roundOrder[round] >= 3) {
+                if (!cinderella || roundOrder[round] > roundOrder[cinderella.round] || qRank > (cinderella.qRank || 0)) {
+                    cinderella = { name, round, qRank };
+                }
+            }
+        }
+        if (cinderella) {
+            html += '<div class="wc-recap-card"><div class="wc-recap-label">Cinderella Run</div><div class="wc-recap-value">' +
+                '<span class="wc-team-cell"><img src="' + flagUrl(cinderella.name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(cinderella.name) + '</span></div>' +
+                '<div class="wc-recap-detail">Seed #' + cinderella.qRank + ' reached ' + roundLabel[cinderella.round] + '</div></div>';
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    // ── Tally ──
+    function updateSession(t) {
+        session.count++;
+
+        const champ = t.knockout.final.winner.name;
+        session.champions[champ] = (session.champions[champ] || 0) + 1;
+        session.runnersUp[t.knockout.final.loser.name] = (session.runnersUp[t.knockout.final.loser.name] || 0) + 1;
+
+        for (const [name, round] of Object.entries(t.teamRounds)) {
+            const roundOrder = { group: 0, r16: 1, qf: 2, sf: 3, final: 4, champion: 5 };
+            const prev = session.deepestRuns[name];
+            if (!prev || roundOrder[round] > roundOrder[prev]) {
+                session.deepestRuns[name] = round;
+            }
+        }
+
+        for (const u of t.upsets) {
+            session.biggestUpsets.push(u);
+        }
+        session.biggestUpsets.sort((a, b) => b.ratingDiff - a.ratingDiff);
+        if (session.biggestUpsets.length > 20) session.biggestUpsets.length = 20;
+    }
+
+    function renderTally() {
+        if (session.count === 0) {
+            tallySection.style.display = 'none';
+            statsPanel.style.display = 'none';
+            return;
+        }
+
+        tallySection.style.display = '';
+        statsPanel.style.display = '';
+
+        // Stats panel
+        document.getElementById('stat-sims').textContent = session.count;
+        const uniqueChamps = Object.keys(session.champions).length;
+        document.getElementById('stat-unique').textContent = uniqueChamps;
+        const topChamp = Object.entries(session.champions).sort((a, b) => b[1] - a[1])[0];
+        document.getElementById('stat-dominant').textContent = topChamp ? topChamp[0] + ' (' + topChamp[1] + ')' : '—';
+
+        // Tally table
+        let html = '<h3 style="font-family:var(--serif);font-weight:400;font-size:1.1rem;margin:0 0 8px">Champion Frequency</h3>';
+        const champEntries = Object.entries(session.champions).sort((a, b) => b[1] - a[1]);
+        const maxWins = champEntries.length > 0 ? champEntries[0][1] : 1;
+
+        html += '<div class="wc-tally"><table><thead><tr><th>Nation</th><th class="numeric">Wins</th><th>Frequency</th></tr></thead><tbody>';
+        for (const [name, wins] of champEntries) {
+            const pct = (wins / session.count * 100).toFixed(1);
+            const barW = Math.max(4, (wins / maxWins) * 120);
+            html += '<tr><td><span class="wc-team-cell"><img src="' + flagUrl(name) + '" alt="" style="width:22px;height:15px;object-fit:contain">' + esc(name) + '</span></td>';
+            html += '<td class="numeric">' + wins + '</td>';
+            html += '<td><span class="wc-freq-bar" style="width:' + barW + 'px"></span>' + pct + '%</td></tr>';
+        }
+        html += '</tbody></table></div>';
+
+        // Biggest upsets across all sims
+        if (session.biggestUpsets.length > 0) {
+            html += '<h3 style="font-family:var(--serif);font-weight:400;font-size:1.1rem;margin:18px 0 8px">Biggest Upsets Across All Simulations</h3>';
+            html += '<ol class="wc-upsets-list">';
+            for (const u of session.biggestUpsets.slice(0, 10)) {
+                html += '<li><strong>' + esc(u.winner) + '</strong> beat ' + esc(u.loser) + ' ' + u.score + ' (' + u.round + ', ' + u.ratingDiff + ' pts gap)</li>';
+            }
+            html += '</ol>';
+        }
+
+        tallyBody.innerHTML = html;
+    }
+
+    // ── Step-by-step mode ──
+    function startStepMode() {
+        stepMode = true;
+        const t = runTournament();
+        renderTournament(t);
+
+        // Build step queue from R16 matches
+        stepQueue = [...t.knockout.r16];
+        stepIndex = 0;
+
+        btnNext.style.display = '';
+        btnNext.disabled = false;
+        btnNextBottom.style.display = '';
+        btnNextBottom.disabled = false;
+        updateStepButton();
+        btnSim.disabled = true;
+    }
+
+    function updateStepButton() {
+        if (stepIndex >= stepQueue.length) {
+            btnNext.textContent = 'Tournament Complete';
+            btnNext.disabled = true;
+            btnNextBottom.textContent = 'Tournament Complete';
+            btnNextBottom.disabled = true;
+            return;
+        }
+        const m = stepQueue[stepIndex];
+        let roundName = m.round;
+        if (m.round === 'Final') roundName = 'Final';
+        const label = 'Next: ' + m.teamA.name + ' vs ' + m.teamB.name + ' — ' + roundName + ' ▸';
+        btnNext.textContent = label;
+        btnNextBottom.textContent = label;
+    }
+
+    function stepNext() {
+        if (stepIndex >= stepQueue.length) return;
+        const t = currentTournament;
+        const match = stepQueue[stepIndex];
+
+        t.resolveMatch(match);
+        stepIndex++;
+
+        // After R16 complete, set up QF
+        if (stepIndex === 8) {
+            t.knockout.qf = [
+                { teamA: t.knockout.r16[0].winner, teamB: t.knockout.r16[1].winner, result: null, round: 'Quarter-Final' },
+                { teamA: t.knockout.r16[2].winner, teamB: t.knockout.r16[3].winner, result: null, round: 'Quarter-Final' },
+                { teamA: t.knockout.r16[4].winner, teamB: t.knockout.r16[5].winner, result: null, round: 'Quarter-Final' },
+                { teamA: t.knockout.r16[6].winner, teamB: t.knockout.r16[7].winner, result: null, round: 'Quarter-Final' }
+            ];
+            stepQueue.push(...t.knockout.qf);
+        }
+
+        // After QF complete, set up SF
+        if (stepIndex === 12) {
+            t.knockout.sf = [
+                { teamA: t.knockout.qf[0].winner, teamB: t.knockout.qf[1].winner, result: null, round: 'Semi-Final' },
+                { teamA: t.knockout.qf[2].winner, teamB: t.knockout.qf[3].winner, result: null, round: 'Semi-Final' }
+            ];
+            stepQueue.push(...t.knockout.sf);
+        }
+
+        // After SF complete, set up 3P + Final
+        if (stepIndex === 14) {
+            t.knockout.thirdPlace = {
+                teamA: t.knockout.sf[0].loser, teamB: t.knockout.sf[1].loser,
+                result: null, round: '3rd Place'
+            };
+            t.knockout.final = {
+                teamA: t.knockout.sf[0].winner, teamB: t.knockout.sf[1].winner,
+                result: null, round: 'Final'
+            };
+            stepQueue.push(t.knockout.thirdPlace, t.knockout.final);
+        }
+
+        // Update teamRounds
+        const roundOrder = { group: 0, r16: 1, qf: 2, sf: 3, final: 4, champion: 5 };
+        const roundMap = { 'Round of 16': 'qf', 'Quarter-Final': 'sf', 'Semi-Final': 'final', 'Final': 'champion', '3rd Place': null };
+        if (match.winner && roundMap[match.round]) {
+            const newRound = roundMap[match.round];
+            if (!t.teamRounds[match.winner.name] || roundOrder[newRound] > roundOrder[t.teamRounds[match.winner.name]]) {
+                t.teamRounds[match.winner.name] = newRound;
+            }
+        }
+
+        renderTournament(t);
+
+        // Scroll bracket into view
+        const bracketEl = outputEl.querySelector('.wc-bracket-scroll');
+        if (bracketEl) bracketEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // If tournament complete
+        if (stepIndex >= stepQueue.length) {
+            if (t.knockout.final && t.knockout.final.winner) {
+                outputEl.innerHTML += renderChampionAndRecap(t);
+                updateSession(t);
+                renderTally();
+            }
+            btnNext.textContent = 'Tournament Complete';
+            btnNext.disabled = true;
+            btnSim.textContent = 'Simulate Again';
+            btnSim.disabled = false;
+            btnStep.disabled = false;
+            btnReset.style.display = '';
+            stepMode = false;
+            syncButtons();
+            return;
+        }
+
+        updateStepButton();
+    }
+
+    // ── Sync top/bottom button state ──
+    function syncButtons() {
+        btnSimBottom.textContent = btnSim.textContent;
+        btnSimBottom.disabled = btnSim.disabled;
+        btnStepBottom.disabled = btnStep.disabled;
+        btnNextBottom.style.display = btnNext.style.display;
+        btnNextBottom.textContent = btnNext.textContent;
+        btnNextBottom.disabled = btnNext.disabled;
+        bottomControls.style.display = '';
+    }
+
+    // ── Shared actions ──
+    function doSimulate() {
+        stepMode = false;
+        btnNext.style.display = 'none';
+        btnNextBottom.style.display = 'none';
+        const t = runTournament();
+        renderTournament(t);
+        updateSession(t);
+        renderTally();
+        btnSim.textContent = 'Simulate Again';
+        btnStep.disabled = false;
+        btnReset.style.display = '';
+        syncButtons();
+
+        const champEl = outputEl.querySelector('.wc-champion');
+        if (champEl) champEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function doStepStart() {
+        btnStep.disabled = true;
+        btnStepBottom.disabled = true;
+        btnReset.style.display = '';
+        startStepMode();
+        syncButtons();
+    }
+
+    // ── Event handlers ──
+    btnSim.addEventListener('click', doSimulate);
+    btnSimBottom.addEventListener('click', doSimulate);
+    btnStep.addEventListener('click', doStepStart);
+    btnStepBottom.addEventListener('click', doStepStart);
+    btnNext.addEventListener('click', () => { stepNext(); syncButtons(); });
+    btnNextBottom.addEventListener('click', () => { stepNext(); syncButtons(); });
+
+    btnReset.addEventListener('click', () => {
+        session.count = 0;
+        session.champions = {};
+        session.runnersUp = {};
+        session.deepestRuns = {};
+        session.biggestUpsets = [];
+        renderTally();
+    });
+
+    function esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    // ── Skeleton on page load ──
+    function renderSkeleton() {
+        let html = '';
+
+        // Group stage skeleton
+        html += '<div class="wc-section">';
+        html += '<h2 class="wc-section-title" data-target="groups-body-skel">Group Stage</h2>';
+        html += '<div class="wc-section-body" id="groups-body-skel">';
+        html += '<div class="wc-groups">';
+        const labels = 'ABCDEFGH';
+        for (let g = 0; g < 8; g++) {
+            html += '<div class="wc-group wc-group-skeleton">';
+            html += '<h3>Group ' + labels[g] + '</h3>';
+            html += '<table><thead><tr><th style="text-align:left">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead><tbody>';
+            for (let r = 0; r < 4; r++) {
+                html += '<tr><td><span class="wc-team-cell"><span class="wc-placeholder" style="width:100px;height:12px"></span></span></td>';
+                for (let c = 0; c < 8; c++) html += '<td><span class="wc-placeholder tiny" style="width:16px;margin:0 auto"></span></td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table></div>';
+        }
+        html += '</div></div></div>';
+
+        // Knockout bracket skeleton
+        html += '<div class="wc-section">';
+        html += '<h2 class="wc-section-title" data-target="knockout-body-skel">Knockout Stage</h2>';
+        html += '<div class="wc-section-body" id="knockout-body-skel">';
+
+        const emptyMatch = '<div class="wc-match wc-match-pending"><div class="wc-match-team"><span class="wc-match-team-name" style="color:var(--muted)">TBD</span></div><div class="wc-match-team"><span class="wc-match-team-name" style="color:var(--muted)">TBD</span></div></div>';
+
+        html += '<div class="wc-bracket-scroll"><div class="wc-bracket">';
+        html += '<div class="wc-bracket-label">Round of 16</div>';
+        html += '<div class="wc-bracket-label">Quarter-Finals</div>';
+        html += '<div class="wc-bracket-label">Semi-Finals</div>';
+        html += '<div class="wc-bracket-label">Final</div>';
+        html += '<div class="wc-bracket-label">Semi-Finals</div>';
+        html += '<div class="wc-bracket-label">Quarter-Finals</div>';
+        html += '<div class="wc-bracket-label">Round of 16</div>';
+
+        // R16 left (4)
+        html += '<div class="wc-bracket-round">';
+        for (let i = 0; i < 4; i++) html += emptyMatch;
+        html += '</div>';
+        // QF left (2)
+        html += '<div class="wc-bracket-round">';
+        for (let i = 0; i < 2; i++) html += emptyMatch;
+        html += '</div>';
+        // SF left
+        html += '<div class="wc-bracket-round">' + emptyMatch + '</div>';
+        // Final + 3rd
+        html += '<div class="wc-bracket-round">' + emptyMatch + '<div class="wc-third-place-label">3rd Place</div>' + emptyMatch + '</div>';
+        // SF right
+        html += '<div class="wc-bracket-round">' + emptyMatch + '</div>';
+        // QF right (2)
+        html += '<div class="wc-bracket-round">';
+        for (let i = 0; i < 2; i++) html += emptyMatch;
+        html += '</div>';
+        // R16 right (4)
+        html += '<div class="wc-bracket-round">';
+        for (let i = 0; i < 4; i++) html += emptyMatch;
+        html += '</div>';
+
+        html += '</div></div>';
+        html += '</div></div>';
+
+        // Champion placeholder
+        html += '<div class="wc-champion-skeleton">Champion</div>';
+
+        // Recap skeleton
+        html += '<div class="wc-recap-skeleton">';
+        const recapLabels = ['Runner-up', '3rd Place', '4th Place', 'Golden Boot', 'Biggest Upset'];
+        for (const label of recapLabels) {
+            html += '<div class="wc-recap-card"><div class="wc-recap-label">' + label + '</div><div class="wc-recap-value" style="color:var(--muted)">—</div></div>';
+        }
+        html += '</div>';
+
+        outputEl.innerHTML = html;
+    }
+
+    renderSkeleton();
+})();
+</script>
+</body>
+</html>
