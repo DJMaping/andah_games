@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
