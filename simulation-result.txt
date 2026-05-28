@@ -68,9 +68,9 @@ CONTINENTAL QUALIFIERS
         New Kizura           5  1  1  3    6  11   -5    4
         Ikzen                5  0  1  4    6  12   -6    1
       Group B
-      * Eldjo                5  3  1  1    9   5   +4   10
+      * Ukhdari                5  3  1  1    9   5   +4   10
         Lycroa               5  3  1  1    7   4   +3   10
-        Ukhdari              5  3  1  1    8   6   +2   10
+        Eldjo              5  3  1  1    8   6   +2   10
         Acrana               5  2  0  3    8   6   +2    6
         Heiso                5  1  1  3    7   9   -2    4
         Urbiqu               5  0  2  3    2  11   -9    2
@@ -94,7 +94,7 @@ CONTINENTAL QUALIFIERS
         Siana                4  1  2  1    5   5    0    5
         Zenashan             4  1  1  2    6   9   -3    4
         Danocia              4  0  1  3    2   8   -6    1
-    Qualified: Emara, Eldjo, Verusa, Easuhura, Merela Sta
+    Qualified: Emara, Ukhdari, Verusa, Easuhura, Merela Sta
 
   New Ayre  [NAFLA]  -  4 slot(s)  -  South America (CONMEBOL) format
     >> League Round-Robin
@@ -332,17 +332,17 @@ WORLD CUP GROUP STAGE
 
   Group D
     Team                P  W  D  L   GF  GA  GD  Pts
-  * Quidic               3  2  1  0    7   5   +2    7
+  * Ukhdari               3  2  1  0    7   5   +2    7
   * Taval                3  1  1  1    7   4   +3    4
     Chaenia              3  0  3  0    5   5    0    3
-    Eldjo                3  0  1  2    5  10   -5    1
+    Quidic                3  0  1  2    5  10   -5    1
     Matches:
-                    Quidic 3-2 Taval
-                    Quidic 1-1 Chaenia
-                    Quidic 3-2 Eldjo
+                    Ukhdari 3-2 Taval
+                    Ukhdari 1-1 Chaenia
+                    Ukhdari 3-2 Quidic
                      Taval 1-1 Chaenia
-                     Taval 4-0 Eldjo
-                   Chaenia 3-3 Eldjo
+                     Taval 4-0 Quidic
+                   Chaenia 3-3 Quidic
 
   Group E
     Team                P  W  D  L   GF  GA  GD  Pts
@@ -410,7 +410,7 @@ KNOCKOUT STAGE
     Pelines 4-5 Sivoso    [Sivoso wins]
     Raledria 1-0 Terressin    [Raledria wins]
     Etirha 1-2 Acetoa    [Acetoa wins]
-    Quidic 1-3 Easuhura    [Easuhura wins]
+    Ukhdari 1-3 Easuhura    [Easuhura wins]
     Verusa 2-1 Emara    [Verusa wins]
     New Misos 0-1 Myla    [Myla wins]
 
@@ -441,7 +441,7 @@ TOP SCORERS
      10  Pelines  (FLLA #31)
       9  United Delet  (FLLA #6)
       8  Haiza  (FLLA #40)
-      8  Quidic  (FLLA #9)
+      8  Ukhdari  (FLLA #9)
       8  Sivoso  (FLLA #52)
 
 ----------------------------------------------------------------------
@@ -451,6 +451,5 @@ ALL UPSETS
     Iainoa beat Trian 2-3  (Group E, 176 gap)
     Acetoa beat Etirha 1-2  (Round of 16, 175 gap)
     Haiza beat Easuhura 2-3  (Group C, 156 gap)
-    Ucrua beat Dual Cenryia 3-4  (Group C, 150 gap)
-
+    
 ======================================================================
