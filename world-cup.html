@@ -506,6 +506,51 @@
             color: var(--muted);
             font-style: italic;
         }
+
+        .wc-rig-control {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 0 0 14px;
+            padding: 10px 14px;
+            border: 1px solid var(--border-soft);
+            background: var(--bg-soft);
+            border-radius: 2px;
+            font-size: 0.88rem;
+        }
+        .wc-rig-control label {
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .wc-rig-control input[type="text"] {
+            flex: 1;
+            min-width: 160px;
+            max-width: 280px;
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font: inherit;
+            font-size: 0.88rem;
+            border-radius: 2px;
+        }
+        .wc-rig-hint {
+            font-size: 0.78rem;
+            color: var(--muted);
+            font-style: italic;
+        }
+        .wc-rig-hint.active {
+            color: var(--correct-text);
+            font-weight: 600;
+            font-style: normal;
+        }
+        .wc-rig-hint.invalid {
+            color: var(--wrong-text);
+            font-weight: 600;
+            font-style: normal;
+        }
     </style>
 </head>
 <body>
@@ -533,6 +578,14 @@
             <input type="range" id="randomness-slider" min="150" max="700" step="25" value="250">
             <span class="wc-randomness-value" id="randomness-value">250</span>
             <span class="wc-randomness-hint" id="randomness-hint">Favorites dominate</span>
+        </div>
+
+        <div class="wc-rig-control">
+            <label for="rig-input">Rig champion:</label>
+            <input type="text" id="rig-input" list="rig-teams" autocomplete="off" placeholder="Type a country (or leave blank for a fair sim)">
+            <datalist id="rig-teams"></datalist>
+            <button class="wc-btn" id="rig-clear" type="button">Clear</button>
+            <span class="wc-rig-hint" id="rig-hint">Off — fair simulation</span>
         </div>
 
         <div class="wc-controls">
@@ -646,9 +699,17 @@
     }
 
     let randomnessScale = 250;
+    let rigForName = '';
 
     function winProb(ratingA, ratingB) {
         return 1 / (1 + Math.pow(10, -(ratingA - ratingB) / randomnessScale));
+    }
+
+    function rigOutcome(teamA, teamB) {
+        if (!rigForName) return null;
+        if (teamA && teamA.name === rigForName) return 'A';
+        if (teamB && teamB.name === rigForName) return 'B';
+        return null;
     }
 
     function shuffle(arr) {
@@ -661,6 +722,11 @@
 
     // ── Match simulation ──
     function simulateGroupMatch(teamA, teamB) {
+        const forced = rigOutcome(teamA, teamB);
+        if (forced) {
+            return generateGoals(forced, teamA.adjustedPoints, teamB.adjustedPoints);
+        }
+
         const pA = winProb(teamA.adjustedPoints, teamB.adjustedPoints);
         const drawProb = 0.26;
         const adjPA = pA * (1 - drawProb);
@@ -702,6 +768,12 @@
     }
 
     function simulateKnockoutMatch(teamA, teamB) {
+        const forced = rigOutcome(teamA, teamB);
+        if (forced) {
+            // Skip extra time / penalties for a clean rigged win.
+            return generateGoals(forced, teamA.adjustedPoints, teamB.adjustedPoints);
+        }
+
         const pA = winProb(teamA.adjustedPoints, teamB.adjustedPoints);
         const drawProb90 = 0.22;
         const adjPA = pA * (1 - drawProb90);
@@ -1736,6 +1808,48 @@
         updateHint(randomnessScale);
     });
     updateHint(randomnessScale);
+
+    // ── Rig control ──
+    const rigInput = document.getElementById('rig-input');
+    const rigHint = document.getElementById('rig-hint');
+    const rigDatalist = document.getElementById('rig-teams');
+    const rigClear = document.getElementById('rig-clear');
+
+    const teamByLower = {};
+    const sortedTeamNames = allTeams.map(t => t.name).sort((a, b) => a.localeCompare(b));
+    for (const t of allTeams) teamByLower[t.name.toLowerCase()] = t.name;
+
+    rigDatalist.innerHTML = sortedTeamNames
+        .map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">')
+        .join('');
+
+    function applyRigInput() {
+        const raw = rigInput.value.trim();
+        if (!raw) {
+            rigForName = '';
+            rigHint.textContent = 'Off — fair simulation';
+            rigHint.className = 'wc-rig-hint';
+            return;
+        }
+        const canonical = teamByLower[raw.toLowerCase()];
+        if (canonical) {
+            rigForName = canonical;
+            rigHint.textContent = canonical + ' will always win';
+            rigHint.className = 'wc-rig-hint active';
+        } else {
+            rigForName = '';
+            rigHint.textContent = 'Unknown team — fair simulation';
+            rigHint.className = 'wc-rig-hint invalid';
+        }
+    }
+
+    rigInput.addEventListener('input', applyRigInput);
+    rigInput.addEventListener('change', applyRigInput);
+    rigClear.addEventListener('click', () => {
+        rigInput.value = '';
+        applyRigInput();
+        rigInput.focus();
+    });
 
     // ── Event handlers ──
     btnSim.addEventListener('click', () => doSimulate(true));
