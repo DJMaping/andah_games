@@ -94,12 +94,39 @@
             color: var(--muted);
             margin: 4px 0 8px;
         }
-        .wc-qual-group { margin: 8px 0 10px; }
-        .wc-qual-group h4 {
-            font-size: 0.82rem;
+        .wc-qual-round { margin: 10px 0; }
+        .wc-qual-round h4 {
+            font-family: var(--serif);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin: 8px 0 4px;
+            color: var(--text);
+        }
+        .wc-qual-group { margin: 6px 0 10px; }
+        .wc-qual-group h5 {
+            font-size: 0.78rem;
             font-weight: 600;
-            margin: 0 0 4px;
+            margin: 4px 0 2px;
             color: var(--muted);
+        }
+        .wc-qual-knockout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .wc-conf-name {
+            font-family: var(--sans);
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-left: 6px;
+            padding: 2px 6px;
+            border: 1px solid var(--border-soft);
+            border-radius: 999px;
+            vertical-align: middle;
         }
         .wc-qualified-list {
             display: flex;
@@ -445,6 +472,39 @@
             .wc-qualifiers-grid { grid-template-columns: 1fr; }
             .wc-recap { grid-template-columns: 1fr; }
             .wc-recap-skeleton { grid-template-columns: 1fr; }
+            .wc-randomness-control { flex-direction: column; align-items: flex-start; }
+        }
+
+        .wc-randomness-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 14px;
+            padding: 10px 14px;
+            border: 1px solid var(--border-soft);
+            background: var(--bg-soft);
+            border-radius: 2px;
+            font-size: 0.88rem;
+        }
+        .wc-randomness-control label {
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .wc-randomness-control input[type="range"] {
+            flex: 1;
+            min-width: 120px;
+            max-width: 280px;
+        }
+        .wc-randomness-value {
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+            min-width: 70px;
+        }
+        .wc-randomness-hint {
+            font-size: 0.78rem;
+            color: var(--muted);
+            font-style: italic;
         }
     </style>
 </head>
@@ -466,6 +526,13 @@
             <p class="eyebrow">Simulations</p>
             <h1 class="huge-title">1764 World Cup Simulator</h1>
             <p class="subtitle">Simulate the 1764 Andah World Cup — from continental qualifiers through to the final. Results are weighted by FLLA rankings, but upsets happen.</p>
+        </div>
+
+        <div class="wc-randomness-control">
+            <label for="randomness-slider">Randomness:</label>
+            <input type="range" id="randomness-slider" min="150" max="700" step="25" value="250">
+            <span class="wc-randomness-value" id="randomness-value">250</span>
+            <span class="wc-randomness-hint" id="randomness-hint">Favorites dominate</span>
         </div>
 
         <div class="wc-controls">
@@ -523,7 +590,8 @@
 (function () {
     'use strict';
 
-    const allTeams = andahFifaData.filter(c => c.adjustedPoints > 0);
+    const bannedNations = new Set(['Ocaun', 'Shomjind']);
+    const allTeams = andahFifaData.filter(c => c.adjustedPoints > 0 && !bannedNations.has(c.name));
 
     // ── Session state ──
     const session = {
@@ -577,8 +645,10 @@
         return k - 1;
     }
 
+    let randomnessScale = 250;
+
     function winProb(ratingA, ratingB) {
-        return 1 / (1 + Math.pow(10, -(ratingA - ratingB) / 400));
+        return 1 / (1 + Math.pow(10, -(ratingA - ratingB) / randomnessScale));
     }
 
     function shuffle(arr) {
@@ -727,8 +797,145 @@
         return result;
     }
 
+    const confFormat = {
+        'Ayuma': { name: 'AFLA', realWorld: 'Europe', style: 'UEFA' },
+        'Mahea': { name: 'EFLA', realWorld: 'Europe', style: 'UEFA' },
+        'Atirha': { name: 'NFLA', realWorld: 'North America', style: 'CONCACAF' },
+        'Massir': { name: 'MFLA', realWorld: 'Asia', style: 'AFC' },
+        'Quia': { name: 'QFLA', realWorld: 'Asia', style: 'AFC' },
+        'Acrola': { name: 'CFLA', realWorld: 'Africa', style: 'CAF' },
+        'New Ayre': { name: 'NAFLA', realWorld: 'South America', style: 'CONMEBOL' }
+    };
+
+    function snakeGroups(teams, nGroups) {
+        const sorted = teams.slice().sort((a, b) => b.adjustedPoints - a.adjustedPoints);
+        const groups = Array.from({ length: nGroups }, () => []);
+        for (let i = 0; i < sorted.length; i++) {
+            groups[i % nGroups].push(sorted[i]);
+        }
+        return groups;
+    }
+
+    // UEFA: N groups (N = slots), top of each qualifies
+    function runUEFAQual(teams, slots) {
+        const groups = snakeGroups(teams, slots);
+        const round = [];
+        const qualified = [];
+        for (let i = 0; i < slots; i++) {
+            const standings = simulateGroupStage(groups[i]);
+            round.push({ name: 'Group ' + String.fromCharCode(65 + i), ...standings, nQual: 1 });
+            qualified.push(standings.table[0].team);
+        }
+        return {
+            rounds: [{ name: 'Group Stage', type: 'groups', groups: round }],
+            qualified
+        };
+    }
+
+    // CAF: N groups (N = slots), top 2 advance → knockout playoffs
+    function runCAFQual(teams, slots) {
+        const groups = snakeGroups(teams, slots);
+        const round1 = [];
+        const advancing = [];
+        for (let i = 0; i < slots; i++) {
+            const standings = simulateGroupStage(groups[i]);
+            round1.push({ name: 'Group ' + String.fromCharCode(65 + i), ...standings, nQual: 2 });
+            advancing.push(standings.table[0].team);
+            advancing.push(standings.table[1].team);
+        }
+        // Seed pairings: top half vs bottom half by rating
+        advancing.sort((a, b) => b.adjustedPoints - a.adjustedPoints);
+        const ko = [];
+        const qualified = [];
+        const half = advancing.length / 2;
+        for (let i = 0; i < half; i++) {
+            const a = advancing[i];
+            const b = advancing[advancing.length - 1 - i];
+            const result = simulateKnockoutMatch(a, b);
+            const winner = result.outcome === 'A' ? a : b;
+            const loser = result.outcome === 'A' ? b : a;
+            ko.push({ teamA: a, teamB: b, result, winner, loser, round: 'Playoff' });
+            qualified.push(winner);
+        }
+        return {
+            rounds: [
+                { name: 'First Round Groups', type: 'groups', groups: round1 },
+                { name: 'Knockout Playoffs', type: 'knockout', matches: ko }
+            ],
+            qualified
+        };
+    }
+
+    // CONCACAF: 4 groups → top 2 from each → Octagonal round-robin → top N
+    function runCONCACAFQual(teams, slots) {
+        const groups = snakeGroups(teams, 4);
+        const round1 = [];
+        const advancing = [];
+        for (let i = 0; i < 4; i++) {
+            const standings = simulateGroupStage(groups[i]);
+            round1.push({ name: 'Group ' + String.fromCharCode(65 + i), ...standings, nQual: 2 });
+            advancing.push(standings.table[0].team);
+            advancing.push(standings.table[1].team);
+        }
+        const finalStandings = simulateGroupStage(advancing);
+        const qualified = finalStandings.table.slice(0, slots).map(r => r.team);
+        return {
+            rounds: [
+                { name: 'First Round', type: 'groups', groups: round1 },
+                { name: 'Final Round (Octagonal)', type: 'groups', groups: [{ name: 'Octagonal', ...finalStandings, nQual: slots }] }
+            ],
+            qualified
+        };
+    }
+
+    // AFC: 4 groups → top 2 from each (8 teams) → 2 final groups of 4 → top N qualify
+    function runAFCQual(teams, slots) {
+        const groupsR1 = snakeGroups(teams, 4);
+        const round1 = [];
+        const advancing = [];
+        for (let i = 0; i < 4; i++) {
+            const standings = simulateGroupStage(groupsR1[i]);
+            round1.push({ name: 'Group ' + String.fromCharCode(65 + i), ...standings, nQual: 2 });
+            advancing.push(standings.table[0].team);
+            advancing.push(standings.table[1].team);
+        }
+        // Split into 2 final groups by snake-draft on rating
+        advancing.sort((a, b) => b.adjustedPoints - a.adjustedPoints);
+        const finalGroups = [[], []];
+        for (let i = 0; i < advancing.length; i++) {
+            finalGroups[i % 2].push(advancing[i]);
+        }
+        const round2 = [];
+        const qualPerGroup = Math.floor(slots / 2);
+        let extra = slots % 2;
+        const qualified = [];
+        for (let i = 0; i < 2; i++) {
+            const standings = simulateGroupStage(finalGroups[i]);
+            const nQ = qualPerGroup + (extra > 0 ? 1 : 0);
+            if (extra > 0) extra--;
+            round2.push({ name: 'Group ' + String.fromCharCode(65 + i), ...standings, nQual: nQ });
+            for (let j = 0; j < nQ; j++) qualified.push(standings.table[j].team);
+        }
+        return {
+            rounds: [
+                { name: 'First Round', type: 'groups', groups: round1 },
+                { name: 'Final Round', type: 'groups', groups: round2 }
+            ],
+            qualified
+        };
+    }
+
+    // CONMEBOL: one giant round-robin, top N qualify
+    function runCONMEBOLQual(teams, slots) {
+        const standings = simulateGroupStage(teams);
+        const qualified = standings.table.slice(0, slots).map(r => r.team);
+        return {
+            rounds: [{ name: 'League Round-Robin', type: 'groups', groups: [{ name: 'League', ...standings, nQual: slots }] }],
+            qualified
+        };
+    }
+
     function runQualifiers() {
-        // Group countries by continent
         const byCont = {};
         for (const t of allTeams) {
             const cont = t.continent.includes('/') ? t.continent.split('/')[0] : t.continent;
@@ -745,48 +952,30 @@
 
         for (const [continent, teams] of Object.entries(byCont)) {
             const nSlots = slots[continent];
-            const sorted = teams.slice().sort((a, b) => b.adjustedPoints - a.adjustedPoints);
+            const fmt = confFormat[continent] || { name: 'FLLA', realWorld: '', style: 'UEFA' };
 
-            if (sorted.length <= nSlots) {
-                for (const t of sorted) qualifiers.push(t);
-                qualData.push({ continent, slots: nSlots, groups: [], qualified: sorted.map(t => t.name), directQual: true });
+            if (teams.length <= nSlots) {
+                for (const t of teams) qualifiers.push(t);
+                qualData.push({
+                    continent, slots: nSlots, format: fmt,
+                    rounds: [], qualified: teams.map(t => t.name), directQual: true
+                });
                 continue;
             }
 
-            // Simulate qualifier groups
-            const groupSize = 4;
-            const nGroups = Math.max(1, Math.ceil(sorted.length / groupSize));
-            const groups = Array.from({ length: nGroups }, () => []);
+            let result;
+            if (fmt.style === 'UEFA') result = runUEFAQual(teams, nSlots);
+            else if (fmt.style === 'CAF') result = runCAFQual(teams, nSlots);
+            else if (fmt.style === 'CONCACAF') result = runCONCACAFQual(teams, nSlots);
+            else if (fmt.style === 'AFC') result = runAFCQual(teams, nSlots);
+            else if (fmt.style === 'CONMEBOL') result = runCONMEBOLQual(teams, nSlots);
+            else result = runUEFAQual(teams, nSlots);
 
-            // Seed: distribute by ranking (snake draft)
-            for (let i = 0; i < sorted.length; i++) {
-                const gi = i % nGroups;
-                groups[gi].push(sorted[i]);
-            }
-
-            // Figure out how many qualify from each group
-            const qualPerGroup = Math.floor(nSlots / nGroups);
-            let extraSlots = nSlots - qualPerGroup * nGroups;
-
-            const continentQualified = [];
-            const groupResults = [];
-
-            for (const group of groups) {
-                const standings = simulateGroupStage(group);
-                const nQual = qualPerGroup + (extraSlots > 0 ? 1 : 0);
-                if (extraSlots > 0) extraSlots--;
-
-                for (let i = 0; i < nQual && i < standings.table.length; i++) {
-                    continentQualified.push(standings.table[i].team);
-                }
-                groupResults.push({ standings, nQual });
-            }
-
-            for (const t of continentQualified) qualifiers.push(t);
+            for (const t of result.qualified) qualifiers.push(t);
             qualData.push({
-                continent, slots: nSlots,
-                groups: groupResults,
-                qualified: continentQualified.map(t => t.name)
+                continent, slots: nSlots, format: fmt,
+                rounds: result.rounds,
+                qualified: result.qualified.map(t => t.name)
             });
         }
 
@@ -1022,17 +1211,29 @@
         html += '<div class="wc-qualifiers-grid">';
         for (const q of t.qualData) {
             html += '<div class="wc-continent">';
-            html += '<h3>' + esc(q.continent) + '</h3>';
-            html += '<p class="wc-continent-slots">' + q.slots + ' slot' + (q.slots > 1 ? 's' : '') + ' allocated</p>';
+            html += '<h3>' + esc(q.continent) + ' <span class="wc-conf-name">' + esc(q.format.name) + '</span></h3>';
+            html += '<p class="wc-continent-slots">' + q.slots + ' slot' + (q.slots > 1 ? 's' : '') + ' · ' + esc(q.format.realWorld) + ' format</p>';
 
             if (q.directQual) {
                 html += '<p style="font-size:0.85rem;color:var(--muted)">All teams qualify directly.</p>';
             } else {
-                for (let gi = 0; gi < q.groups.length; gi++) {
-                    const gr = q.groups[gi];
-                    html += '<div class="wc-qual-group">';
-                    html += '<h4>Group ' + (gi + 1) + '</h4>';
-                    html += renderGroupTable(gr.standings.table, gr.nQual);
+                for (const round of q.rounds) {
+                    html += '<div class="wc-qual-round">';
+                    html += '<h4>' + esc(round.name) + '</h4>';
+                    if (round.type === 'groups') {
+                        for (const g of round.groups) {
+                            html += '<div class="wc-qual-group">';
+                            if (round.groups.length > 1) html += '<h5>' + esc(g.name) + '</h5>';
+                            html += renderGroupTable(g.table, g.nQual);
+                            html += '</div>';
+                        }
+                    } else if (round.type === 'knockout') {
+                        html += '<div class="wc-qual-knockout">';
+                        for (const m of round.matches) {
+                            html += renderMatchCard(m);
+                        }
+                        html += '</div>';
+                    }
                     html += '</div>';
                 }
             }
@@ -1485,7 +1686,8 @@
     }
 
     // ── Shared actions ──
-    function doSimulate() {
+    function doSimulate(scrollToChamp) {
+        const savedScroll = window.scrollY;
         stepMode = false;
         btnNext.style.display = 'none';
         btnNextBottom.style.display = 'none';
@@ -1499,8 +1701,12 @@
         btnReset.style.display = '';
         syncButtons();
 
-        const champEl = outputEl.querySelector('.wc-champion');
-        if (champEl) champEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (scrollToChamp) {
+            const champEl = outputEl.querySelector('.wc-champion');
+            if (champEl) champEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            window.scrollTo(0, savedScroll);
+        }
     }
 
     function doStepStart() {
@@ -1511,9 +1717,29 @@
         syncButtons();
     }
 
+    // ── Randomness slider ──
+    const slider = document.getElementById('randomness-slider');
+    const sliderValue = document.getElementById('randomness-value');
+    const sliderHint = document.getElementById('randomness-hint');
+
+    function updateHint(v) {
+        if (v <= 200) sliderHint.textContent = 'Very predictable';
+        else if (v <= 300) sliderHint.textContent = 'Favorites dominate';
+        else if (v <= 425) sliderHint.textContent = 'Balanced';
+        else if (v <= 550) sliderHint.textContent = 'Frequent upsets';
+        else sliderHint.textContent = 'Chaotic';
+    }
+
+    slider.addEventListener('input', () => {
+        randomnessScale = Number(slider.value);
+        sliderValue.textContent = slider.value;
+        updateHint(randomnessScale);
+    });
+    updateHint(randomnessScale);
+
     // ── Event handlers ──
-    btnSim.addEventListener('click', doSimulate);
-    btnSimBottom.addEventListener('click', doSimulate);
+    btnSim.addEventListener('click', () => doSimulate(true));
+    btnSimBottom.addEventListener('click', () => doSimulate(false));
     btnStep.addEventListener('click', doStepStart);
     btnStepBottom.addEventListener('click', doStepStart);
     btnNext.addEventListener('click', () => { stepNext(); syncButtons(); });

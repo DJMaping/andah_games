@@ -1,0 +1,210 @@
+══════════════════════════════════════════════════════════════════════
+   1764 ANDAH WORLD CUP — SIMULATION RESULT
+══════════════════════════════════════════════════════════════════════
+
+🏆 CHAMPION: Trian  (FLLA #17)
+   Final: New Misos 3-4 Trian
+
+Podium:
+   🥇 Trian  (FLLA #17)
+   🥈 New Misos  (FLLA #7)
+   🥉 Lycroa  (FLLA #3)
+   4. Erkizil  (FLLA #37)
+
+⚽ Golden Boot: Trian  (15 goals, FLLA #17)
+
+💥 Biggest Upset: Fire Coast beat Seytinemas 0-1
+   (Group D, 285 rating gap)
+
+──────────────────────────────────────────────────────────────────────
+CONTINENTAL QUALIFIERS
+──────────────────────────────────────────────────────────────────────
+
+  Atirha  —  4 slot(s) allocated
+    Qualified: Curata, New Misos, Aetintio, Genaire
+
+  Ayuma  —  5 slot(s) allocated
+    Qualified: Eldjo, Lycroa, Darewa, Acrana, New Kizura
+
+  New Ayre  —  4 slot(s) allocated
+    Qualified: United Delet, Nia, Astye, Isari
+
+  Mahea  —  5 slot(s) allocated
+    Qualified: Seytinemas, Trian, Dual Cenryia, Pelugrotoa, Galca
+
+  Quia  —  4 slot(s) allocated
+    Qualified: Erkizil, Ztesh, Finae, Myla
+
+  Massir  —  5 slot(s) allocated
+    Qualified: North Ayre, Dahe, Pruim Fijan, Welenu Fana, Oyreain
+
+  Acrola  —  5 slot(s) allocated
+    Qualified: Rijan bu, Eldavpir, Acetoa, Othya, Fire Coast
+
+──────────────────────────────────────────────────────────────────────
+GROUP STAGE
+──────────────────────────────────────────────────────────────────────
+
+  Group A
+    Team                P  W  D  L   GF  GA  GD  Pts
+  ✓ Myla                 3  2  1  0    8   6   +2    7
+  ✓ Trian                3  2  0  1    5   4   +1    6
+    Pelugrotoa           3  1  1  1    3   3    0    4
+    Acetoa               3  0  0  3    5   8   -3    0
+    Matches:
+                     Trian 2-3 Myla
+                     Trian 2-1 Acetoa
+                     Trian 1-0 Pelugrotoa
+                      Myla 4-3 Acetoa
+                      Myla 1-1 Pelugrotoa
+                    Acetoa 1-2 Pelugrotoa
+
+  Group B
+    Team                P  W  D  L   GF  GA  GD  Pts
+  ✓ Acrana               3  3  0  0    8   4   +4    9
+  ✓ Ztesh                3  2  0  1    6   5   +1    6
+    Galca                3  0  1  2    5   7   -2    1
+    Rijan bu             3  0  1  2    1   4   -3    1
+    Matches:
+                     Ztesh 2-3 Acrana
+                     Ztesh 1-0 Rijan bu
+                     Ztesh 3-2 Galca
+                    Acrana 2-0 Rijan bu
+                    Acrana 3-2 Galca
+                  Rijan bu 1-1 Galca
+
+  Group C
+    Team                P  W  D  L   GF  GA  GD  Pts
+  ✓ New Misos            3  1  2  0    5   4   +1    5
+  ✓ Othya                3  1  1  1    9   9    0    4
+    Dual Cenryia         3  1  1  1    5   5    0    4
+    Nia                  3  0  2  1    2   3   -1    2
+    Matches:
+                 New Misos 2-1 Dual Cenryia
+                 New Misos 0-0 Nia
+                 New Misos 3-3 Othya
+              Dual Cenryia 0-0 Nia
+              Dual Cenryia 4-3 Othya
+                       Nia 2-3 Othya
+
+  Group D
+    Team                P  W  D  L   GF  GA  GD  Pts
+  ✓ Darewa               3  2  1  0    7   4   +3    7
+  ✓ Curata               3  2  0  1    5   3   +2    6
+    Fire Coast           3  1  0  2    1   4   -3    3
+    Seytinemas           3  0  1  2    4   6   -2    1
+    Matches:
+                Seytinemas 3-3 Darewa
+                Seytinemas 1-2 Curata
+                Seytinemas 0-1 Fire Coast
+                    Darewa 2-1 Curata
+                    Darewa 2-0 Fire Coast
+                    Curata 2-0 Fire Coast
+
+  Group E
+    Team                P  W  D  L   GF  GA  GD  Pts
+  ✓ Lycroa               3  3  0  0    4   0   +4    9
+  ✓ Erkizil              3  2  0  1    5   2   +3    6
+    Eldjo                3  1  0  2    3   4   -1    3
+    Aetintio             3  0  0  3    1   7   -6    0
+    Matches:
+                    Lycroa 1-0 Erkizil
+                    Lycroa 1-0 Eldjo
+                    Lycroa 2-0 Aetintio
+                   Erkizil 2-1 Eldjo
+                   Erkizil 3-0 Aetintio
+                     Eldjo 2-1 Aetintio
+
+  Group F
+    Team                P  W  D  L   GF  GA  GD  Pts
+  ✓ Finae                3  3  0  0    9   6   +3    9
+  ✓ Oyreain              3  1  1  1    7   7    0    4
+    Isari                3  1  1  1    3   3    0    4
+    Pruim Fijan          3  0  0  3    4   7   -3    0
+    Matches:
+                     Finae 4-3 Oyreain
+                     Finae 2-1 Isari
+                     Finae 3-2 Pruim Fijan
+                   Oyreain 1-1 Isari
+                   Oyreain 3-2 Pruim Fijan
+                     Isari 1-0 Pruim Fijan
+
+  Group G
+    Team                P  W  D  L   GF  GA  GD  Pts
+  ✓ Dahe                 3  3  0  0    6   1   +5    9
+  ✓ Astye                3  1  1  1    2   1   +1    4
+    Eldavpir             3  1  1  1    2   2    0    4
+    New Kizura           3  0  0  3    0   6   -6    0
+    Matches:
+                      Dahe 1-0 Astye
+                      Dahe 2-1 Eldavpir
+                      Dahe 3-0 New Kizura
+                     Astye 0-0 Eldavpir
+                     Astye 2-0 New Kizura
+                  Eldavpir 1-0 New Kizura
+
+  Group H
+    Team                P  W  D  L   GF  GA  GD  Pts
+  ✓ United Delet         3  2  1  0    6   4   +2    7
+  ✓ North Ayre           3  1  2  0    7   6   +1    5
+    Genaire              3  1  0  2    5   5    0    3
+    Welenu Fana          3  0  1  2    5   8   -3    1
+    Matches:
+              United Delet 2-1 Genaire
+              United Delet 2-2 North Ayre
+              United Delet 2-1 Welenu Fana
+                   Genaire 1-2 North Ayre
+                   Genaire 3-1 Welenu Fana
+                North Ayre 3-3 Welenu Fana
+
+──────────────────────────────────────────────────────────────────────
+KNOCKOUT STAGE
+──────────────────────────────────────────────────────────────────────
+
+  Round of 16
+    Myla 1-1 (2-3 pen.) Ztesh    [Ztesh wins]
+    New Misos 1-0 Curata    [New Misos wins]
+    Lycroa 3-2 Oyreain    [Lycroa wins]
+    Dahe 1-2 (a.e.t.) North Ayre    [North Ayre wins]
+    Acrana 0-2 Trian    [Trian wins]
+    Darewa 6-1 Othya    [Darewa wins]
+    Finae 0-1 Erkizil    [Erkizil wins]
+    United Delet 1-0 Astye    [United Delet wins]
+
+  Quarter-Finals
+    Ztesh 0-1 New Misos    [New Misos wins]
+    Lycroa 2-0 North Ayre    [Lycroa wins]
+    Trian 1-0 Darewa    [Trian wins]
+    Erkizil 3-2 United Delet    [Erkizil wins]
+
+  Semi-Finals
+    New Misos 2-1 (a.e.t.) Lycroa    [New Misos wins]
+    Trian 3-2 Erkizil    [Trian wins]
+
+  3rd Place Playoff
+    Lycroa 2-1 Erkizil    [Lycroa wins]
+
+  Final
+    New Misos 3-4 Trian    [Trian wins]
+
+──────────────────────────────────────────────────────────────────────
+TOP SCORERS
+──────────────────────────────────────────────────────────────────────
+     15  Trian  (FLLA #17)
+     13  Darewa  (FLLA #35)
+     12  New Misos  (FLLA #7)
+     12  Lycroa  (FLLA #3)
+     12  Erkizil  (FLLA #37)
+     10  Othya  (FLLA #81)
+      9  Myla  (FLLA #26)
+      9  Finae  (FLLA #22)
+      9  Oyreain  (FLLA #29)
+      9  United Delet  (FLLA #6)
+
+──────────────────────────────────────────────────────────────────────
+ALL UPSETS
+──────────────────────────────────────────────────────────────────────
+    Fire Coast beat Seytinemas 0-1  (Group D, 285 gap)
+    Curata beat Seytinemas 1-2  (Group D, 233 gap)
+
+══════════════════════════════════════════════════════════════════════
