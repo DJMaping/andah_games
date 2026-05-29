@@ -17,7 +17,7 @@ async function fallbackFromAndahStats() {
     // andah-stats.js is a classic script (sets window.andahStats). Load via a
     // dynamic <script> insertion so we don't need to convert it to an ES module.
     if (typeof window === 'undefined') return { countries: [], metricDefs: [] };
-    if (!window.andahStats) await loadClassicScript('andah-stats.js', 'andahStats');
+    if (!window.andahStats) await loadClassicScript('js/andah-stats.js', 'andahStats');
 
     const stats = window.andahStats || [];
     const countries = stats.map(s => ({
@@ -71,7 +71,7 @@ function loadClassicScript(src, globalName) {
 export async function loadMapCoords() {
     if (!window.andahMapCoords) {
         try {
-            await loadClassicScript('andah-map-coords.js', 'andahMapCoords');
+            await loadClassicScript('js/andah-map-coords.js', 'andahMapCoords');
         } catch {
             return [];
         }
@@ -82,7 +82,7 @@ export async function loadMapCoords() {
 export async function loadCapitals() {
     if (typeof window === 'undefined') return [];
     if (!window.andahCapitals) {
-        try { await loadClassicScript('andah-capitals.js', 'andahCapitals'); } catch { return []; }
+        try { await loadClassicScript('js/andah-capitals.js', 'andahCapitals'); } catch { return []; }
     }
     return window.andahCapitals || [];
 }
@@ -90,7 +90,7 @@ export async function loadCapitals() {
 export async function loadCities() {
     if (typeof window === 'undefined') return [];
     if (!window.andahCities) {
-        try { await loadClassicScript('andah-cities.js', 'andahCities'); } catch { return []; }
+        try { await loadClassicScript('js/andah-cities.js', 'andahCities'); } catch { return []; }
     }
     return window.andahCities || [];
 }

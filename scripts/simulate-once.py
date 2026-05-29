@@ -4,7 +4,7 @@ import json, random, math, re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA_PATH = ROOT / 'andah-fifa-data.js'
+DATA_PATH = ROOT / 'js' / 'andah-fifa-data.js'
 OUT_PATH = ROOT / 'simulation-result.txt'
 
 BANNED = {'Ocaun', 'Shomjind'}

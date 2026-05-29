@@ -12,7 +12,7 @@ Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $root = Split-Path -Parent $PSScriptRoot
-$jsPath = Join-Path $root 'andah-fifa-data.js'
+$jsPath = Join-Path $root 'js\andah-fifa-data.js'
 $xlsxDir = Join-Path $root '.xlsx files'
 $xlsxPath = Join-Path $xlsxDir 'worldbuilding_fifa_rankings_with_debuff.xlsx'
 

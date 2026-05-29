@@ -4,3 +4,6 @@ node_modules/
 *.log
 .env
 .env.local
+
+# Scratch folder for one-off historical simulations — not part of the site
+_historical-sims/

@@ -7,7 +7,7 @@ import XLSX from 'xlsx';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const XLSX_PATH = path.join(ROOT, '.xlsx files', 'worldbuilding_fifa_rankings_with_debuff.xlsx');
-const OUT_PATH = path.join(ROOT, 'andah-fifa-data.js');
+const OUT_PATH = path.join(ROOT, 'js', 'andah-fifa-data.js');
 
 const wb = XLSX.readFile(XLSX_PATH, { cellDates: false, cellNF: false });
 const rows = XLSX.utils.sheet_to_json(wb.Sheets['Adjusted Rankings'], { defval: null, raw: true });

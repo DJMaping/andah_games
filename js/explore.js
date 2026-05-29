@@ -1,8 +1,8 @@
 // Country Explorer: alphabetical list of all countries. Click one to drill
 // into the detail view (visualized stats + embedded wiki article).
 
-import { loadCountries, loadWikiIndex, loadCapitals, loadCities, loadIntros } from './views/data.js';
-import { renderCountryDetail } from './views/country-detail.js';
+import { loadCountries, loadWikiIndex, loadCapitals, loadCities, loadIntros } from '../views/data.js';
+import { renderCountryDetail } from '../views/country-detail.js';
 
 const els = {
     list: () => document.getElementById('view-list'),
