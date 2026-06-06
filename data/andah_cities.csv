@@ -1,0 +1,602 @@
+Rank,Country,Name,Population
+1,Dahe,Fekhalai,42488000
+2,Areoix Lie,Zirohu,32514000
+3,Ztesh,Nakos,25222000
+4,Pelugrotoa,Havok,22650000
+5,Areoix Lie,Vurahi,21581000
+6,Dahe,Bhaliloi,20076000
+7,United Delet,Mantraal,19980000
+8,Ocaun,Kejira,19618000
+9,Raledria,Tirna-Rovik,19378000
+10,Quidic,Talvani,19281000
+11,Inania,Fashti,18819000
+12,Erkizil,Tiraqsi,16896000
+13,Dahe,Fekunza,15400000
+14,Ztesh,Mihkose,15333000
+15,Emara,Rivostan,14967000
+16,Pelugrotoa,Thavrin,14838000
+17,Ashain,Sjoran,14751000
+18,Areoix Lie,Nakahiki,13482000
+19,Dahe,Xuqilin,13463000
+20,Ealdorii,Shurqan,13293000
+21,Estijan,Shabiran,13218000
+22,Dahe,Shinlotha,13042000
+23,Raledria,Zunle,12488000
+24,Vayvele,Kaisri,12020000
+25,Dual Cenryia,Vrandig,11642000
+26,Seytinemas,Vulna,11288000
+27,Estijan,Sarwun,11035000
+28,Dahe,Zhangola,10604000
+29,Pelines,Dalyar,10472000
+30,Vesozata,Korvani,10389000
+31,Sunsokua,Hikrun,10257000
+32,Etirha,Albiran,10119000
+33,Dahe,Vukwazi,10042000
+34,Lycroa,Jungui,9990000
+35,Ztesh,Takhna,9860000
+36,Dahe,Harkanto,9740000
+37,Areoix Lie,Xalavi,9600000
+38,Pelugrotoa,Veshtak,9500000
+39,Raledria,Tavik,9480000
+40,Easuhura,Tanbai,9360000
+41,Dahe,Zoluhano,9250000
+42,Terressin,Canelu,9130000
+43,Inania,Varnan,9010000
+44,Ztesh,Wiskot,8990000
+45,Wundry,Eserni,8880000
+46,Etirha,Lunru,8770000
+47,Dahe,Qianzo,8650000
+48,Areoix Lie,Mahana,8540000
+49,Sunsokua,Mikalu,8430000
+50,Sanagara,Koyaya,8320000
+51,Raledria,Pekrin-Vavlen,8210000
+52,Vesozata,Shatiruk,8000000
+53,Dahe,Dzhonlo,7880000
+54,New Misos,Lirika,7770000
+55,Verste,Ralut,7650000
+56,Pelugrotoa,Zilvak,7540000
+57,Dahe,Tshenuza,7430000
+58,Emara,Khalzhun,7320000
+59,Areoix Lie,Nikahatu,7210000
+60,Ztesh,Ratsom,7100000
+61,Dual Cenryia,Panstel,6990000
+62,United Delet,Heslian,6880000
+63,Dahe,Vumbeko,6770000
+64,Wundry,Teveme,6650000
+65,Estijan,Barashir,6540000
+66,Iquir,Chavillar,6430000
+67,Ealdorii,Turashik,6320000
+68,Dahe,Zhulenga,6210000
+69,Quidic,Mikori,6100000
+70,Areoix Lie,Mireli,5990000
+71,Raledria,Tirna,5880000
+72,Ukhdari,Veshgadar,5770000
+73,Taniduna,Zolittique,5650000
+74,Dahe,Hanyalzo,5540000
+75,Pelugrotoa,Pothin,5430000
+76,Taval,Tamalpura,5320000
+77,Phuris,City of Dauris,5240000
+78,Myla,Erkadu,5210000
+79,Siana,Wadika,5110000
+80,Dahe,Wekhalu,5100000
+81,Terressin,Velloro,5090000
+82,Verusa,Huifarn,5080000
+83,Raledria,Birska,5070000
+84,Dahe,Ghloumzi,5050000
+85,Suenan,Weregami,5040000
+86,Isnti,Mahsira,5030000
+87,Dahe,Zhwaziko,5020000
+88,Vesozata,Muvkora,4946000
+89,Ashain,Kaitriss,4941000
+90,Raledria,Fryokar,4937000
+91,Pelugrotoa,Khamri,4908000
+92,Ashain,Pelfen,4855000
+93,Dahe,Lungxilo,4819000
+94,Pelugrotoa,Beylok,4746000
+95,Dual Cenryia,Stravik,4740000
+96,New Misos,Minafi,4675000
+97,Praesyu,Brimasha,4630000
+98,Dahe,Phinlaza,4599000
+99,Phuris,Tamira,4581000
+100,Emara,Shaikuv,4565000
+101,Pelugrotoa,Velkhor,4506000
+102,Verste,Minoan,4497000
+103,Dahe,Dumemzi,4396000
+104,Dahe,Tzalunya,4391000
+105,Lieri,Nabruik,4375000
+106,Dahe,Qalazi,4363000
+107,Erkizil,Erosan,4355000
+108,Dahe,Gulowin,4336000
+109,Ocaun,Wavaru,4331000
+110,Ukhdari,Borshavi,4291000
+111,Vesozata,Mararo,4261000
+112,Etirha,Kavlira,4220000
+113,Dahe,Haldinji,4197000
+114,United Delet,Narvila,4193000
+115,Ealdorii,Zarhesh,4180000
+116,Otiiric,Fyntek,4166000
+117,Dahe,Tshahulo,4157000
+118,Ztesh,Ashkik,4140000
+119,Dahe,Mankhulo,4115000
+120,Iareva,Droskaneth,4107000
+121,Sunsokua,Jalenek,4034000
+122,Hkuqo,Tanshiva,4030000
+123,Verusa,Jentori,4019000
+124,Sadain,Takolo,4006000
+125,Sunsokua,Katanir,4002000
+126,Estijan,Sharo,3995000
+127,Ztesh,Ikkat,3977000
+128,Dahe,Pungzolai,3954000
+129,Etirha,Shinori,3950000
+130,Ashain,Varnai,3948000
+131,Crila Republic,Risavo,3933000
+132,Pelugrotoa,Mirek,3916000
+133,Oscairia,Morzelka,3905000
+134,Ucrua,Fermahal,3890000
+135,Inania,Yolan,3880000
+136,Shinam,Zundalor,3853000
+137,Iainoa,Evue,3842000
+138,Dahe,Kintaluo,3840000
+139,Pelines,Yagmosantri,3836000
+140,Vesozata,Dilambo,3826000
+141,Ahokini,Ribash,3803000
+142,Dahe,Gwenliya,3774000
+143,Estijan,Miranis,3767000
+144,Isnti,Sahmado,3712000
+145,Deschon,Obelinti,3688000
+146,Etirha,Turkhian,3681000
+147,Oyreain,Foreba,3672000
+148,Ztesh,Kaskis,3664000
+149,Taval,Suraspa,3652000
+150,Sunsokua,Bodrul,3637000
+151,Lycroa,Liambra,3627000
+152,United Mihili,Bristel,3608000
+153,Dahe,Zifuwan,3592000
+154,Verste,Ovetta,3587000
+155,Areoix Lie,Lihakoa,3584000
+156,Erkizil,Vellikar,3526000
+157,Yaxuto,Khorin,3511000
+158,Dahe,Balsheke,3488000
+159,Dahe,Xianqalu,3458000
+160,Erkizil,Cairiso,3421000
+161,Pelugrotoa,Balsor,3409000
+162,Mendereide,Tovani,3379000
+163,Siana,Zothra,3306000
+164,Dahe,Bolanzi,3306000
+165,Anymna,Khureldai,3302000
+166,Selaja,Selja,3292000
+167,Ocaun,Silikai,3282000
+168,Finae,Mankat,3246000
+169,Curata,Hulong,3239000
+170,Pelan,Taoqu,3239000
+171,Myla,Bolar,3232000
+172,Ohtina,Su Sariko,3207000
+173,Dahe,Jhalenya,3120000
+174,Pelugrotoa,Kalvor,3117000
+175,Emara,Yilovka,3115000
+176,Vesozata,Zavakara,3096000
+177,Desaki,Velthura,3092000
+178,Emara,Borzhai,3078000
+179,Anymna,Tovsagaan,3066000
+180,Dual Cenryia,Krunka,3058000
+181,Raledria,Nirun,3027000
+182,Ztesh,Oposkwe,3022000
+183,Suenan,Daspuru,2992000
+184,Seytinemas,Tarvic,2981000
+185,Ohtina,Lumeka,2965000
+186,Dahe,Jinzuku,2964000
+187,Dahe,Qatshilo,2959000
+189,Desaki,Yshtra,2955000
+190,Emara,Tirzovik,2913000
+191,Etretes,Todorac,2897000
+192,Raledria,Komiros,2869000
+193,Umarcia,Hirvani,2860000
+194,Gaeiya,Tsyanka,2850000
+195,Dahe,Yinbari,2848000
+196,Dahe,Zulongai,2842000
+197,Dahe,Yihnza,2830000
+198,Ztesh,Pakikwan,2824000
+199,Inania,Hondir,2822000
+200,Ashain,Yorvex,2812000
+201,Verste,Gavriko,2799000
+202,Pelugrotoa,Veshro,2797000
+203,Erkizil,Iktavi,2791000
+204,Easuhura,Chayek,2771000
+205,Trian,Treka,2771000
+206,Dahe,Khyemluna,2726000
+207,Emara,Chishanov,2721000
+208,Wundry,Reeveta,2721000
+209,Sunsokua,Shiruna,2695000
+210,Dual Cenryia,Hovrith,2662000
+211,Prystr Hii,Prystr Hii,2647000
+212,New Misos,Lunava,2647000
+213,Pha Hii,Pha Hii,2647000
+214,Deschon,Ulamsik,2640000
+215,Areoix Lie,Haikaia,2631000
+216,Astye,Kavirro,2631000
+217,Ealdorii,Havrishka,2583000
+218,Ashain,Zinlor,2580000
+219,Darewa,Shamarin,2569000
+220,Areoix Lie,Vikura,2557000
+221,Verste,Viralna,2528000
+222,Deschon,Hunakwe,2505000
+223,Raledria,Vadja,2487000
+224,Anymna,Vurekh,2486000
+225,United Delet,Roviri,2477000
+226,Ztesh,Tiyotik,2433000
+227,United Delet,Firanza,2403000
+228,Vesozata,Lijola,2390000
+229,Etirha,Zhetren,2359000
+230,Lycroa,Sompai,2358000
+231,Shinam,Mirzulek,2337000
+232,Verste,Mendri,2330000
+233,Dual Cenryia,Pardesh,2329000
+234,Desaki,Trephin,2297000
+235,Taval,Palnoro,2279000
+236,Estijan,Taranvo,2266000
+237,Dahe,Fengzolu,2256000
+238,Finae,Hisara,2240000
+239,Ztesh,Nimitik,2226000
+240,Dahe,Ghezhian,2213000
+241,Etirha,Mulkhan,2207000
+242,Sunsokua,Yokemaru,2199000
+243,Ohtina,Fenavo,2168000
+244,Estijan,Zemraya,2159000
+245,Selaja,Veshu,2156000
+246,Inania,Kirvok,2149000
+247,Wundry,Meenor,2140000
+248,Raledria,Dhalpavishka,2092000
+249,Zenashan,Zirafu,2088000
+250,Quidic,Oshkari,2080000
+251,Ztesh,Makahk,2069000
+252,Estijan,Zhaelis,2065000
+253,Emara,Baxian,2050000
+254,Pelugrotoa,Tairim,2050000
+255,New Misos,Solima,2049000
+256,Exilium,Dulvasra,2045000
+257,United Delet,Torivis,2038000
+258,Laselteh,Dariya,2029000
+259,Quidic,Kivalin,2021000
+260,Ashain,Lusvani,2011000
+261,Inania,Swandor,1996000
+262,Pelugrotoa,Sileth,1990000
+263,Etirha,Dazkar,1990000
+264,Ohtina,Hirvasa,1978000
+265,Quidic,Nihara,1968000
+266,Areoix Lie,Tianoro,1965000
+267,Inania,Lokren,1959000
+268,Othya,Harlitak,1957000
+269,Ealdorii,Muvash,1957000
+270,Sunsokua,Pakram,1952000
+271,Pelugrotoa,Jalinth,1920000
+272,Kusierna,Mikavasi,1909000
+273,Taniduna,Pelviret,1906000
+274,Raledria,Pikvor,1906000
+275,Dahe,Ruwodai,1899000
+276,Dahe,Zidanza,1898000
+277,Emara,Alubri City,1891000
+278,Estijan,Hananli,1888000
+279,Dahe,Mukaziya,1877000
+280,Chaenia,Tibokan,1868000
+281,Eldavpir,Lunfrix,1865000
+282,Areoix Lie,Lunatoa,1855000
+283,Dahe,Bazinshu,1852000
+284,Ukhdari,Dy,1846000
+285,Inania,Jiloth,1822000
+286,Erkizil,Washashi,1822000
+287,Phuris,Sakraza,1819000
+288,Wundry,Eteska,1818000
+289,Sanagara,Rathghat,1818000
+290,Ocaun,Mojalun,1815000
+291,Pelugrotoa,Tarnokh,1812000
+292,Siana,Mangiwa,1803000
+293,Hkuqo,Dhamasol,1801000
+294,Areoix Lie,Vahata,1799000
+295,Ztesh,Pihkosi,1790000
+296,Praesyu,Zaraqon,1765000
+297,Ztesh,Tewapik,1763000
+298,Dahe,Zimbelo,1762000
+299,Raledria,Yaltra,1756000
+300,Ealdorii,Draunak,1748000
+301,Dahe,Rembili,1747000
+302,United Delet,Lurimah,1743000
+303,Lydroa,Zarfan,1738000
+304,Wundry,Reevon,1736000
+305,Taval,Luzparan,1729000
+306,Dahe,Zitbajo,1728000
+307,Sanagara,Shasweli,1708000
+308,Ashain,Kenriko,1690000
+309,Merela Sta,Talung,1686000
+310,Wundry,Vereen,1686000
+311,Sunsokua,Velkai,1681000
+312,Quidic,Kavato,1681000
+313,Wundry,Seevera,1680000
+314,Dahe,Xingalu,1671000
+315,Isnti,Amhurok,1667000
+316,Etirha,Yeklan,1647000
+317,Dahe,Yenzhazi,1644000
+318,Volver,Skorilantheda,1639000
+319,Dual Cenryia,Grimsa,1638000
+320,Taval,Caminastra,1635000
+321,Vesozata,Mvangiro,1632000
+322,Dahe,Shindzi,1630000
+323,Raledria,Zhoshi,1629000
+324,Ilicuhe,Sakhen,1624000
+325,Terressin,Kauhuo,1621000
+326,Taval,Vesnadi,1614000
+327,Ealdorii,Vorsadun,1601000
+328,Lycroa,Tianco,1599000
+329,Sadain,Sivona,1599000
+330,Verste,Sutrah,1597000
+331,Dahe,Bongyu,1594000
+332,Heiso,Mivlo,1576000
+333,Reerica,Halumbaro,1568000
+334,Easuhura,Phalanij,1568000
+335,Etirha,Mushka,1563000
+336,Vesozata,Vaturiko,1560000
+337,Myla,Jokla,1557000
+338,Taval,Vidadesh,1554000
+339,Quidic,Rikotha,1542000
+340,Uularin,Zahlim,1537000
+341,Vesozata,Malinkai,1537000
+342,Genaire,Braniv,1533000
+343,Raledria,Bodhar,1528000
+344,Ztesh,Yoteka,1514000
+345,Nheyes Si,MavagaT,1513000
+346,Fincen,Tiyomi,1510000
+347,Dahe,Phetuli,1507000
+348,Estijan,Qayhadr,1499000
+349,Sivoso,Jirakai,1499000
+350,Quidic,Likorin,1497000
+351,Ealdorii,Tazirun,1495000
+352,Dahe,Xibalzi,1493000
+353,Eldavpir,Tavon,1487000
+354,Maalle,Rudeka,1487000
+355,Yaxuto,Zhangkao,1486000
+356,Dahe,Yikashu,1483000
+357,Inania,Junik,1481000
+358,Hkuqo,Vindasira,1477000
+359,Dual Cenryia,Klemerda,1477000
+360,Erkizil,Koyah,1474000
+361,Erkizil,Tsalaka,1470000
+362,Areoix Lie,Tavarua,1469000
+363,Oyreain,Yetembo,1467000
+364,Ruylku,Kelvizu,1462000
+365,Dahe,Khuazhin,1462000
+366,Pelines,Arokdan,1457000
+367,New Misos,Albira,1455000
+368,Areoix Lie,Vimano,1448000
+369,Sivoso,Amrata,1448000
+370,Verusa,Valkirseh,1445000
+371,Genaire,Lishka,1439000
+372,Seytinemas,Lunmar,1438000
+373,North Ayre,Kokema,1438000
+374,Estijan,Fazraba,1435000
+375,Dahe,Pheduza,1435000
+376,Pelugrotoa,Trelmar,1427000
+377,Estijan,Bashira,1421000
+378,Dahe,Shanghalu,1410000
+379,Verste,Fenkai,1407000
+380,Volver,Drolmukhazin,1400000
+381,Yihnurda,Parloth,1394000
+382,Dahe,Lungqino,1393000
+383,Anymna,Altorg,1388000
+384,Phuris,Raldino,1388000
+385,Inania,Zanir,1381000
+386,Jshain,Savyan,1371000
+387,Ahokini,Horamtu,1371000
+388,Sanagara,Waktala,1370000
+389,Ztesh,Sakitho,1365000
+390,Seytinemas,Mansek,1359000
+391,Inania,Kastra,1359000
+392,Inania,Liroska,1358000
+393,Quidic,Zekrah,1358000
+394,Areoix Lie,Yuwiha,1350000
+395,Dahe,Huxongi,1350000
+396,Prstreula,Kavani,1349000
+397,Ukhdari,Ezrum,1330000
+398,Sunsokua,Muzhara,1321000
+399,Wundry,Keeter,1319000
+400,Oyreain,Togoro,1319000
+401,Ztesh,Zanikwa,1317000
+402,Ztesh,Toska,1309000
+403,Ealdorii,Vornak,1291000
+404,Nia,Kovasi,1286000
+405,Acetoa,Tahuato,1284000
+406,Verste,Kaimlo,1283000
+407,Emara,Zhrunbei,1276000
+408,Ocaun,Vekura,1274000
+409,Chaenia,Lutur,1262000
+410,Easuhura,Khessli,1256000
+411,Eldjo,Shorakim,1254000
+412,United Delet,Zadira,1251000
+413,Astye,Losari,1246000
+414,Ocaun,Mureko,1245000
+415,Ztesh,Tatamis,1244000
+416,Dahe,Kholisha,1244000
+417,Lycroa,Zaringao,1243000
+418,Etirha,Korvona,1243000
+419,Taval,Chavindora,1243000
+420,Inania,Zavrik,1241000
+421,Jshain,Jidet,1240000
+422,Dahe,Wuyani,1239000
+423,Rijan Bu,Maphinde,1237000
+424,Raledria,Tsamir,1236000
+425,Verste,Zalar,1233000
+426,Raledria,Druvka,1231000
+427,Dahe,Mouyein,1231000
+428,Eparia,Tarimav,1229000
+429,Ocaun,Dunaro,1228000
+430,New Misos,Darnet,1225000
+431,Etirha,Nalvoku,1225000
+432,Etirha,Shernuka,1223000
+433,Haiza,Chavira,1223000
+434,Vesozata,Zarufeli,1223000
+435,Dahe,Muvozhi,1223000
+436,Dahe,Xiyanja,1221000
+437,Astye,Glonashi,1219000
+438,Finae,Kailan,1218000
+439,Dahe,Dalotza,1218000
+440,Haiza,Tijhara,1215000
+441,Inania,Yrelth,1214000
+442,New Misos,Sanilu,1212000
+443,Ukhdari,Hunzavir,1209000
+444,Areoix Lie,Xamahu,1206000
+445,Dahe,Xivutwa,1204000
+446,Pelugrotoa,Rivik,1203000
+447,Heiso,Felitu,1200000
+448,Raledria,Lijar,1199000
+449,United Delet,Ravohni,1198000
+450,Jshain,Dulravi,1197000
+451,Dahe,Fuzhenya,1197000
+452,Pelugrotoa,Sarnin,1196000
+453,Siana,Tungkam,1195000
+454,Sattle,Espralit,1193000
+455,Areoix Lie,Matini,1192000
+456,Vayvele,Vardak,1191000
+457,Ztesh,Shawink,1191000
+458,Sunsokua,Yamaru,1190000
+459,United Mihili,Velkura,1190000
+460,Dahe,Muzhulu,1190000
+461,Estijan,Ghalnari,1189000
+462,Sunsokua,Senkal,1189000
+463,Areoix Lie,Kiamoana,1187000
+464,New Misos,Nokavi,1186000
+465,Pelugrotoa,Olkar,1185000
+466,Quidic,Dunora,1182000
+467,Dahe,Lufuliya,1182000
+468,Disal Nila,Naliti,1181000
+469,Oscairia,Czarnulek,1179000
+470,Sunsokua,Kashibo,1178000
+471,Raledria,Gorchi,1178000
+472,New Misos,Hiranzo,1177000
+473,Ztesh,Mikway,1175000
+474,Dahe,Benzanqi,1175000
+475,Taval,Tanshivar,1174000
+476,Vayvele,Zanovik,1173000
+477,Taval,Bhanquillo,1173000
+478,Quidic,Viltira,1171000
+479,Disal Nila,Mbeke,1170000
+480,Oyreain,Bombo,1170000
+481,Areoix Lie,Xemara,1169000
+482,Erkizil,Tuhli,1169000
+483,Dahe,Tonkazi,1169000
+484,Viussi,Zambhori,1168000
+485,Lycroa,Huetun,1168000
+486,Inania,Zinthi,1168000
+487,Oyreain,Rokaba,1164000
+488,Areoix Lie,Tepahori,1162000
+489,Easuhura,Paviri,1161000
+490,Merela Sta,Lungkai,1160000
+491,Ztesh,Nekwasa,1159000
+492,Acetoa,Yezhito,1157000
+493,Dahe,Jinbayo,1156000
+494,Vayvele,Kijora,1155000
+495,United Delet,Talanvi,1155000
+496,Terressin,Fanitia,1149000
+497,Pelugrotoa,Lorvik,1147000
+498,Areoix Lie,Tautiku,1142000
+499,Ashain,Darnai,1142000
+500,United Delet,Solekhan,1139000
+501,Sunsokua,Otkiru,1138000
+502,Areoix Lie,Hikorai,1137000
+503,Ukhdari,Hanzubek,1137000
+504,Inania,Syntar,1137000
+505,Lycroa,Rimao,1134000
+506,Merela Sta,Ser,1133000
+507,United Delet,Tivara,1131000
+508,Vesozata,Vahira,1130000
+509,Easuhura,Boklan,1128000
+510,Sanagara,Bintarha,1126000
+511,Zhanshe,Tumnar,1125000
+512,Ztesh,Sikwan,1123000
+513,Erkizil,Nuhtalu,1122000
+514,Lycroa,Sorvaya,1121000
+515,Pelugrotoa,Kharim,1121000
+516,Galca,Altepso,1121000
+517,Hkuqo,Zurlan,1119000
+518,Suenan,Zarvundon,1117000
+519,Hkuqo,Chitralna,1114000
+520,Hkuqo,Lunavati,1110000
+521,Raledria,Pusko,1110000
+522,Trian,Silka,1106000
+523,Etretes,Zajkovi,1105000
+524,Ocaun,Kolino,1102000
+525,Ztesh,Nakamik,1102000
+526,Dahe,Mwenziqi,1102000
+527,Dahe,Lupenzhao,1101000
+528,Dahe,Dambulo,1101000
+529,Dahe,Tselengbo,1101000
+530,Ztesh,Ashwok,1099000
+531,Seytinemas,Merlan,1095000
+532,Dahe,Liwaya,1095000
+533,Seytinemas,Vurklo,1094000
+534,Inania,Taylan,1092000
+535,Dual Cenryia,Jastinor,1087000
+536,Vesozata,Lufiro,1087000
+537,Acetoa,Aruhala,1083000
+538,Vayvele,Beskun,1082000
+539,United Mihili,Nalvin,1082000
+540,Raledria,Sarvek,1082000
+541,Wundry,Teeneval,1081000
+542,Chaenia,Munela,1073000
+543,Ucrua,Frevinta,1073000
+544,Acrana,Samaru,1072000
+545,Isari,Damsiri,1072000
+546,Verusa,Foulang,1068000
+547,Sunsokua,Sodaru,1062000
+548,Ztesh,Tewiik,1062000
+549,Dahe,Zintali,1062000
+550,Emara,Lashirov,1060000
+551,Estijan,Quzharil,1060000
+552,Ztesh,Takamik,1060000
+553,Dahe,Xhalenti,1059000
+554,Sunsokua,Pirozu,1058000
+555,Vesozata,Sakali,1058000
+556,Suenan,Sarnotka,1057000
+557,Estijan,Ramvok,1054000
+558,Kaastini,Suharimti,1053000
+559,Dahe,Ndhuloya,1053000
+560,Ztesh,Pawik,1052000
+561,Dahe,Zhalandi,1052000
+562,Estijan,Khidiris,1045000
+563,Vesozata,Kandula,1045000
+564,Rtesania,Bardin,1044000
+565,Seytinemas,Zerash,1042000
+566,Ztesh,Pakoska,1042000
+567,Oyreain,Walsi,1042000
+568,Easuhura,Bokayek,1041000
+569,Verusa,Gulshen,1040000
+570,Grazail,Mushira,1040000
+571,Fermori,Khalviro,1038000
+572,Dual Cenryia,Zalmar,1036000
+573,Wundry,Enorva,1036000
+574,Dual Cenryia,Faskel,1035000
+575,Raledria,Jitana,1035000
+576,Dahe,Rizhouka,1034000
+577,Oyreain,Kebenta,1031000
+578,Pelugrotoa,Vreshin,1030000
+579,Jau,Muntai,1029000
+580,Ukhdari,Faramozan,1029000
+581,Acrana,Borezu,1027000
+582,Wundry,Lenera,1024000
+583,Areoix Lie,Mauhunai,1023000
+584,Arbiya,Kraevu,1022000
+585,Ealdorii,Kadorak,1021000
+586,Dahe,Zabantuq,1021000
+587,Galca,Dherkiv,1020000
+588,Estijan,Qadorli,1019000
+589,Areoix Lie,Pitahu,1017000
+590,Ztesh,Sikpah,1017000
+591,Dahe,Tayolum,1017000
+592,Pelugrotoa,Vansor,1012000
+593,Dahe,Quinliya,1012000
+594,Verusa,Walfrei,1008000
+595,Pelugrotoa,Dorav,1008000
+596,Ztesh,Mikiw,1007000
+597,Tomscilus,Ternyu,1005000
+598,Pelugrotoa,Slarim,1005000
+599,Dahe,Zhawengu,1005000
+600,Hkuqo,Rajalindo,1002000
+601,Inania,Vekti,1002000
+602,Erkizil,Lorasak,1002000

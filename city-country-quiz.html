@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah City Quiz collection</p>
+            <h1 class="huge-title">City Country Quiz</h1>
+            <p class="subtitle">Pick the correct country for the city shown. Each round is 20 cities.</p>
+        </div>
+
+        <div class="mode-tabs" aria-label="City pool">
+            <button class="mode-tab" data-pool="top50" type="button">Top 50</button>
+            <button class="mode-tab" data-pool="top200" type="button">Top 200</button>
+            <button class="mode-tab" data-pool="all" type="button">All cities</button>
+        </div>
+
+        <div id="game-area">
+            <div id="city-display" class="closest-target">
+                <div class="closest-target-prompt">City</div>
+                <div class="closest-target-name" id="city-name"></div>
+                <div class="closest-target-value" id="city-population"></div>
+            </div>
+
+            <div id="options" class="options"></div>
+        </div>
+
+        <div id="empty-state" class="result-text" style="display:none;"></div>
+
+        <div id="summary" class="game-summary" hidden>
+            <h3>Round complete</h3>
+            <div class="summary-score" id="summary-score"></div>
+            <div class="summary-percent" id="summary-percent"></div>
+            <button type="button" id="play-again">Play again</button>
+        </div>
+
+        <div class="score-panel">
+            <div class="score-block"><label>Correct</label><strong id="score">0</strong></div>
+            <div class="score-block"><label>Round</label><strong id="round-progress">0 / 0</strong></div>
+            <div class="score-block"><label>Best</label><strong id="highscore">0</strong></div>
+        </div>
+
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="js/script.js"></script>
+<script src="js/andah-cities.js"></script>
+<script>
+    const ROUND_SIZE = 20;
+    const pools = {
+        top50: { highScoreKey: 'cityCountryQuizTop50HighScore', size: 50 },
+        top200: { highScoreKey: 'cityCountryQuizTop200HighScore', size: 200 },
+        all: { highScoreKey: 'cityCountryQuizAllHighScore', size: Infinity }
+    };
+
+    let pool = new URLSearchParams(window.location.search).get('pool');
+    if (!pools[pool]) pool = 'top200';
+
+    const sortedByPop = [...andahCities].sort((a, b) => b.population - a.population);
+
+    let queue = [];
+    let correct = 0;
+    let attempted = 0;
+    let highScore = 0;
+    let activeCity = null;
+
+    function getFlagUrl(country) {
+        return `flags/${encodeURIComponent(country)}.png`;
+    }
+
+    function shuffle(arr) {
+        return [...arr].sort(() => 0.5 - Math.random());
+    }
+
+    function loadHighScore() {
+        const stored = localStorage.getItem(pools[pool].highScoreKey);
+        highScore = stored ? Number(stored) : 0;
+    }
+
+    function saveHighScore() {
+        localStorage.setItem(pools[pool].highScoreKey, highScore);
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score').innerText = correct;
+        document.getElementById('highscore').innerText = highScore;
+        document.getElementById('round-progress').innerText = `${attempted} / ${Math.min(ROUND_SIZE, queue.length + attempted)}`;
+    }
+
+    function getActivePool() {
+        const size = pools[pool].size;
+        return size === Infinity ? sortedByPop : sortedByPop.slice(0, size);
+    }
+
+    function setPool(nextPool) {
+        pool = nextPool;
+        document.querySelectorAll('.mode-tab').forEach(b => {
+            b.classList.toggle('active', b.dataset.pool === pool);
+        });
+        const url = new URL(window.location.href);
+        url.searchParams.set('pool', pool);
+        history.replaceState(null, '', url);
+        loadHighScore();
+        startGame();
+    }
+
+    function showEmptyState(count) {
+        document.getElementById('game-area').style.display = 'none';
+        const empty = document.getElementById('empty-state');
+        empty.style.display = 'block';
+        empty.innerHTML = `The City Country Quiz needs at least 4 cities to play. Currently filled in: <strong>${count}</strong>.`;
+    }
+
+    function startGame() {
+        const activePool = getActivePool();
+        if (activePool.length < 4) {
+            showEmptyState(activePool.length);
+            return;
+        }
+        queue = shuffle(activePool).slice(0, ROUND_SIZE);
+        correct = 0;
+        attempted = 0;
+        document.getElementById('summary').hidden = true;
+        document.getElementById('game-area').style.display = '';
+        updateScoreDisplay();
+        nextRound();
+    }
+
+    function nextRound() {
+        if (queue.length === 0) {
+            endGame();
+            return;
+        }
+        activeCity = queue.shift();
+
+        document.getElementById('city-name').innerText = activeCity.name;
+        document.getElementById('city-population').innerText = `Population: ${activeCity.population.toLocaleString()}`;
+
+        const otherCountries = Array.from(new Set(
+            andahCities
+                .filter(c => c.country !== activeCity.country)
+                .map(c => c.country)
+        ));
+        const distractors = shuffle(otherCountries).slice(0, 3);
+        const choices = shuffle([activeCity.country, ...distractors]);
+
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+        choices.forEach(country => {
+            const btn = document.createElement('button');
+            btn.className = 'option-button';
+            btn.innerText = country;
+            btn.onclick = () => checkAnswer(btn, country);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(btn, country) {
+        const buttons = document.querySelectorAll('.option-button');
+        buttons.forEach(b => b.disabled = true);
+
+        attempted++;
+        if (country === activeCity.country) {
+            correct++;
+            btn.classList.add('correct');
+        } else {
+            btn.classList.add('wrong');
+            buttons.forEach(b => { if (b.innerText === activeCity.country) b.classList.add('correct'); });
+        }
+        updateScoreDisplay();
+        setTimeout(nextRound, 1300);
+    }
+
+    function endGame() {
+        if (correct > highScore) {
+            highScore = correct;
+            saveHighScore();
+        }
+        updateScoreDisplay();
+        document.getElementById('game-area').style.display = 'none';
+        document.getElementById('summary-score').innerText = `${correct} / ${ROUND_SIZE}`;
+        const pct = ROUND_SIZE > 0 ? Math.round((correct / ROUND_SIZE) * 100) : 0;
+        document.getElementById('summary-percent').innerText = `${pct}% correct`;
+        document.getElementById('summary').hidden = false;
+    }
+
+    document.querySelectorAll('.mode-tab').forEach(b => {
+        b.addEventListener('click', () => setPool(b.dataset.pool));
+    });
+
+    document.getElementById('play-again').addEventListener('click', startGame);
+
+    setPool(pool);
+</script>
+</body>
+</html>
