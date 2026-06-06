@@ -14,7 +14,7 @@ The landing page ([`index.html`](index.html)) links out to everything:
 - **Trivia** — Capital Quiz.
 - **Map games** — Type the Map.
 - **City games** — City Higher or Lower, City Country Quiz.
-- **Explore the data** — the [Country Explorer](explore.html) (interactive map, sortable table, and charts) and the [Andah Wiki mirror](wiki.html).
+- **Explore the data** — the [Country Explorer](explore.html) (interactive map, sortable table, and charts), the [Flight Network](flight-network.html) (a gravity-model flight network on a 3D globe + 2D map), and the [Andah Wiki mirror](wiki.html).
 
 The Explorer is fed by `data/countries.json`, which is built from the spreadsheets in [`.xlsx files/`](.xlsx%20files/). The wiki mirror is pre-fetched from Miraheze so the site stays fast and survives wiki outages.
 
@@ -46,6 +46,7 @@ The Explorer is fed by `data/countries.json`, which is built from the spreadshee
 | Step | Script | Output | Skip with |
 | --- | --- | --- | --- |
 | Data | `build-data.js` | `data/countries.json` from `.xlsx files/` | `SKIP_DATA=1` |
+| Routes | `generate-routes.js` | `data/airports.json` + `data/routes.json` (gravity model) | `SKIP_ROUTES=1` |
 | Intros | `extract-intros.js` | `data/intros.json` | `SKIP_INTROS=1` |
 | Wiki | `fetch-wiki.js` | `wiki/*.html` + `data/wiki-index.json` from the Miraheze API | `SKIP_WIKI=1` |
 
@@ -53,10 +54,15 @@ The data step reads every sheet flexibly: numeric columns become metrics, string
 
 > The wiki step needs a descriptive `MIRAHEZE_USER_AGENT` env var, or Miraheze rejects the requests.
 
+### Flight network data
+
+The [Flight Network](flight-network.html) page draws its airports from one of (in priority order): `data/flight-cities.json` (city airports tagged with [`flight-tagger.html`](flight-tagger.html)), the `generate-routes.js` build output, or — as a last resort — a network generated in-browser from the country data. `flight-tagger.html` is a one-off tool: it auto-detects the city dots in `maps/andah-city-dots.png`, overlays them on `maps/andah-political.png`, lets you label each with a city + nation, and exports `flight-cities.json`. The gravity model + render tunables live in [`views/flight-config.js`](views/flight-config.js).
+
 ### Individual scripts
 
 ```bash
 npm run build:data     # xlsx → data/countries.json
+npm run build:routes   # gravity model → data/airports.json + data/routes.json
 npm run build:intros   # → data/intros.json
 npm run build:wiki     # Miraheze API → wiki/*.html + data/wiki-index.json
 npm run build:fifa     # build-fifa-data.js (World Cup sim data)

@@ -5,6 +5,7 @@
 import { buildData } from './build-data.js';
 import { fetchWiki } from './fetch-wiki.js';
 import { extractIntros } from './extract-intros.js';
+import { buildRoutes } from './generate-routes.js';
 
 async function main() {
     if (process.env.SKIP_DATA !== '1') {
@@ -12,6 +13,13 @@ async function main() {
         await buildData();
     } else {
         console.log('SKIP_DATA=1, skipping data pipeline.');
+    }
+
+    if (process.env.SKIP_ROUTES !== '1') {
+        console.log('--- build:routes ---');
+        await buildRoutes();
+    } else {
+        console.log('SKIP_ROUTES=1, skipping flight-route generation.');
     }
 
     if (process.env.SKIP_INTROS !== '1') {
