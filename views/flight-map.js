@@ -90,27 +90,44 @@ export function createMap(container, { config, onSelect } = {}) {
         const sx = cssW / MAP_W;
         const sy = cssH / MAP_H;
 
-        // Routes (under the dots).
-        for (const r of routes) {
-            const dim = selectedId && !isIncident(r);
-            const x0 = r.fromX * sx, y0 = r.fromY * sy;
-            const x1 = r.toX * sx, y1 = r.toY * sy;
+        // Draw one bowed arc between two screen points.
+        function arc(x0, y0, x1, y1, stroke, width) {
             const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
             const dx = x1 - x0, dy = y1 - y0;
             const len = Math.hypot(dx, dy) || 1;
             const bow = Math.min(len * 0.18, 60);
             const cx = mx - (dy / len) * bow;   // perpendicular, consistent side
             const cy = my + (dx / len) * bow;
-
             ctx.beginPath();
             ctx.moveTo(x0, y0);
             ctx.quadraticCurveTo(cx, cy, x1, y1);
-            ctx.strokeStyle = dim
+            ctx.strokeStyle = stroke;
+            ctx.lineWidth = width;
+            ctx.stroke();
+        }
+
+        // Routes (under the dots).
+        const wrapW = cssW;   // map spans 0..cssW on screen; wrapping width is the full map
+        for (const r of routes) {
+            const dim = selectedId && !isIncident(r);
+            const x0 = r.fromX * sx, y0 = r.fromY * sy;
+            const x1 = r.toX * sx, y1 = r.toY * sy;
+            const stroke = dim
                 ? `rgba(150,160,170,${config.dimOpacity})`
                 : hexToRgba(config.haulColors[r.haul] || config.haulColors.long, selectedId ? 0.95 : 0.55);
             const w = config.arcStrokeMin + (config.arcStrokeMax - config.arcStrokeMin) * (r.demand || 0);
-            ctx.lineWidth = (selectedId && isIncident(r)) ? w * 1.6 + 0.6 : w + 0.4;
-            ctx.stroke();
+            const width = (selectedId && isIncident(r)) ? w * 1.6 + 0.6 : w + 0.4;
+
+            // If the cities sit more than half the map apart horizontally, it's
+            // shorter to cross the edge than the middle — draw two arcs that run
+            // off opposite sides instead of one that cuts straight across.
+            if (Math.abs(x1 - x0) > wrapW / 2) {
+                const dir = x1 > x0 ? 1 : -1;   // shift the nearer point past the far edge
+                arc(x0, y0, x1 - dir * wrapW, y1, stroke, width);
+                arc(x0 + dir * wrapW, y0, x1, y1, stroke, width);
+            } else {
+                arc(x0, y0, x1, y1, stroke, width);
+            }
         }
 
         // Dots.
@@ -198,11 +215,12 @@ export function createMap(container, { config, onSelect } = {}) {
     canvas.addEventListener('pointercancel', endDrag);
 
     // Click selects a dot — unless the pointer was dragged (a pan).
+    // Clicking empty space (no dot) deselects the current city.
     canvas.addEventListener('click', e => {
         if (moved) { moved = false; return; }
         const rect = canvas.getBoundingClientRect();
         const hit = findDot(e.clientX - rect.left, e.clientY - rect.top);
-        if (hit && onSelect) onSelect(hit.a.id);
+        if (onSelect) onSelect(hit ? hit.a.id : null);
     });
 
     const ro = new ResizeObserver(() => draw());

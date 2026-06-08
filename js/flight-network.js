@@ -89,6 +89,7 @@ function renderPanelNow() {
 }
 
 function selectAirport(id) {
+    if (!id) { clearSelection(); return; }
     if (!state.network.airportById.has(id)) return;
     state.selectedId = id;
     renderPanelNow();

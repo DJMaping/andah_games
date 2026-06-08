@@ -32,6 +32,8 @@ export async function createGlobe(container, { config, onSelect } = {}) {
         .pointColor(pointColor)
         .pointLabel(d => `<b>${esc(d.city)}</b><br>${esc(d.country)}`)
         .onPointClick(d => onSelect && onSelect(d.id))
+        // Clicking the globe surface (not a city) deselects the current city.
+        .onGlobeClick(() => onSelect && onSelect(null))
         .arcStartLat('fromLat').arcStartLng('fromLon')
         .arcEndLat('toLat').arcEndLng('toLon')
         .arcColor(arcColor)

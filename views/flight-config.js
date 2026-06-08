@@ -18,22 +18,57 @@ export const FLIGHT_CONFIG = {
     minDistanceKm: 100,
 
     // --- Gravity demand model --------------------------------------------
-    // demand = (popA*popB)^alpha * gdpFactor / distance^beta, then normalised 0..1.
+    // base   = (massA*massB)^alpha / distance^beta     (mass = pop × nation GDP/cap)
+    // demand = base × (domestic ? domesticDemandMult : 1) × min(wealthFactorA, wealthFactorB)
+    // then normalised by max(base) so domestic boosts lift above the intl scale.
     alpha: 0.8,
     beta: 1.4,
 
     // --- Hubs -------------------------------------------------------------
-    // Top-N countries by nominal GDP become hubs: they interconnect freely and
-    // are exempt from the range cap (long-haul flagships).
+    // GLOBAL hubs = the top-N airports by economic mass (population × nation
+    // GDP-per-capita). They interconnect freely, are exempt from the range cap
+    // (long-haul flagships), and get a high degree-cap floor so they fan out
+    // nearly everywhere (see hubCapFloor below).
     hubCount: 18,
+    // Global trunk network: every pair of hubs within this range gets a
+    // guaranteed long-haul route (the real-world "London <-> Moscow/Rio/Dubai/NYC"
+    // flagship mesh), so the major world cities all interconnect regardless of
+    // distance decay. Set high; pairs beyond it (near-antipodal) are skipped.
+    hubMeshMaxKm: 16000,
+    // Gentler distance decay for hub<->hub demand: trunk routes between megacities
+    // stay high-volume (thick arcs) even at long haul, unlike ordinary routes.
+    betaHub: 0.6,
+
+    // --- Domestic / wealth scaling ---------------------------------------
+    // The network favours same-country flights and gives rich nations far more
+    // routes than poor ones. "Rich" is driven by GDP-PER-CAPITA (a populous but
+    // poor nation stays sparse on purpose).
+    domesticDemandMult: 5.0,    // same-country pairs get this demand multiplier (pre-normalisation)
+    wealthExp: 1.0,             // shapes the nation wealth factor; >1 punishes poor nations harder
+    wealthFloor: 0.06,          // poorest nations keep at least this fraction of demand / cap
+    // Per-airport degree cap = a BLEND of nation wealth and city POPULATION:
+    //   cap = capMin + (capMax-capMin) × (wealthWeight·wealth^capWealthExp
+    //                                     + (1-wealthWeight)·popFraction^sizeExp)
+    // Wealth still leads (wealthWeight > 0.5), but a populous nation's big cities
+    // now get real lift from population even when poor — so a huge poor country
+    // isn't starved down to 2-3 routes a city.
+    wealthWeight: 0.55,         // wealth vs population split in the cap (>0.5 = wealth leads)
+    capMin: 3,                  // cap floor for the poorest / smallest cities
+    capMax: 48,                 // cap ceiling for the richest / largest cities
+    capWealthExp: 1.0,          // exponent applying wealth to the cap
+    sizeExp: 0.7,               // exponent on the population fraction (compresses the long tail)
+    hubCapFloor: 34,            // minimum cap for a global hub (fly nearly everywhere)
+    capHardMin: 1,              // absolute lower clamp on any cap
+    capHardMax: 52,             // absolute upper clamp on any node's degree (tames runaway hubs)
 
     // --- Filtering / realism ---------------------------------------------
-    demandThreshold: 0.03,      // drop hub/spoke edges below this normalised demand
-    spokeSpokeThreshold: 0.18,  // two non-hubs only link if demand is this strong
+    // Thresholds are near-zero: with mass = pop × GDP/capita the demand spread is
+    // enormous, so the per-airport scaled cap (above) is the real limiter, not a
+    // global demand cutoff. Keep tiny floors just to drop numerically-dead edges.
+    demandThreshold: 0.0,       // hub/spoke edges: cap decides, not a cutoff
+    spokeSpokeThreshold: 0.0,   // spoke-spoke edges: cap decides
     maxRangeKm: 9000,           // cut routes beyond this unless both endpoints are hubs
-    spokeHubs: 3,               // each non-hub is guaranteed links to its nearest N hubs
-    maxRoutesPerCity: 6,        // degree cap for non-hubs (highest demand kept)
-    hubMaxRoutes: 28,           // degree cap for hubs
+    spokeHubs: 1,               // each non-hub is guaranteed a link to its nearest hub (anti-stranding)
 
     // --- Haul classification (km) ----------------------------------------
     haulShortMax: 1500,         // short  < 1500
@@ -55,6 +90,6 @@ export const FLIGHT_CONFIG = {
     arcAltitudeMin: 0.05,
     arcAltitudeMax: 0.35,
     arcStrokeMin: 0.2,
-    arcStrokeMax: 1.2,
+    arcStrokeMax: 0.5,          // keep arcs thin: even top-demand trunk/domestic edges stay slim
     dimOpacity: 0.06            // opacity of non-selected routes when a city is selected
 };

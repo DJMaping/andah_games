@@ -157,7 +157,7 @@ async function buildCityAirports(cityDoc) {
     const gpcByNation = new Map();
     let gpcSum = 0, gpcN = 0;
     for (const c of data.countries || []) {
-        const gpc = c.metrics && c.metrics.gdpPerNominal;
+        const gpc = nominalGdpPerCapita(c.metrics);
         if (Number.isFinite(gpc) && gpc > 0) {
             gpcByNation.set(c.name, gpc);
             gpcSum += gpc; gpcN++;
@@ -192,6 +192,18 @@ async function buildCityAirports(cityDoc) {
 
 function slugCity(name) {
     return String(name).trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+}
+
+// Nominal GDP-per-capita for a country, tolerant of the raw spreadsheet column
+// names that build-data.js emits ("Per (NOM)" / "GDP Capita"). Falls back to a
+// cleaned key in case the schema is ever normalised. Returns NaN if absent.
+function nominalGdpPerCapita(metrics) {
+    if (!metrics) return NaN;
+    for (const k of ['gdpPerNominal', 'Per (NOM)', 'GDP Capita', 'gdpCapita']) {
+        const v = metrics[k];
+        if (Number.isFinite(v) && v > 0) return v;
+    }
+    return NaN;
 }
 
 function finalizeNetwork(airports, routes, source, map) {

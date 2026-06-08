@@ -43,6 +43,16 @@ const pop = a => (a.metrics && a.metrics.population) || a.population || 0;
 // population. One quantity keeps the gravity model source-agnostic.
 const massOf = a => (Number.isFinite(a.mass) ? a.mass
     : ((a.metrics && a.metrics.gdpNominal) || a.gdp || pop(a) || 0));
+// Nation wealth proxy = GDP-per-capita. Prefer the joined metric; otherwise
+// recover it from mass / population (mass = pop × gdppc). Source-agnostic, never
+// NaN: a city with no population/mass returns 1 (neutral).
+const gdppcOf = a => {
+    const g = a.metrics && a.metrics.gdpPerCapita;
+    if (Number.isFinite(g) && g > 0) return g;
+    const p = pop(a), m = massOf(a);
+    return (p > 0 && m > 0) ? m / p : 1;
+};
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const keyOf = (x, y) => (x < y ? x + '|' + y : y + '|' + x);
 
 // --- Network generation --------------------------------------------------
@@ -53,35 +63,54 @@ export function generateNetwork(airportsIn, cfg) {
         massOf(a) > 0 && Number.isFinite(a.lat) && Number.isFinite(a.lon));
     const aptById = new Map(eligible.map(a => [a.id, a]));
 
-    // Hubs: top-N by economic mass (id tiebreak for determinism).
+    // Global hubs: top-N by economic mass (id tiebreak for determinism).
     const byMass = [...eligible].sort((x, y) => massOf(y) - massOf(x) || x.id.localeCompare(y.id));
     const hubSet = new Set(byMass.slice(0, cfg.hubCount).map(a => a.id));
     for (const a of airports) a.isHub = hubSet.has(a.id);
 
     const hubs = eligible.filter(a => a.isHub);
 
-    // Candidate edges (all eligible pairs that pass the range gate).
-    const cands = [];
-    for (let i = 0; i < eligible.length; i++) {
-        for (let j = i + 1; j < eligible.length; j++) {
-            const A = eligible[i];
-            const B = eligible[j];
-            // Two airports of the same city have no flight between them.
-            if (A.displayCity && A.displayCity === B.displayCity) continue;
-            const dist = distanceKm(A, B, cfg);
-            if (!(dist > 0)) continue;
-            const bothHub = A.isHub && B.isHub;
-            if (dist > cfg.maxRangeKm && !bothHub) continue;
-            const denom = Math.pow(Math.max(dist, cfg.minDistanceKm || 1), cfg.beta);
-            const demandRaw = Math.pow(massOf(A) * massOf(B), cfg.alpha) / denom;
-            cands.push({ A, B, dist, demandRaw });
-        }
+    // --- Wealth / size scalars -------------------------------------------
+    // Per-nation GDP-per-capita = mass-weighted mean of its airports' gdppc.
+    // (mass-weighted so a nation's economic centre, not a tiny outpost, sets the
+    // tone.) Iterate by sorted nation name for deterministic accumulation.
+    const nationAgg = new Map();   // country -> { wSum, mSum }
+    for (const a of eligible) {
+        const c = a.country;
+        if (!c) continue;
+        const m = massOf(a);
+        const agg = nationAgg.get(c) || { wSum: 0, mSum: 0 };
+        agg.wSum += gdppcOf(a) * m;
+        agg.mSum += m;
+        nationAgg.set(c, agg);
     }
-    const maxDemand = cands.reduce((m, c) => Math.max(m, c.demandRaw), 0) || 1;
-    for (const c of cands) c.demand = c.demandRaw / maxDemand;
+    const nationGdppc = new Map();
+    let maxNationGdppc = 0;
+    for (const c of [...nationAgg.keys()].sort()) {
+        const { wSum, mSum } = nationAgg.get(c);
+        const g = mSum > 0 ? wSum / mSum : 1;
+        nationGdppc.set(c, g);
+        if (g > maxNationGdppc) maxNationGdppc = g;
+    }
+    if (!(maxNationGdppc > 0)) maxNationGdppc = 1;
+    const maxAirportPop = eligible.reduce((m, a) => Math.max(m, pop(a)), 0) || 1;
+
+    // Nation wealth factor in [wealthFloor, 1]: poorest -> floor, richest -> 1.
+    // The dominant lever on how many flights a country gets.
+    const wealthFactor = country => {
+        const g = nationGdppc.get(country);
+        if (!Number.isFinite(g)) return 1;
+        return clamp(Math.pow(g / maxNationGdppc, cfg.wealthExp), cfg.wealthFloor, 1);
+    };
+    // City size factor in [0, 1] from raw POPULATION (not economic mass): this is
+    // the lever that lets a populous-but-poor nation's big cities earn routes even
+    // though their wealth factor is low.
+    const sizeFactor = a => clamp(pop(a) / maxAirportPop, 0, 1);
 
     // Guarantee each non-hub links to its nearest `spokeHubs` hubs so nothing is
-    // stranded (computed independent of the range/threshold gates above).
+    // stranded. Computed BEFORE candidates so these pairs can bypass the range
+    // gate below — otherwise a spoke whose nearest hub is beyond maxRangeKm would
+    // be dropped from candidates and never get its guaranteed route.
     const guaranteed = new Set();
     for (const s of eligible) {
         if (s.isHub || hubs.length === 0) continue;
@@ -92,6 +121,57 @@ export function generateNetwork(airportsIn, cfg) {
             .slice(0, cfg.spokeHubs);
         for (const { h } of nearHubs) guaranteed.add(keyOf(s.id, h.id));
     }
+
+    // Global trunk mesh: guarantee a long-haul route between every pair of hubs
+    // within hubMeshMaxKm, so the major world cities interconnect (e.g. London
+    // <-> Moscow/Rio/Dubai/NYC) instead of only flying to nearby foreign cities.
+    // Guaranteed edges bypass the demand threshold and the degree-cap trim, so
+    // these flagship routes survive even though distance decay makes them low-demand.
+    for (let i = 0; i < hubs.length; i++) {
+        for (let j = i + 1; j < hubs.length; j++) {
+            const d = distanceKm(hubs[i], hubs[j], cfg);
+            if (d > 0 && d <= cfg.hubMeshMaxKm) guaranteed.add(keyOf(hubs[i].id, hubs[j].id));
+        }
+    }
+
+    // Candidate edges (all eligible pairs that pass the range gate or are guaranteed).
+    const cands = [];
+    for (let i = 0; i < eligible.length; i++) {
+        for (let j = i + 1; j < eligible.length; j++) {
+            const A = eligible[i];
+            const B = eligible[j];
+            // Two airports of the same city have no flight between them.
+            if (A.displayCity && A.displayCity === B.displayCity) continue;
+            const dist = distanceKm(A, B, cfg);
+            if (!(dist > 0)) continue;
+            const bothHub = A.isHub && B.isHub;
+            const isGuaranteed = guaranteed.has(keyOf(A.id, B.id));
+            if (dist > cfg.maxRangeKm && !bothHub && !isGuaranteed) continue;
+            // Even hubs don't fly near-antipodal: bound trunk routes at the mesh range.
+            if (bothHub && dist > cfg.hubMeshMaxKm) continue;
+            // Hub<->hub trunk routes use a gentler distance decay so megacity pairs
+            // stay high-volume at long haul; ordinary routes use the full decay.
+            const beta = bothHub ? cfg.betaHub : cfg.beta;
+            const denom = Math.pow(Math.max(dist, cfg.minDistanceKm || 1), beta);
+            // base = raw gravity term; demandRaw layers domestic boost + wealth
+            // dampening on top. We normalise by the spoke scale (below) so the
+            // domestic boost lifts domestic edges above the international scale and
+            // trunk routes top out thick.
+            const base = Math.pow(massOf(A) * massOf(B), cfg.alpha) / denom;
+            const domestic = !!(A.country && B.country && A.country === B.country);
+            let demandRaw = base;
+            if (domestic) demandRaw *= cfg.domesticDemandMult;
+            demandRaw *= Math.min(wealthFactor(A.country), wealthFactor(B.country));
+            cands.push({ A, B, dist, base, demandRaw, domestic, bothHub });
+        }
+    }
+    // Normalise against the max base among NON-trunk pairs: the gentle-decay trunk
+    // routes would otherwise inflate the scale and render everything else thin.
+    // Trunk edges then exceed 1.0 (clamped to thickest when stored).
+    let maxDemand = 0;
+    for (const c of cands) if (!c.bothHub && c.base > maxDemand) maxDemand = c.base;
+    if (!(maxDemand > 0)) maxDemand = cands.reduce((m, c) => Math.max(m, c.base), 0) || 1;
+    for (const c of cands) c.demand = c.demandRaw / maxDemand;   // domestic/trunk edges may exceed 1.0; fine internally
 
     // Keep rule by edge class.
     const kept = [];
@@ -109,7 +189,18 @@ export function generateNetwork(airportsIn, cfg) {
 
     // Degree cap: an edge survives if it is within the top-K demand of EITHER
     // endpoint (or guaranteed). Union across nodes avoids orphaning spokes.
-    const capOf = a => (a.isHub ? cfg.hubMaxRoutes : cfg.maxRoutesPerCity);
+    // The cap scales per airport — nation wealth (GDP/capita) is the primary
+    // lever, city size a secondary one — so rich/big cities fan out widely while
+    // poor/small ones get only a handful. Global hubs get a high floor.
+    const capOf = a => {
+        const w = wealthFactor(a.country);                        // GDP/capita
+        const s = sizeFactor(a);                                  // population
+        const wt = clamp(cfg.wealthWeight, 0, 1);                 // wealth vs population split
+        const blend = wt * Math.pow(w, cfg.capWealthExp) + (1 - wt) * Math.pow(s, cfg.sizeExp);
+        let cap = cfg.capMin + (cfg.capMax - cfg.capMin) * blend;
+        if (a.isHub) cap = Math.max(cap, cfg.hubCapFloor);
+        return Math.round(clamp(cap, cfg.capHardMin, cfg.capHardMax));
+    };
     const incident = new Map(eligible.map(a => [a.id, []]));
     for (const c of kept) {
         incident.get(c.A.id).push(c);
@@ -129,6 +220,31 @@ export function generateNetwork(airportsIn, cfg) {
         }
     }
 
+    // Final trim: the union-of-endpoints rule lets a very popular hub accumulate
+    // far past its own cap (every spoke that ranks it keeps the edge). Bound any
+    // node to capHardMax by dropping its lowest-demand NON-guaranteed edges,
+    // processing the most overloaded nodes first (determinism via id tiebreak).
+    const degreeOf = id => {
+        let n = 0;
+        for (const e of incident.get(id)) if (allow.has(keyOf(e.A.id, e.B.id))) n++;
+        return n;
+    };
+    const overloaded = [...incident.keys()]
+        .filter(id => degreeOf(id) > cfg.capHardMax)
+        .sort((a, b) => degreeOf(b) - degreeOf(a) || a.localeCompare(b));
+    for (const id of overloaded) {
+        const edges = incident.get(id)
+            .filter(e => allow.has(keyOf(e.A.id, e.B.id)) && !guaranteed.has(keyOf(e.A.id, e.B.id)))
+            .sort((p, q) => p.demand - q.demand ||
+                keyOf(p.A.id, p.B.id).localeCompare(keyOf(q.A.id, q.B.id)));
+        let over = degreeOf(id) - cfg.capHardMax;
+        for (const e of edges) {
+            if (over <= 0) break;
+            allow.delete(keyOf(e.A.id, e.B.id));
+            over--;
+        }
+    }
+
     const routes = kept
         .filter(c => allow.has(keyOf(c.A.id, c.B.id)))
         .map(c => {
@@ -144,8 +260,8 @@ export function generateNetwork(airportsIn, cfg) {
                 toX: c.B.x, toY: c.B.y,
                 distanceKm: Math.round(c.dist),
                 haul,
-                domestic: false,
-                demand: +c.demand.toFixed(4)
+                domestic: c.domestic,
+                demand: +Math.min(1, c.demand).toFixed(4)   // clamp for render (0..1); ranking used the raw value
             };
         })
         .sort((p, q) => q.demand - p.demand || keyOf(p.from, p.to).localeCompare(keyOf(q.from, q.to)));
