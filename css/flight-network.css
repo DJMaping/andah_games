@@ -454,3 +454,88 @@
     .tagger-viewport, .tagger-panel { height: auto; }
     .tagger-viewport { min-height: 60vh; }
 }
+
+/* --- Flight cities editor ---------------------------------------------- */
+.fce-shell {
+    width: min(1600px, 99%);
+    margin: 0 auto;
+    padding: 12px 0 24px;
+    display: grid;
+    grid-template-columns: 480px 1fr;
+    gap: 14px;
+    font-family: var(--sans);
+}
+
+.fce-side {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    background: var(--bg-soft);
+    height: calc(100vh - 150px);
+    min-height: 480px;
+    overflow: hidden;
+}
+
+.fce-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-soft);
+}
+.fce-toolbar-row { display: flex; align-items: center; gap: 10px; }
+.fce-search {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.85rem;
+}
+.fce-side .tagger-actions { margin: 0; }
+
+.fce-list { flex: 1 1 auto; overflow-y: auto; padding: 6px; }
+
+.fce-row {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 4px 8px;
+    align-items: center;
+    padding: 7px 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+}
+.fce-row + .fce-row { margin-top: 2px; }
+.fce-row:hover { background: var(--bg-sunken); }
+.fce-row.sel { border-color: var(--link); background: var(--bg-sunken); }
+
+.fce-idx {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+.fce-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+.fce-fields { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fce-fields input {
+    padding: 5px 7px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.85rem;
+}
+.fce-row.done .fce-name { font-weight: 600; }
+.fce-meta { font-size: 0.72rem; color: var(--muted); }
+
+@media (max-width: 900px) {
+    .fce-shell { grid-template-columns: 1fr; }
+    .fce-side, .fce-map.tagger-viewport { height: auto; }
+    .fce-side { max-height: 60vh; }
+    .fce-map.tagger-viewport { min-height: 60vh; }
+}

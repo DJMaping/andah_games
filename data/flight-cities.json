@@ -1,0 +1,179 @@
+{
+  "map": {
+    "image": "maps/andah-political.png",
+    "width": 10000,
+    "height": 4999
+  },
+  "cities": [
+    {
+      "id": "sarwun",
+      "city": "Sarwun",
+      "airport": "Sarwun",
+      "nation": "Estijan",
+      "population": 11035000,
+      "band": "10-20M",
+      "x": 6435,
+      "y": 863
+    },
+    {
+      "id": "hananli",
+      "city": "Hananli",
+      "airport": "Hananli",
+      "nation": "Estijan",
+      "population": 1888000,
+      "band": "1-5M",
+      "x": 6448,
+      "y": 907
+    },
+    {
+      "id": "ramvok",
+      "city": "Ramvok",
+      "airport": "Ramvok",
+      "nation": "Estijan",
+      "population": 1054000,
+      "band": "1-5M",
+      "x": 6352,
+      "y": 932
+    },
+    {
+      "id": "ghalnari",
+      "city": "Ghalnari",
+      "airport": "Ghalnari",
+      "nation": "Estijan",
+      "population": 1189000,
+      "band": "1-5M",
+      "x": 6475,
+      "y": 957
+    },
+    {
+      "id": "miranis",
+      "city": "Miranis",
+      "airport": "Miranis",
+      "nation": "Estijan",
+      "population": 3767000,
+      "band": "1-5M",
+      "x": 6430,
+      "y": 995
+    },
+    {
+      "id": "qadorli",
+      "city": "Qadorli",
+      "airport": "Qadorli",
+      "nation": "Estijan",
+      "population": 1019000,
+      "band": "1-5M",
+      "x": 6344,
+      "y": 1010
+    },
+    {
+      "id": "sharo",
+      "city": "Sharo",
+      "airport": "Sharo",
+      "nation": "Estijan",
+      "population": 3995000,
+      "band": "1-5M",
+      "x": 6355,
+      "y": 1027
+    },
+    {
+      "id": "bashira",
+      "city": "Bashira",
+      "airport": "Bashira",
+      "nation": "Estijan",
+      "population": 1421000,
+      "band": "1-5M",
+      "x": 6510,
+      "y": 1027
+    },
+    {
+      "id": "taranvo",
+      "city": "Taranvo",
+      "airport": "Taranvo",
+      "nation": "Estijan",
+      "population": 2266000,
+      "band": "1-5M",
+      "x": 6358,
+      "y": 1065
+    },
+    {
+      "id": "barashir",
+      "city": "Barashir",
+      "airport": "Barashir",
+      "nation": "Estijan",
+      "population": 6540000,
+      "band": "5-10M",
+      "x": 6540,
+      "y": 1093
+    },
+    {
+      "id": "zhaelis",
+      "city": "Zhaelis",
+      "airport": "Zhaelis",
+      "nation": "Estijan",
+      "population": 2065000,
+      "band": "1-5M",
+      "x": 6480,
+      "y": 1098
+    },
+    {
+      "id": "shabiran",
+      "city": "Shabiran",
+      "airport": "Shabiran",
+      "nation": "Estijan",
+      "population": 13218000,
+      "band": "10-20M",
+      "x": 6583,
+      "y": 1098
+    },
+    {
+      "id": "khidiris",
+      "city": "Khidiris",
+      "airport": "Khidiris",
+      "nation": "Estijan",
+      "population": 1045000,
+      "band": "1-5M",
+      "x": 6582,
+      "y": 1138
+    },
+    {
+      "id": "fazraba",
+      "city": "Fazraba",
+      "airport": "Fazraba",
+      "nation": "Estijan",
+      "population": 1435000,
+      "band": "1-5M",
+      "x": 6662,
+      "y": 1163
+    },
+    {
+      "id": "qayhadr",
+      "city": "Qayhadr",
+      "airport": "Qayhadr",
+      "nation": "Estijan",
+      "population": 1499000,
+      "band": "1-5M",
+      "x": 6580,
+      "y": 1250
+    },
+    {
+      "id": "shorakim",
+      "city": "Shorakim",
+      "airport": "Shorakim",
+      "nation": "Eldjo",
+      "population": 1254000,
+      "band": "1-5M",
+      "x": 6460,
+      "y": 1682
+    },
+    {
+      "id": "dy",
+      "city": "Dy",
+      "airport": "Dy",
+      "nation": "Ukhdari",
+      "population": 1846000,
+      "band": "1-5M",
+      "x": 6995,
+      "y": 2020
+    }
+  ]
+}

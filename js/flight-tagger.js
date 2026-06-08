@@ -277,6 +277,13 @@ function wireEvents() {
 
     els.onlyUnassigned.addEventListener('change', draw);
     els.name.addEventListener('input', onNameInput);
+    els.name.addEventListener('keydown', e => {
+        // Enter in the City name box: save, then leave the selected airport.
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        saveSelected();
+        deselect();
+    });
     els.save.addEventListener('click', saveSelected);
     els.del.addEventListener('click', deleteSelected);
     els.exportBtn.addEventListener('click', exportJson);
@@ -303,9 +310,11 @@ function selectDot(i) {
     els.form.hidden = false;
     els.band.textContent = `Band: ${d.band}`;
     els.band.style.color = bandRgb(d.band);
-    // Narrow the city datalist to this band.
+    // Narrow the city datalist to this band. Value-only options so the dropdown
+    // suggests city names alone — the nation is filled in automatically once a
+    // city is chosen (see onNameInput), instead of cluttering each suggestion.
     els.cityList.innerHTML = citiesInBand(d.band)
-        .map(c => `<option value="${esc(c.name)}">${esc(c.country)} · ${c.population.toLocaleString()}</option>`).join('');
+        .map(c => `<option value="${esc(c.name)}"></option>`).join('');
     els.name.value = d.name || '';
     els.nation.value = d.nation || '';
     els.pop.value = d.population ?? '';
@@ -331,7 +340,7 @@ function saveSelected() {
     d.airport = els.airport.value.trim();
     persist();
     refreshCounts(); renderProgress();
-    selectNextUnassigned();
+    draw();   // reflect the now-labelled dot; stay on the same airport.
 }
 
 function deleteSelected() {
@@ -340,6 +349,13 @@ function deleteSelected() {
     selected = -1;
     els.form.hidden = true;
     persist(); draw(); refreshCounts(); renderProgress();
+}
+
+// Clear the current selection and close the form (no navigation).
+function deselect() {
+    selected = -1;
+    els.form.hidden = true;
+    draw();
 }
 
 function selectNextUnassigned() {
