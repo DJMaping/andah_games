@@ -81,6 +81,7 @@ export function buildAirports({ countries = [], coords = [], capitals = [] } = {
             y: coord.y,
             lat,
             lon,
+            isCapital: true,   // country airports are the nation's capital by definition
             metrics: country.metrics || {}
         });
     }
@@ -154,6 +155,10 @@ export async function loadNetwork(config = FLIGHT_CONFIG) {
 // country stats), so cities in richer nations pull more traffic.
 async function buildCityAirports(cityDoc) {
     const data = await loadCountries();
+    // nation -> capital city name, so each nation's capital airport can be flagged
+    // (flight-cities.json doesn't mark capitals; the join supplies it).
+    const capitals = await loadCapitals();
+    const capitalByNation = new Map((capitals || []).map(c => [c.name, c.capital]));
     const gpcByNation = new Map();
     let gpcSum = 0, gpcN = 0;
     for (const c of data.countries || []) {
@@ -183,6 +188,7 @@ async function buildCityAirports(cityDoc) {
             lat,
             lon,
             band: city.band || null,
+            isCapital: capitalByNation.get(city.nation) === city.city,
             mass,
             metrics: { population, gdpPerCapita: gpc, gdpNominal: mass }
         });

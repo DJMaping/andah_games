@@ -63,8 +63,16 @@ export function generateNetwork(airportsIn, cfg) {
         massOf(a) > 0 && Number.isFinite(a.lat) && Number.isFinite(a.lon));
     const aptById = new Map(eligible.map(a => [a.id, a]));
 
-    // Global hubs: top-N by economic mass (id tiebreak for determinism).
-    const byMass = [...eligible].sort((x, y) => massOf(y) - massOf(x) || x.id.localeCompare(y.id));
+    // Capital modifier: a capital city's effective mass is lifted by capitalBoost so
+    // it pulls more demand and is likelier to be picked as a hub — capturing that the
+    // seat of government often out-flies its raw population (it isn't always the
+    // largest city). emass = capital-adjusted economic mass used everywhere demand or
+    // hub ranking is computed; the unadjusted massOf still drives GDP/capita aggregates.
+    const capMul = a => (a.isCapital ? (cfg.capitalBoost || 1) : 1);
+    const emass = a => massOf(a) * capMul(a);
+
+    // Global hubs: top-N by (capital-adjusted) economic mass (id tiebreak for determinism).
+    const byMass = [...eligible].sort((x, y) => emass(y) - emass(x) || x.id.localeCompare(y.id));
     const hubSet = new Set(byMass.slice(0, cfg.hubCount).map(a => a.id));
     for (const a of airports) a.isHub = hubSet.has(a.id);
 
@@ -157,7 +165,7 @@ export function generateNetwork(airportsIn, cfg) {
             // dampening on top. We normalise by the spoke scale (below) so the
             // domestic boost lifts domestic edges above the international scale and
             // trunk routes top out thick.
-            const base = Math.pow(massOf(A) * massOf(B), cfg.alpha) / denom;
+            const base = Math.pow(emass(A) * emass(B), cfg.alpha) / denom;
             const domestic = !!(A.country && B.country && A.country === B.country);
             let demandRaw = base;
             if (domestic) demandRaw *= cfg.domesticDemandMult;
@@ -199,7 +207,9 @@ export function generateNetwork(airportsIn, cfg) {
         const blend = wt * Math.pow(w, cfg.capWealthExp) + (1 - wt) * Math.pow(s, cfg.sizeExp);
         let cap = cfg.capMin + (cfg.capMax - cfg.capMin) * blend;
         if (a.isHub) cap = Math.max(cap, cfg.hubCapFloor);
-        return Math.round(clamp(cap, cfg.capHardMin, cfg.capHardMax));
+        if (a.isCapital) cap += (cfg.capitalCapBonus || 0);   // capitals fan out more even when not the largest city
+        const hardMax = (cfg.capHardMax == null ? Infinity : cfg.capHardMax);
+        return Math.round(clamp(cap, cfg.capHardMin, hardMax));
     };
     const incident = new Map(eligible.map(a => [a.id, []]));
     for (const c of kept) {
@@ -220,28 +230,38 @@ export function generateNetwork(airportsIn, cfg) {
         }
     }
 
-    // Final trim: the union-of-endpoints rule lets a very popular hub accumulate
-    // far past its own cap (every spoke that ranks it keeps the edge). Bound any
-    // node to capHardMax by dropping its lowest-demand NON-guaranteed edges,
-    // processing the most overloaded nodes first (determinism via id tiebreak).
+    // Final trim: the union-of-endpoints rule plus guaranteed spoke->nearest-hub
+    // links let the most central hub accumulate far past the hard cap (every spoke
+    // that picks it keeps the edge). Bound any node to capHardMax by dropping its
+    // lowest-demand edges first, processing the most overloaded nodes first. A
+    // guaranteed edge can be shed too — but ONLY when its OTHER endpoint keeps at
+    // least one other route, so no spoke is ever stranded by the trim.
     const degreeOf = id => {
         let n = 0;
         for (const e of incident.get(id)) if (allow.has(keyOf(e.A.id, e.B.id))) n++;
         return n;
     };
-    const overloaded = [...incident.keys()]
-        .filter(id => degreeOf(id) > cfg.capHardMax)
-        .sort((a, b) => degreeOf(b) - degreeOf(a) || a.localeCompare(b));
-    for (const id of overloaded) {
-        const edges = incident.get(id)
-            .filter(e => allow.has(keyOf(e.A.id, e.B.id)) && !guaranteed.has(keyOf(e.A.id, e.B.id)))
-            .sort((p, q) => p.demand - q.demand ||
-                keyOf(p.A.id, p.B.id).localeCompare(keyOf(q.A.id, q.B.id)));
-        let over = degreeOf(id) - cfg.capHardMax;
-        for (const e of edges) {
-            if (over <= 0) break;
-            allow.delete(keyOf(e.A.id, e.B.id));
-            over--;
+    if (cfg.capHardMax != null) {
+        const overloaded = [...incident.keys()]
+            .filter(id => degreeOf(id) > cfg.capHardMax)
+            .sort((a, b) => degreeOf(b) - degreeOf(a) || a.localeCompare(b));
+        for (const id of overloaded) {
+            const edges = incident.get(id)
+                .filter(e => {
+                    const k = keyOf(e.A.id, e.B.id);
+                    if (!allow.has(k)) return false;
+                    if (!guaranteed.has(k)) return true;
+                    const otherId = e.A.id === id ? e.B.id : e.A.id;
+                    return degreeOf(otherId) > 1;   // sheddable only if the other end stays connected
+                })
+                .sort((p, q) => p.demand - q.demand ||
+                    keyOf(p.A.id, p.B.id).localeCompare(keyOf(q.A.id, q.B.id)));
+            let over = degreeOf(id) - cfg.capHardMax;
+            for (const e of edges) {
+                if (over <= 0) break;
+                allow.delete(keyOf(e.A.id, e.B.id));
+                over--;
+            }
         }
     }
 

@@ -116,7 +116,7 @@ export function createMap(container, { config, onSelect } = {}) {
                 ? `rgba(150,160,170,${config.dimOpacity})`
                 : hexToRgba(config.haulColors[r.haul] || config.haulColors.long, selectedId ? 0.95 : 0.55);
             const w = config.arcStrokeMin + (config.arcStrokeMax - config.arcStrokeMin) * (r.demand || 0);
-            const width = (selectedId && isIncident(r)) ? w * 1.6 + 0.6 : w + 0.4;
+            const width = (selectedId && isIncident(r)) ? w * 1.6 + 0.4 : w + 0.18;
 
             // If the cities sit more than half the map apart horizontally, it's
             // shorter to cross the edge than the middle — draw two arcs that run

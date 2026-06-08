@@ -47,6 +47,7 @@ function buildAirportsNode(stats, coords, capitals) {
             y: coord.y,
             lat,
             lon,
+            isCapital: true,   // country airports are the nation's capital by definition
             metrics: {
                 population: s.population,
                 areaKm: s.areaKm,
