@@ -5,7 +5,9 @@
 // them on the political map, and lets you click each to assign a city name +
 // nation. Double-click empty space to add an extra airport (for big cities).
 // Work autosaves to localStorage; export writes data/flight-cities.json, which
-// the flight network then consumes.
+// the flight network then consumes. When this browser has no saved work, the
+// tagger restores from the committed data/flight-cities.json (and the Import
+// button reloads any exported file), so progress survives across machines.
 
 import { loadCities } from '../views/data.js';
 
@@ -42,6 +44,8 @@ const els = {
     onlyUnassigned: document.getElementById('tag-show-unassigned'),
     progress: document.getElementById('tag-progress'),
     exportBtn: document.getElementById('tag-export'),
+    importBtn: document.getElementById('tag-import'),
+    importFile: document.getElementById('tag-import-file'),
     clearBtn: document.getElementById('tag-clear')
 };
 
@@ -83,7 +87,14 @@ async function init() {
     if (saved && saved.length) {
         dots = saved;
     } else {
+        // Nothing in this browser — fall back to the committed export so prior
+        // progress resumes on a fresh machine / origin / after a data wipe.
         dots = detectDots(dotsImg);
+        const doc = await fetchExport();
+        if (doc) {
+            applyExport(dots, doc);
+            flashStatus(`Restored ${doc.cities.length} cities from data/flight-cities.json`);
+        }
         persist();
     }
 
@@ -287,6 +298,8 @@ function wireEvents() {
     els.save.addEventListener('click', saveSelected);
     els.del.addEventListener('click', deleteSelected);
     els.exportBtn.addEventListener('click', exportJson);
+    els.importBtn.addEventListener('click', () => els.importFile.click());
+    els.importFile.addEventListener('change', onImportFile);
     els.clearBtn.addEventListener('click', clearAll);
 
     new ResizeObserver(() => draw()).observe(els.viewport);
@@ -451,6 +464,73 @@ function exportJson() {
     a.download = 'flight-cities.json';
     a.click();
     URL.revokeObjectURL(a.href);
+}
+
+// --- import / restore ----------------------------------------------------
+// The export is lossy (labelled cities only, no unlabelled dots), so we never
+// load it as-is: we re-detect a fresh dot set, then graft each saved city onto
+// its nearest detected dot. Cities with no nearby dot (e.g. manually-added
+// extra airports) come back as manual dots at their saved coordinates.
+function applyExport(target, doc) {
+    const used = new Set();
+    for (const c of doc.cities) {
+        let bi = -1, bd = Infinity;
+        for (let i = 0; i < target.length; i++) {
+            if (used.has(i)) continue;
+            const dd = (target[i].x - c.x) ** 2 + (target[i].y - c.y) ** 2;
+            if (dd < bd) { bd = dd; bi = i; }
+        }
+        const fields = {
+            name: c.city || '',
+            nation: c.nation || '',
+            population: c.population ?? null,
+            // exportJson writes airport = d.airport || d.name, so an airport
+            // equal to the city name means the original field was blank.
+            airport: (c.airport && c.airport !== c.city) ? c.airport : ''
+        };
+        if (bi >= 0 && bd <= 400 ** 2) {
+            Object.assign(target[bi], fields, { band: c.band || target[bi].band });
+            used.add(bi);
+        } else {
+            target.push({ x: c.x, y: c.y, band: c.band || '1-5M', manual: true, ...fields });
+        }
+    }
+    return target;
+}
+
+async function fetchExport() {
+    try {
+        const res = await fetch('data/flight-cities.json', { cache: 'no-store' });
+        if (!res.ok) return null;
+        const doc = await res.json();
+        return doc && Array.isArray(doc.cities) && doc.cities.length ? doc : null;
+    } catch { return null; }
+}
+
+async function onImportFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';               // let the same file be re-picked later
+    if (!file) return;
+    let doc;
+    try { doc = JSON.parse(await file.text()); }
+    catch { alert('That file is not valid JSON.'); return; }
+    if (!doc || !Array.isArray(doc.cities) || !doc.cities.length) {
+        alert('That is not a flight-cities.json export (no "cities" array).');
+        return;
+    }
+    const labelled = dots.filter(d => d.name).length;
+    if (labelled && !confirm(`Replace current progress (${labelled} labelled) with ${doc.cities.length} cities from this file?`)) return;
+    dots = applyExport(detectDots(dotsImg), doc);
+    selected = -1;
+    els.form.hidden = true;
+    persist(); draw(); refreshCounts(); renderProgress();
+    flashStatus(`Imported ${doc.cities.length} cities`);
+}
+
+function flashStatus(msg) {
+    els.status.textContent = msg;
+    els.status.style.display = '';
+    setTimeout(() => { els.status.style.display = 'none'; }, 4000);
 }
 
 // --- utils ---------------------------------------------------------------

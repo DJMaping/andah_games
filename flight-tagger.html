@@ -75,11 +75,13 @@
         <div id="tag-progress" class="tagger-progress"></div>
 
         <h3 class="flight-list-title">Export</h3>
-        <p class="muted" style="font-size:0.8rem">Saves continuously to this browser. When done, download and save the file to <code>data/flight-cities.json</code>.</p>
+        <p class="muted" style="font-size:0.8rem">Progress autosaves to <em>this browser only</em>. The downloaded <code>data/flight-cities.json</code> is the durable copy — use <strong>Import</strong> to resume from it on another machine or after clearing browser data.</p>
         <div class="tagger-actions">
             <button type="button" id="tag-export">Download flight-cities.json</button>
+            <button type="button" id="tag-import">Import .json…</button>
             <button type="button" id="tag-clear" class="tagger-danger">Reset all</button>
         </div>
+        <input type="file" id="tag-import-file" accept="application/json,.json" hidden>
     </aside>
 </div>
 
