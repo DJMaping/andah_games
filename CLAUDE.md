@@ -1,4 +1,6 @@
-# Andah Games — Claude Code Guide
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this project is
 
@@ -44,21 +46,43 @@ docs/datasets.md        Operator guide for datasets and wiki rebuilds
 
 ## Build pipeline
 
-`npm run build` runs `scripts/build.js`, which orchestrates:
+`npm run build` runs `scripts/build.js`, which orchestrates these steps in order. Each is opt-out via its env var, and each is also runnable standalone via the matching `npm run build:*` script (see `package.json`):
 
 | Step | Script | Output | Skip env var |
 |------|--------|--------|--------------|
-| Data | `build-data.js` | `data/countries.json` from `.xlsx files/` | `SKIP_DATA=1` |
-| Routes | `generate-routes.js` | `data/airports.json` + `data/routes.json` | `SKIP_ROUTES=1` |
+| Data | `build-data.js` | `data/countries.json` + `data/datasets.json` from `.xlsx files/` | `SKIP_DATA=1` |
+| Routes | `generate-routes.js` | `data/airports.json` + `data/routes.json` (gravity model) | `SKIP_ROUTES=1` |
+| Flight | `bake-flight-network.js` | `data/flight-network.json` (pre-rendered network) | `SKIP_FLIGHT=1` |
 | Intros | `extract-intros.js` | `data/intros.json` | `SKIP_INTROS=1` |
 | Wiki | `fetch-wiki.js` | `wiki/*.html` + `data/wiki-index.json` | `SKIP_WIKI=1` |
 
-Fast local loop (skips slow wiki fetch):
+Each step is an exported async function (`buildData`, `buildRoutes`, etc.) imported and awaited by `build.js` — they are not separate processes, so a throw in one aborts the build.
+
+Fast local loop (skips the slow, network-bound wiki fetch):
 ```bash
 SKIP_WIKI=1 npm run build
 ```
 
 The wiki step requires `MIRAHEZE_USER_AGENT` env var (e.g. `AndahGames/1.0 (https://www.djmapping.com)`), or Miraheze will reject requests.
+
+`build:fifa` (`build-fifa-data.js` → World Cup sim data) is **not** part of `npm run build`; run it on demand.
+
+## Two data layers (important)
+
+The site has **two parallel data sources**, and which one a page uses depends on the page:
+
+1. **Hand-authored classic scripts** in `js/andah-*.js` — `andah-stats.js`, `andah-capitals.js`, `andah-cities.js`, `andah-map-coords.js`, `andah-fifa-data.js`. These are plain `<script>` files that declare their data with a top-level `const`. The **games** (flag/stat/city/trivia/map/world-cup pages) load these directly via `<script src="js/andah-….js">` and read the global. To change game data, edit these files by hand.
+2. **Built JSON** in `data/*.json` — produced by the build pipeline from `.xlsx files/`. The **Explorer** (`explore.html`) and **Flight Network** (`flight-network.html`) are ES modules that `fetch()` these.
+
+`views/data.js` is the bridge. The Explorer prefers `data/countries.json`; if it's missing (e.g. local dev before a build), it falls back to `js/andah-stats.js`, loading that classic script via dynamic `<script>` injection plus a tiny bridge that copies the `const` onto `window` (a `const` in classic-script scope is otherwise invisible to ES modules). The `_fallback: true` flag on the returned data signals this happened.
+
+So: editing a spreadsheet only affects the Explorer/Flight pages after a build; editing `js/andah-*.js` affects the games immediately and the Explorer's fallback.
+
+### Authoring tools
+
+Several `*-tagger.html` / `*-editor.html` pages are one-off, browser-based authoring tools, **not** part of the deployed game set. They let you place/label data on the map and **export a file you then commit by hand**:
+- `map-tagger.html` → exports `js/andah-map-coords.js`
+- `flight-tagger.html` / `flight-cities-editor.html` → exports `data/flight-cities.json`
 
 ## Data conventions
 
@@ -67,7 +91,7 @@ The wiki step requires `MIRAHEZE_USER_AGENT` env var (e.g. `AndahGames/1.0 (http
 - String columns → categorical filters
 - `<metric>_history` sheets → time-series data
 
-Labels and formatting overrides go in `data-sources.json`. Full details in `docs/datasets.md`.
+Schema inference lives in `scripts/util/schema.js`. Labels and formatting overrides go in `data-sources.json` (read by `build-data.js`). Full details in `docs/datasets.md`.
 
 ## Flight network
 
