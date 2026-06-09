@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Andah currency symbol">
+  <rect width="128" height="128" fill="#000"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 74c16-10 31-20 45-31" stroke-width="5"/>
+    <path d="M112 74C96 64 81 54 67 43" stroke-width="5"/>
+    <path d="M38 62c8-6 16-12 24-19" stroke-width="3"/>
+    <path d="M90 62c-8-6-16-12-24-19" stroke-width="3"/>
+    <path d="M49 77c7-8 12-17 15-29" stroke-width="4"/>
+    <path d="M79 77c-7-8-12-17-15-29" stroke-width="4"/>
+    <path d="M57 46l7-9 7 9" stroke-width="3"/>
+    <path d="M64 43v39" stroke-width="4"/>
+    <path d="M47 87h34" stroke-width="5"/>
+  </g>
+</svg>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah Capital Quiz collection</p>
+            <h1 class="huge-title">Capital Quiz</h1>
+            <p class="subtitle">Pick the correct capital city for the country shown.</p>
+        </div>
+
+        <div id="game-area">
+            <div id="flag-display">
+                <div id="flag-outline">
+                    <img id="flag-img" src="" alt="Flag">
+                </div>
+            </div>
+
+            <div id="country-name" class="country-name-prompt">Country</div>
+            <div id="options" class="options"></div>
+        </div>
+
+        <div id="empty-state" class="result-text" style="display:none;"></div>
+
+        <div id="summary" class="game-summary" hidden>
+            <h3>Round complete</h3>
+            <div class="summary-score" id="summary-score"></div>
+            <div class="summary-percent" id="summary-percent"></div>
+            <button type="button" id="play-again">Play again</button>
+        </div>
+
+        <div class="score-panel">
+            <div class="score-block"><label>Correct</label><strong id="score">0</strong></div>
+            <div class="score-block"><label>Round</label><strong id="round-progress">0 / 0</strong></div>
+            <div class="score-block"><label>Best</label><strong id="highscore">0</strong></div>
+        </div>
+
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="js/script.js"></script>
+<script src="js/andah-capitals.js"></script>
+<script>
+    const validEntries = (typeof andahCapitals !== 'undefined' ? andahCapitals : [])
+        .filter(c => c && c.name && c.capital);
+    const TOTAL = validEntries.length;
+
+    let queue = [];
+    let correct = 0;
+    let attempted = 0;
+    let highScore = 0;
+    let correctCapital = "";
+
+    function loadHighScore() {
+        const stored = localStorage.getItem('capitalQuizSetHighScore');
+        highScore = stored ? Number(stored) : 0;
+    }
+
+    function saveHighScore() {
+        localStorage.setItem('capitalQuizSetHighScore', highScore);
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('score').innerText = correct;
+        document.getElementById('highscore').innerText = highScore;
+        document.getElementById('round-progress').innerText = `${attempted} / ${TOTAL}`;
+    }
+
+    function getFlagUrl(name) {
+        return `flags/${encodeURIComponent(name)}.png`;
+    }
+
+    function shuffle(arr) {
+        return [...arr].sort(() => 0.5 - Math.random());
+    }
+
+    function showEmptyState(count) {
+        document.getElementById('game-area').style.display = 'none';
+        const empty = document.getElementById('empty-state');
+        empty.style.display = 'block';
+        empty.innerHTML = `The Capital Quiz needs at least 4 entries in <code>andah-capitals.js</code> to play. Currently filled in: <strong>${count}</strong>.`;
+    }
+
+    function startGame() {
+        if (validEntries.length < 4) {
+            showEmptyState(validEntries.length);
+            return;
+        }
+        queue = shuffle(validEntries);
+        correct = 0;
+        attempted = 0;
+        document.getElementById('summary').hidden = true;
+        document.getElementById('game-area').hidden = false;
+        document.getElementById('game-area').style.display = '';
+        updateScoreDisplay();
+        nextRound();
+    }
+
+    function nextRound() {
+        if (queue.length === 0) {
+            endGame();
+            return;
+        }
+        const target = queue.shift();
+        correctCapital = target.capital;
+
+        // Build distractors: 3 other distinct capitals from the full pool
+        const distractorPool = validEntries.filter(c =>
+            c.name !== target.name && c.capital !== target.capital
+        );
+        const distractors = shuffle(distractorPool).slice(0, 3);
+        const choices = shuffle([target, ...distractors]);
+
+        document.getElementById('country-name').innerText = target.name;
+        const imgElement = document.getElementById('flag-img');
+        imgElement.style.visibility = 'visible';
+        imgElement.src = getFlagUrl(target.name);
+        imgElement.onerror = function() {
+            this.style.visibility = 'hidden';
+        };
+
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+        choices.forEach(entry => {
+            const btn = document.createElement('button');
+            btn.className = 'option-button';
+            btn.innerText = entry.capital;
+            btn.onclick = () => checkAnswer(btn, entry.capital);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(btn, capital) {
+        const buttons = document.querySelectorAll('.option-button');
+        buttons.forEach(b => b.disabled = true);
+
+        attempted++;
+        if (capital === correctCapital) {
+            correct++;
+            btn.classList.add('correct');
+        } else {
+            btn.classList.add('wrong');
+            buttons.forEach(b => { if (b.innerText === correctCapital) b.classList.add('correct'); });
+        }
+        updateScoreDisplay();
+        setTimeout(nextRound, 1300);
+    }
+
+    function endGame() {
+        if (correct > highScore) {
+            highScore = correct;
+            saveHighScore();
+        }
+        updateScoreDisplay();
+        document.getElementById('game-area').hidden = true;
+        document.getElementById('summary-score').innerText = `${correct} / ${TOTAL}`;
+        const pct = TOTAL > 0 ? Math.round((correct / TOTAL) * 100) : 0;
+        document.getElementById('summary-percent').innerText = `${pct}% correct`;
+        document.getElementById('summary').hidden = false;
+    }
+
+    document.getElementById('play-again').addEventListener('click', startGame);
+
+    loadHighScore();
+    updateScoreDisplay();
+    startGame();
+</script>
+</body>
+</html>

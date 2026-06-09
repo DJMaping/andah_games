@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flight Airport Tagger — Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/flight-network.css">
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="flight-network.html">Flight Network</a>
+            <a href="flight-cities-editor.html">City Editor</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="tagger-shell">
+    <div class="tagger-main">
+        <div class="tagger-toolbar">
+            <strong>Airport Tagger</strong>
+            <button type="button" id="tag-detect">Detect dots</button>
+            <label class="flight-chip"><input type="checkbox" id="tag-show-unassigned"> Only unassigned</label>
+            <span id="tag-counts" class="tagger-counts"></span>
+            <span class="tagger-hint">scroll = zoom · drag = pan · click a dot to label · double-click empty = add airport</span>
+        </div>
+        <div class="tagger-viewport">
+            <canvas id="tag-canvas"></canvas>
+            <div class="flight-status" id="tag-status">Loading…</div>
+        </div>
+    </div>
+
+    <aside class="tagger-panel">
+        <div id="tag-form" hidden>
+            <h3 class="flight-list-title">Selected airport</h3>
+            <p class="tagger-band" id="tag-band"></p>
+            <label class="tagger-field">City name
+                <input type="text" id="tag-name" list="tag-city-list" autocomplete="off">
+                <datalist id="tag-city-list"></datalist>
+            </label>
+            <label class="tagger-field">Nation
+                <input type="text" id="tag-nation" list="tag-nation-list" autocomplete="off">
+                <datalist id="tag-nation-list"></datalist>
+            </label>
+            <label class="tagger-field">Population
+                <input type="number" id="tag-pop" step="1000">
+            </label>
+            <label class="tagger-field">Airport name <span class="muted">(optional)</span>
+                <input type="text" id="tag-airport" placeholder="e.g. Fekhalai International">
+            </label>
+            <div class="tagger-actions">
+                <button type="button" id="tag-save">Save</button>
+                <button type="button" id="tag-delete" class="tagger-danger">Delete</button>
+            </div>
+        </div>
+
+        <h3 class="flight-list-title">Progress</h3>
+        <div id="tag-progress" class="tagger-progress"></div>
+
+        <h3 class="flight-list-title">Export</h3>
+        <p class="muted" style="font-size:0.8rem">Progress autosaves to <em>this browser only</em>. The downloaded <code>data/flight-cities.json</code> is the durable copy — use <strong>Import</strong> to resume from it on another machine or after clearing browser data.</p>
+        <div class="tagger-actions">
+            <button type="button" id="tag-export">Download flight-cities.json</button>
+            <button type="button" id="tag-import">Import .json…</button>
+            <button type="button" id="tag-clear" class="tagger-danger">Reset all</button>
+        </div>
+        <input type="file" id="tag-import-file" accept="application/json,.json" hidden>
+    </aside>
+</div>
+
+<script src="js/script.js"></script>
+<script type="module" src="js/flight-tagger.js"></script>
+</body>
+</html>

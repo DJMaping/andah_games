@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flight Network — Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/flight-network.css">
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <a href="explore.html">Explorer</a>
+            <a href="/wiki/">Wiki</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="flight-shell">
+    <div class="flight-topbar">
+        <h1>Andah Flight Network</h1>
+        <div class="flight-toolbar">
+            <div class="view-toggle" role="group" aria-label="View">
+                <button type="button" id="view-globe-btn" aria-pressed="true">Globe</button>
+                <button type="button" id="view-map-btn" aria-pressed="false">Map</button>
+            </div>
+            <input type="search" class="flight-search" id="flight-search" list="flight-cities" placeholder="Search a city…" aria-label="Search a city">
+            <datalist id="flight-cities"></datalist>
+        </div>
+    </div>
+
+    <div class="flight-filters" id="flight-filters"></div>
+
+    <div class="flight-layout">
+        <aside class="flight-panel" id="flight-panel">
+            <p class="result-text">Click a city to inspect its routes.</p>
+        </aside>
+
+        <div class="flight-viewport">
+            <div class="flight-view" id="view-globe"></div>
+            <div class="flight-view" id="view-map" hidden></div>
+            <div class="flight-legend" id="flight-legend" hidden></div>
+            <div class="flight-status" id="flight-status">Loading the network…</div>
+        </div>
+    </div>
+</div>
+
+<script src="js/script.js"></script>
+<script type="module" src="js/flight-network.js"></script>
+</body>
+</html>

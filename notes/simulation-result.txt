@@ -1,0 +1,455 @@
+======================================================================
+   1764 ANDAH WORLD CUP - SIMULATION RESULT
+======================================================================
+
+CHAMPION: Verusa  (FLLA #4)
+   Final: Raledria 1-2 Verusa
+
+Podium:
+   1st  Verusa  (FLLA #4)
+   2nd  Raledria  (FLLA #1)
+   3rd  United Delet  (FLLA #6)
+   4th  Easuhura  (FLLA #5)
+
+Golden Boot: Verusa  (18 goals, FLLA #4)
+
+Biggest Upset: Pelines beat Emara 1-2
+   (Group E, 177 rating gap)
+
+----------------------------------------------------------------------
+CONTINENTAL QUALIFIERS
+----------------------------------------------------------------------
+
+  Atirha  [NFLA]  -  4 slot(s)  -  North America (CONCACAF) format
+    >> First Round
+      Group A
+      * Raledria             4  4  0  0   13   5   +8   12
+      * Fincen               4  2  1  1    8   8    0    7
+        Pelan                4  1  1  2    6   7   -1    4
+        Gaeiya               4  0  2  2    8  10   -2    2
+        Guise                4  0  2  2    2   7   -5    2
+      Group B
+      * New Misos            4  2  2  0    9   6   +3    8
+      * Laselteh             4  2  1  1    9   8   +1    7
+        Tomscilus            4  1  2  1    3   6   -3    5
+        Phuris               4  1  1  2    5   7   -2    4
+        Aetintio             4  1  0  3   11  10   +1    3
+      Group C
+      * Curata               4  3  1  0    9   6   +3   10
+      * Etirha               4  3  0  1    7   2   +5    9
+        Disal Nila           4  2  0  2    6   5   +1    6
+        Peka                 4  0  2  2    3   6   -3    2
+        Slyiaduun            4  0  1  3    5  11   -6    1
+      Group D
+      * Arbiya               4  2  1  1    8   5   +3    7
+      * lasri                4  1  3  0   11  10   +1    6
+        Genaire              4  1  3  0    4   3   +1    6
+        Grazail              4  1  1  2    3   6   -3    4
+        Metndria             4  0  2  2    5   7   -2    2
+    >> Final Round (Octagonal)
+      Octagonal
+      * Raledria             7  3  4  0   13   8   +5   13
+      * Etirha               7  3  4  0    9   6   +3   13
+      * Laselteh             7  3  2  2   13  13    0   11
+      * New Misos            7  2  4  1    8   7   +1   10
+        lasri                7  2  3  2   12  13   -1    9
+        Arbiya               7  1  3  3   14  16   -2    6
+        Fincen               7  1  2  4   15  18   -3    5
+        Curata               7  1  2  4   12  15   -3    5
+    Qualified: Raledria, Etirha, Laselteh, New Misos
+
+  Ayuma  [AFLA]  -  5 slot(s)  -  Europe (UEFA) format
+    >> Group Stage
+      Group A
+      * Emara                5  3  2  0   10   6   +4   11
+        Praesyu              5  3  1  1   13   8   +5   10
+        Darewa               5  2  3  0    4   2   +2    9
+        Hkuqo                5  2  0  3    9   9    0    6
+        New Kizura           5  1  1  3    6  11   -5    4
+        Ikzen                5  0  1  4    6  12   -6    1
+      Group B
+      * Ukhdari                5  3  1  1    9   5   +4   10
+        Lycroa               5  3  1  1    7   4   +3   10
+        Eldjo              5  3  1  1    8   6   +2   10
+        Acrana               5  2  0  3    8   6   +2    6
+        Heiso                5  1  1  3    7   9   -2    4
+        Urbiqu               5  0  2  3    2  11   -9    2
+      Group C
+      * Verusa               5  4  1  0   12   7   +5   13
+        Ealdorii             5  4  0  1   13   5   +8   12
+        Lydroa               5  1  3  1    8   8    0    6
+        Estijan              5  1  2  2    5   7   -2    5
+        Uularin              5  1  2  2    4   6   -2    5
+        Niul Spijan          5  0  0  5    2  11   -9    0
+      Group D
+      * Easuhura             5  4  1  0   11   3   +8   13
+        Yaxuto               5  4  0  1   10   6   +4   12
+        Palina               5  2  2  1    5   4   +1    8
+        Fermori              5  2  1  2    7   8   -1    7
+        Koruch               5  1  0  4    7  12   -5    3
+        Tonder               5  0  0  5    5  12   -7    0
+      Group E
+      * Merela Sta           4  4  0  0    9   1   +8   12
+        Ilicuhe              4  1  2  1    5   4   +1    5
+        Siana                4  1  2  1    5   5    0    5
+        Zenashan             4  1  1  2    6   9   -3    4
+        Danocia              4  0  1  3    2   8   -6    1
+    Qualified: Emara, Ukhdari, Verusa, Easuhura, Merela Sta
+
+  New Ayre  [NAFLA]  -  4 slot(s)  -  South America (CONMEBOL) format
+    >> League Round-Robin
+      League
+      * United Delet        22 14  8  0   38  21  +17   50
+      * Iainoa              22 15  4  3   36  19  +17   49
+      * Walporein           22 13  4  5   43  28  +15   43
+      * Mendereide          22 13  3  6   37  24  +13   42
+        Isari               22 11  8  3   41  20  +21   41
+        Astye               22 11  7  4   47  31  +16   40
+        Umarcia             22 11  6  5   37  31   +6   39
+        Ohtina              22 10  7  5   34  20  +14   37
+        Prstreula           22 11  4  7   40  32   +8   37
+        Nia                 22 10  6  6   42  33   +9   36
+        Maalle              22 10  5  7   43  38   +5   35
+        Andsaudare          22 10  2 10   37  37    0   32
+        Yutnitu             22  8  5  9   29  28   +1   29
+        Crila Republic      22  7  7  8   37  39   -2   28
+        Veelmit             22  6  4 12   30  39   -9   22
+        Rkmepuia            22  3 12  7   19  26   -7   21
+        Aplasia             22  6  3 13   29  39  -10   21
+        Rethern             22  4  8 10   24  38  -14   20
+        Hiwush              22  4  7 11   28  39  -11   19
+        Elja and Munusia    22  5  4 13   20  39  -19   19
+        Niretui and Anulan  22  3  6 13   25  42  -17   15
+        Tvecoca             22  1  7 14   21  47  -26   10
+        Isuibul             22  1  5 16   19  46  -27    8
+    Qualified: United Delet, Iainoa, Walporein, Mendereide
+
+  Mahea  [EFLA]  -  5 slot(s)  -  Europe (UEFA) format
+    >> Group Stage
+      Group A
+      * Sivoso               4  2  2  0    7   5   +2    8
+        Seytinemas           4  2  1  1    7   6   +1    7
+        Selaja               4  1  1  2    9  10   -1    4
+        Ozinia               4  1  1  2    7   8   -1    4
+        Pelugrotoa           4  1  1  2    7   8   -1    4
+      Group B
+      * Trian                4  2  2  0    6   1   +5    8
+        Galca                4  2  2  0    5   3   +2    8
+        Rtesania             4  2  2  0    4   2   +2    8
+        Otiiric              4  0  1  3    4   8   -4    1
+        Sadain               4  0  1  3    2   7   -5    1
+      Group C
+      * Dual Cenryia         4  3  1  0   13   5   +8   10
+        Isnti                4  3  1  0   12   7   +5   10
+        Taing                4  2  0  2    6   4   +2    6
+        Sunsokua             4  1  0  3    5  11   -6    3
+        Byllu                4  0  0  4    2  11   -9    0
+      Group D
+      * Exilium              4  3  1  0    6   2   +4   10
+        Inania               4  3  0  1    8   5   +3    9
+        Inrea                4  2  1  1    7   6   +1    7
+        Vayvele              4  1  0  3    6   9   -3    3
+        Cruthi Anoso         4  0  0  4    4   9   -5    0
+      Group E
+      * Chaenia              3  3  0  0    8   4   +4    9
+        Lieri                3  1  1  1    5   5    0    4
+        Taoisia              3  1  0  2    5   7   -2    3
+        Amcha                3  0  1  2    4   6   -2    1
+    Qualified: Sivoso, Trian, Dual Cenryia, Exilium, Chaenia
+
+  Quia  [QFLA]  -  4 slot(s)  -  Asia (AFC) format
+    >> First Round
+      Group A
+      * Wundry               5  4  1  0   12   4   +8   13
+      * Quidic               5  3  1  1    9   6   +3   10
+        Nheyes Si            5  2  1  2    8  10   -2    7
+        Desaki               5  1  2  2    7   9   -2    5
+        Letan                5  0  3  2    8  11   -3    3
+        Ashain               5  0  2  3    6  10   -4    2
+      Group B
+      * Anymna               5  4  1  0    9   4   +5   13
+      * Ztesh                5  3  1  1   11   7   +4   10
+        Onphello             5  3  1  1    9   7   +2   10
+        Iareva               5  2  0  3    7   5   +2    6
+        Ahokini              5  1  0  4    9  13   -4    3
+        Hyelen               5  0  1  4    5  14   -9    1
+      Group C
+      * Finae                5  5  0  0   21   5  +16   15
+      * Erkizil              5  4  0  1    9   4   +5   12
+        Zhanshe              5  2  1  2   10  10    0    7
+        United Mihili        5  1  2  2    7  11   -4    5
+        Yihnurda             5  1  1  3    7  10   -3    4
+        Far Lands            5  0  0  5    2  16  -14    0
+      Group D
+      * Myla                 4  3  1  0    9   6   +3   10
+      * Volver               4  3  0  1   14   8   +6    9
+        Baluyde              4  1  1  2    9  10   -1    4
+        Verste               4  0  2  2    5   9   -4    2
+        Mesjan Hyaa          4  0  2  2    2   6   -4    2
+    >> Final Round
+      Group A
+      * Quidic               3  3  0  0    7   4   +3    9
+      * Finae                3  1  0  2    6   7   -1    3
+        Wundry               3  1  0  2    6   7   -1    3
+        Erkizil              3  1  0  2    5   6   -1    3
+      Group B
+      * Myla                 3  2  1  0    5   3   +2    7
+      * Ztesh                3  2  0  1    5   4   +1    6
+        Anymna               3  1  1  1    4   4    0    4
+        Volver               3  0  0  3    1   4   -3    0
+    Qualified: Quidic, Finae, Myla, Ztesh
+
+  Massir  [MFLA]  -  5 slot(s)  -  Asia (AFC) format
+    >> First Round
+      Group A
+      * Oyreain              6  4  1  1   11   5   +6   13
+      * Ihner                6  4  0  2   11  10   +1   12
+        Sanagara             6  3  2  1    8   5   +3   11
+        Pruim Fijan          6  3  1  2   13  13    0   10
+        Kusierna             6  2  2  2   11  12   -1    8
+        Kaastini             6  0  2  4    7  11   -4    2
+        Cloja                6  0  2  4    2   7   -5    2
+      Group B
+      * Ucrua                6  4  1  1   11   8   +3   13
+      * Vesozata             6  3  3  0   12   6   +6   12
+        Dahe                 6  4  0  2   13   9   +4   12
+        Welenu Fana          6  2  3  1   14  10   +4    9
+        Shinam               6  2  1  3    7   8   -1    7
+        Western Migoku       6  1  1  4    6  15   -9    4
+        Stinebar             6  0  1  5    8  15   -7    1
+      Group C
+      * Taval                5  3  2  0   10   5   +5   11
+      * Haiza                5  3  1  1   10   6   +4   10
+        Eparia               5  2  2  1    8   5   +3    8
+        Oscairia             5  2  1  2    8  11   -3    7
+        Migoku               5  1  1  3    8  10   -2    4
+        Pha Hii              5  0  1  4    5  12   -7    1
+      Group D
+      * Etretes              5  3  2  0   12   7   +5   11
+      * North Ayre           5  3  1  1   13   8   +5   10
+        Ruylku               5  3  0  2    9   7   +2    9
+        Suenan               5  1  2  2    4   6   -2    5
+        Canldives            5  1  1  3    8  13   -5    4
+        Prystr Hii           5  0  2  3    8  13   -5    2
+    >> Final Round
+      Group A
+      * Haiza                3  1  2  0    6   3   +3    5
+      * Ucrua                3  1  2  0    5   4   +1    5
+      * Taval                3  1  1  1    6   3   +3    4
+        Oyreain              3  0  1  2    1   8   -7    1
+      Group B
+      * Etretes              3  3  0  0    8   2   +6    9
+      * Vesozata             3  1  1  1    4   4    0    4
+        Ihner                3  1  0  2    3   7   -4    3
+        North Ayre           3  0  1  2    1   3   -2    1
+    Qualified: Haiza, Ucrua, Taval, Etretes, Vesozata
+
+  Acrola  [CFLA]  -  5 slot(s)  -  Africa (CAF) format
+    >> First Round Groups
+      Group A
+      * Terressin            4  3  1  0    8   3   +5   10
+      * Deschon              4  3  0  1    6   3   +3    9
+        Othya                4  2  0  2    2   4   -2    6
+        Candenat             4  1  0  3    4   6   -2    3
+        Yoprioq              4  0  1  3    2   6   -4    1
+      Group B
+      * Pelines              4  2  2  0    8   5   +3    8
+      * Fire Coast           4  1  3  0    7   4   +3    6
+        Umendel              4  1  2  1    5   7   -2    5
+        Iquir                4  0  3  1    2   3   -1    3
+        Feio Lie             4  0  2  2    3   6   -3    2
+      Group C
+      * Acetoa               4  3  1  0   11   6   +5   10
+      * Viussi               4  3  1  0    8   5   +3   10
+        Rijan bu             4  2  0  2   13  11   +2    6
+        Sattle               4  1  0  3    8  11   -3    3
+        Enina                4  0  0  4    5  12   -7    0
+      Group D
+      * Areoix Lie           4  3  1  0    6   2   +4   10
+      * Eldavpir             4  1  2  1    4   3   +1    5
+        Saa                  4  1  2  1    7   7    0    5
+        Taniduna             4  1  0  3    6   8   -2    3
+        Jau                  4  0  3  1    5   8   -3    3
+      Group E
+      * Jshain               4  3  0  1    9   5   +4    9
+      * Rinew                4  3  0  1   11  11    0    9
+        Reerica              4  2  1  1    8   7   +1    7
+        Jathua               4  1  0  3   13  13    0    3
+        Trevilla             4  0  1  3    4   9   -5    1
+    >> Knockout Playoffs
+      Terressin 2-1 Rinew    [Terressin wins]
+      Pelines 3-1 Viussi    [Pelines wins]
+      Acetoa 4-0 Fire Coast    [Acetoa wins]
+      Areoix Lie 3-2 Jshain    [Areoix Lie wins]
+      Deschon 1-0 Eldavpir    [Deschon wins]
+    Qualified: Terressin, Pelines, Acetoa, Areoix Lie, Deschon
+
+----------------------------------------------------------------------
+WORLD CUP GROUP STAGE
+----------------------------------------------------------------------
+
+  Group A
+    Team                P  W  D  L   GF  GA  GD  Pts
+  * United Delet         3  3  0  0    6   2   +4    9
+  * Acetoa               3  1  1  1    6   6    0    4
+    Ztesh                3  1  1  1    4   4    0    4
+    Exilium              3  0  0  3    1   5   -4    0
+    Matches:
+              United Delet 2-0 Ztesh
+              United Delet 3-2 Acetoa
+              United Delet 1-0 Exilium
+                     Ztesh 2-2 Acetoa
+                     Ztesh 2-0 Exilium
+                    Acetoa 2-1 Exilium
+
+  Group B
+    Team                P  W  D  L   GF  GA  GD  Pts
+  * Etirha               3  2  0  1    6   4   +2    6
+  * Merela Sta           3  2  0  1    6   5   +1    6
+    Mendereide           3  1  0  2    7   6   +1    3
+    Vesozata             3  1  0  2    5   9   -4    3
+    Matches:
+                    Etirha 1-2 Merela Sta
+                    Etirha 2-1 Vesozata
+                    Etirha 3-1 Mendereide
+                Merela Sta 2-3 Vesozata
+                Merela Sta 2-1 Mendereide
+                  Vesozata 1-5 Mendereide
+
+  Group C
+    Team                P  W  D  L   GF  GA  GD  Pts
+  * Haiza                3  2  1  0    7   5   +2    7
+  * Easuhura             3  1  1  1    5   3   +2    4
+    Ucrua                3  1  0  2    6   9   -3    3
+    Dual Cenryia         3  0  2  1    4   5   -1    2
+    Matches:
+                  Easuhura 0-0 Dual Cenryia
+                  Easuhura 2-3 Haiza
+                  Easuhura 3-0 Ucrua
+              Dual Cenryia 1-1 Haiza
+              Dual Cenryia 3-4 Ucrua
+                     Haiza 3-2 Ucrua
+
+  Group D
+    Team                P  W  D  L   GF  GA  GD  Pts
+  * Ukhdari               3  2  1  0    7   5   +2    7
+  * Taval                3  1  1  1    7   4   +3    4
+    Chaenia              3  0  3  0    5   5    0    3
+    Quidic                3  0  1  2    5  10   -5    1
+    Matches:
+                    Ukhdari 3-2 Taval
+                    Ukhdari 1-1 Chaenia
+                    Ukhdari 3-2 Quidic
+                     Taval 1-1 Chaenia
+                     Taval 4-0 Quidic
+                   Chaenia 3-3 Quidic
+
+  Group E
+    Team                P  W  D  L   GF  GA  GD  Pts
+  * Pelines              3  2  0  1    6   5   +1    6
+  * Emara                3  2  0  1    4   3   +1    6
+    Trian                3  1  0  2    6   7   -1    3
+    Iainoa               3  1  0  2    4   5   -1    3
+    Matches:
+                     Emara 2-1 Trian
+                     Emara 1-2 Pelines
+                     Emara 1-0 Iainoa
+                     Trian 3-2 Pelines
+                     Trian 2-3 Iainoa
+                   Pelines 2-1 Iainoa
+
+  Group F
+    Team                P  W  D  L   GF  GA  GD  Pts
+  * Verusa               3  3  0  0    8   3   +5    9
+  * Sivoso               3  1  1  1    3   4   -1    4
+    Finae                3  0  2  1    1   3   -2    2
+    Areoix Lie           3  0  1  2    4   6   -2    1
+    Matches:
+                    Verusa 2-0 Finae
+                    Verusa 3-1 Sivoso
+                    Verusa 3-2 Areoix Lie
+                     Finae 0-0 Sivoso
+                     Finae 1-1 Areoix Lie
+                    Sivoso 2-1 Areoix Lie
+
+  Group G
+    Team                P  W  D  L   GF  GA  GD  Pts
+  * Raledria             3  3  0  0    5   2   +3    9
+  * Myla                 3  2  0  1    4   3   +1    6
+    Etretes              3  0  1  2    4   6   -2    1
+    Walporein            3  0  1  2    2   4   -2    1
+    Matches:
+                  Raledria 3-2 Etretes
+                  Raledria 1-0 Myla
+                  Raledria 1-0 Walporein
+                   Etretes 1-2 Myla
+                   Etretes 1-1 Walporein
+                      Myla 2-1 Walporein
+
+  Group H
+    Team                P  W  D  L   GF  GA  GD  Pts
+  * New Misos            3  2  1  0    6   2   +4    7
+  * Terressin            3  2  0  1    7   8   -1    6
+    Laselteh             3  0  2  1    7   8   -1    2
+    Deschon              3  0  1  2    4   6   -2    1
+    Matches:
+                 New Misos 3-0 Terressin
+                 New Misos 2-2 Laselteh
+                 New Misos 1-0 Deschon
+                 Terressin 4-3 Laselteh
+                 Terressin 3-2 Deschon
+                  Laselteh 2-2 Deschon
+
+----------------------------------------------------------------------
+KNOCKOUT STAGE
+----------------------------------------------------------------------
+
+  Round of 16
+    United Delet 1-0 Merela Sta    [United Delet wins]
+    Haiza 1-2 Taval    [Taval wins]
+    Pelines 4-5 Sivoso    [Sivoso wins]
+    Raledria 1-0 Terressin    [Raledria wins]
+    Etirha 1-2 Acetoa    [Acetoa wins]
+    Ukhdari 1-3 Easuhura    [Easuhura wins]
+    Verusa 2-1 Emara    [Verusa wins]
+    New Misos 0-1 Myla    [Myla wins]
+
+  Quarter-Finals
+    United Delet 2-1 Taval    [United Delet wins]
+    Sivoso 0-3 Raledria    [Raledria wins]
+    Acetoa 2-3 Easuhura    [Easuhura wins]
+    Verusa 2-0 Myla    [Verusa wins]
+
+  Semi-Finals
+    United Delet 0-1 Raledria    [Raledria wins]
+    Easuhura 3-4 (a.e.t.) Verusa    [Verusa wins]
+
+  3rd Place Playoff
+    United Delet 0-0 (3-0 pen.) Easuhura    [United Delet wins]
+
+  Final
+    Raledria 1-2 Verusa    [Verusa wins]
+
+----------------------------------------------------------------------
+TOP SCORERS
+----------------------------------------------------------------------
+     18  Verusa  (FLLA #4)
+     14  Easuhura  (FLLA #5)
+     11  Raledria  (FLLA #1)
+     10  Acetoa  (FLLA #48)
+     10  Taval  (FLLA #16)
+     10  Pelines  (FLLA #31)
+      9  United Delet  (FLLA #6)
+      8  Haiza  (FLLA #40)
+      8  Ukhdari  (FLLA #9)
+      8  Sivoso  (FLLA #52)
+
+----------------------------------------------------------------------
+ALL UPSETS
+----------------------------------------------------------------------
+    Pelines beat Emara 1-2  (Group E, 177 gap)
+    Iainoa beat Trian 2-3  (Group E, 176 gap)
+    Acetoa beat Etirha 1-2  (Round of 16, 175 gap)
+    Haiza beat Easuhura 2-3  (Group C, 156 gap)
+    
+======================================================================
