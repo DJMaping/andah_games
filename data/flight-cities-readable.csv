@@ -1,0 +1,592 @@
+City,Nation,Continent,Population (M),GDP per Capita,"GDP (Nominal, $bn)",Pop. Band,Capital?,Hub?,Routes,Latitude,Longitude
+Sarwun,Estijan,Ayuma,11.04,10754,118.67,10-20M,,Yes,96,58.93,51.66
+Hananli,Estijan,Ayuma,1.89,10754,20.30,1-5M,,,21,57.34,52.13
+Ramvok,Estijan,Ayuma,1.05,10754,11.33,1-5M,,,20,56.44,48.67
+Ghalnari,Estijan,Ayuma,1.19,10754,12.79,1-5M,,,20,55.54,53.10
+Zemraya,Estijan,Ayuma,2.16,10754,23.22,1-5M,,,22,55.43,72.72
+Miranis,Estijan,Ayuma,3.77,10754,40.51,1-5M,,,31,54.17,51.48
+Qadorli,Estijan,Ayuma,1.02,10754,10.96,1-5M,,,21,53.63,48.38
+Sharo,Estijan,Ayuma,4.00,10754,42.96,1-5M,,,32,53.02,48.78
+Bashira,Estijan,Ayuma,1.42,10754,15.28,1-5M,,,21,53.02,54.36
+Kraevu,Arbiya,Atirha,1.02,14603,14.92,1-5M,Yes,,30,52.26,-44.10
+Taranvo,Estijan,Ayuma,2.27,10754,24.37,1-5M,,,24,51.65,48.89
+Dariya,Laselteh,Atirha,2.03,24722,50.16,1-5M,Yes,,49,51.47,-1.44
+Pusko,Raledria,Atirha,1.11,28492,31.63,1-5M,,,39,51.11,-42.98
+Lijar,Raledria,Atirha,1.20,28492,34.16,1-5M,,,39,50.64,-46.69
+Barashir,Estijan,Ayuma,6.54,10754,70.33,5-10M,,,40,50.64,55.44
+Zhaelis,Estijan,Ayuma,2.06,10754,22.21,1-5M,,,25,50.46,53.28
+Shabiran,Estijan,Ayuma,13.22,10754,142.15,10-20M,Yes,Yes,132,50.46,56.99
+Druvka,Raledria,Atirha,1.23,28492,35.07,1-5M,,,42,49.78,-41.15
+Quzharil,Estijan,Ayuma,1.06,10754,11.40,1-5M,,,20,49.49,65.05
+Khalviro,Fermori,Ayuma,1.04,9206,9.56,1-5M,Yes,,24,49.42,46.01
+Khidiris,Estijan,Ayuma,1.04,10754,11.24,1-5M,,,20,49.02,56.95
+Komiros,Raledria,Atirha,2.87,28492,81.74,1-5M,,,59,48.77,-43.85
+Tsyanka,Gaeiya,Atirha,2.85,19643,55.98,1-5M,Yes,,58,48.30,-35.17
+Fazraba,Estijan,Ayuma,1.44,10754,15.43,1-5M,,,20,48.12,59.83
+Walfrei,Verusa,Ayuma,1.01,22302,22.48,1-5M,,,32,47.87,43.88
+Bodhar,Raledria,Atirha,1.53,28492,43.54,1-5M,,,46,47.22,-56.52
+Zhoshi,Raledria,Atirha,1.63,28492,46.41,1-5M,,,50,47.15,-51.19
+Pekrin-Vavlen,Raledria,Atirha,8.21,28492,233.92,5-10M,,Yes,109,47.08,-45.47
+Braniv,Genaire,Atirha,1.53,18651,28.59,1-5M,,,29,46.68,-79.63
+Rovik,Raledria,Atirha,14.38,28492,409.66,10-20M,,Yes,136,46.68,-38.12
+Vadja,Raledria,Atirha,2.49,28492,70.86,1-5M,,,55,46.54,-48.96
+Tirna,Raledria,Atirha,5.88,28492,167.53,5-10M,Yes,Yes,124,46.43,-38.70
+Hiranzo,New Misos,Atirha,1.18,15556,18.31,1-5M,,,27,46.14,-63.61
+Nirun,Raledria,Atirha,3.03,28492,86.25,1-5M,,,57,46.14,-40.50
+Felitu,Heiso,Ayuma/Acrola,1.20,4722,5.67,1-5M,,,13,45.71,100.87
+Fryokar,Raledria,Atirha,4.94,28492,140.67,1-5M,,,65,45.64,-37.98
+Tsamir,Raledria,Atirha,1.24,28492,35.22,1-5M,,,40,45.35,-44.46
+Yaltra,Raledria,Atirha,1.76,28492,50.03,1-5M,,,47,45.03,-41.76
+Zahlim,Uularin,Ayuma,1.54,7302,11.22,1-5M,Yes,,23,45.03,49.32
+Qayhadr,Estijan,Ayuma,1.50,10754,16.12,1-5M,,,22,44.99,56.88
+Sanilu,New Misos,Atirha,1.21,15556,18.85,1-5M,,,26,44.88,-62.71
+Lirika,New Misos,Atirha,7.77,15556,120.87,5-10M,,,68,44.81,-68.58
+Pikvor,Raledria,Atirha,1.91,28492,54.31,1-5M,,,52,44.81,-54.94
+Mushira,Grazail,Atirha,1.04,10437,10.85,1-5M,Yes,,25,44.81,-1.91
+Lishka,Genaire,Atirha,1.44,18651,26.84,1-5M,Yes,,37,44.63,-81.25
+Sarvek,Raledria,Atirha,1.08,28492,30.83,1-5M,,,39,44.63,-45.18
+Tavik,Raledria,Atirha,9.48,28492,270.10,5-10M,,Yes,129,44.27,-46.15
+Gulshen,Verusa,Ayuma,1.04,22302,23.19,1-5M,,,33,44.20,40.43
+Gorchi,Raledria,Atirha,1.18,28492,33.56,1-5M,,,40,44.02,-48.17
+Taoqu,Pelan,Atirha,3.24,5040,16.32,1-5M,Yes,,23,44.02,-22.39
+Darnet,New Misos,Atirha,1.23,15556,19.06,1-5M,,,26,43.73,-57.13
+Zunle,Raledria,Atirha,12.49,28492,355.81,10-20M,,Yes,130,43.48,-39.67
+Zarfan,Lydroa,Ayuma,1.74,6468,11.24,1-5M,Yes,,22,43.44,52.56
+Birska,Raledria,Atirha,5.07,28492,144.45,5-10M,,,68,43.30,-51.66
+Solima,New Misos,Atirha,2.05,15556,31.87,1-5M,,,26,43.15,-66.67
+Dhalpavishka,Raledria,Atirha,2.09,28492,59.61,1-5M,,,52,43.15,-45.65
+Albira,New Misos,Atirha,1.46,15556,22.63,1-5M,,,26,43.12,-74.05
+Shinori,Etirha,Atirha,3.95,35397,139.82,1-5M,,,59,43.12,-10.66
+Nokavi,New Misos,Atirha,1.19,15556,18.45,1-5M,,,25,42.76,-58.57
+Dazkar,Etirha,Atirha,1.99,35397,70.44,1-5M,,,49,42.65,-18.07
+Valkirseh,Verusa,Ayuma,1.45,22302,32.23,1-5M,,,36,42.65,44.89
+Lunava,New Misos,Atirha,2.65,15556,41.18,1-5M,Yes,,40,42.54,-67.93
+Mivlo,Heiso,Ayuma/Acrola,1.58,4722,7.44,1-5M,Yes,,20,42.47,100.26
+Mulkhan,Etirha,Atirha,2.21,35397,78.12,1-5M,,,52,42.18,-14.04
+Jitana,Raledria,Atirha,1.03,28492,29.49,1-5M,,,39,42.00,-40.68
+Nalvoku,Etirha,Atirha,1.23,35397,43.36,1-5M,,,47,41.93,-5.47
+Huifarn,Verusa,Ayuma,5.08,22302,113.29,5-10M,Yes,Yes,117,41.93,43.02
+Tiyomi,Fincen,Atirha,1.51,12857,19.41,1-5M,Yes,,31,41.68,-51.66
+Foulang,Verusa,Ayuma,1.07,22302,23.82,1-5M,,,32,41.10,40.61
+Minafi,New Misos,Atirha,4.67,15556,72.72,1-5M,,,33,40.96,-75.17
+Tamira,Phuris,Atirha,4.58,1865,8.54,1-5M,,,15,40.85,-99.79
+Hulong,Curata,Atirha,3.24,11230,36.37,1-5M,Yes,,34,40.74,-45.07
+Zhetren,Etirha,Atirha,2.36,35397,83.50,1-5M,,,53,40.67,-4.61
+Khorin,Yaxuto,Ayuma,3.51,18492,64.93,1-5M,Yes,,74,40.02,37.69
+Turkhian,Etirha,Atirha,3.68,35397,130.30,1-5M,,,57,39.88,-9.83
+Lunru,Etirha,Atirha,8.77,35397,310.43,5-10M,,Yes,131,39.77,-12.92
+Yeklan,Etirha,Atirha,1.65,35397,58.30,1-5M,,,48,39.70,-1.73
+Jentori,Verusa,Ayuma,4.02,22302,89.63,1-5M,,,73,39.63,42.88
+Korvona,Etirha,Atirha,1.24,35397,44.00,1-5M,,,47,39.41,-7.74
+Ternyu,Tomscilus,Atirha,1.00,16786,16.87,1-5M,Yes,,33,38.80,-56.88
+Sakraza,Phuris,Atirha,1.82,1865,3.39,1-5M,,,12,38.58,-111.60
+City of Dauris,Phuris,Atirha,5.24,1865,9.77,5-10M,Yes,,22,37.86,-109.33
+Mahana,Areoix Lie,Acrola,8.54,7937,67.78,5-10M,,,36,37.79,98.28
+Kavlira,Etirha,Atirha,4.22,35397,149.37,1-5M,,,67,37.68,-4.21
+Raldino,Phuris,Atirha,1.39,1865,2.59,1-5M,,,11,37.25,-113.22
+Shernuka,Etirha,Atirha,1.22,35397,43.29,1-5M,,,47,37.00,-8.46
+Zhangkao,Yaxuto,Ayuma,1.49,18492,27.48,1-5M,,,31,37.00,41.83
+Xemara,Areoix Lie,Acrola,1.17,7937,9.28,1-5M,,,18,37.00,97.09
+Lungkai,Merela Sta,Ayuma,1.16,14206,16.48,1-5M,,,24,36.89,37.69
+Albiran,Etirha,Atirha,10.12,35397,358.18,10-20M,Yes,Yes,178,36.60,-4.32
+Naliti,Disal Nila,Atirha,1.18,18175,21.46,1-5M,Yes,,35,36.17,-12.64
+Mushka,Etirha,Atirha,1.56,35397,55.33,1-5M,,,48,35.70,-5.83
+Ser,Merela Sta,Ayuma,1.13,14206,16.10,1-5M,,,24,35.59,40.43
+Haikaia,Areoix Lie,Acrola,2.63,7937,20.88,1-5M,,,25,35.31,93.49
+Talung,Merela Sta,Ayuma,1.69,14206,23.95,1-5M,Yes,,33,35.27,38.16
+Nakahiki,Areoix Lie,Acrola,13.48,7937,107.00,10-20M,,Yes,107,35.16,95.58
+Mbeke,Disal Nila,Atirha,1.17,18175,21.26,1-5M,,,28,34.58,-9.29
+Shamarin,Darewa,Ayuma,2.57,11230,28.85,1-5M,Yes,,39,34.55,48.78
+Pitahu,Areoix Lie,Acrola,1.02,7937,8.07,1-5M,,,18,33.47,94.39
+Mireli,Areoix Lie,Acrola,5.99,7937,47.54,5-10M,,,32,33.22,99.54
+Vahata,Areoix Lie,Acrola,1.80,7937,14.28,1-5M,,,24,33.18,96.12
+Zothra,Siana,Ayuma,3.31,19087,63.10,1-5M,,,53,32.21,43.49
+Zirohu,Areoix Lie,Acrola,32.51,7937,258.05,>20M,,Yes,143,31.78,99.61
+Mangiwa,Siana,Ayuma,1.80,19087,34.41,1-5M,,,41,31.74,41.65
+Tuatiku,Areoix Lie,Acrola,1.14,7937,9.06,1-5M,,,19,31.49,92.23
+Mauhunai,Areoix Lie,Acrola,1.02,7937,8.12,1-5M,,,17,31.45,100.73
+Tianco,Lycroa,Ayuma,1.60,20635,33.00,1-5M,,,41,31.24,47.77
+Zaringao,Lycroa,Ayuma,1.24,20635,25.65,1-5M,,,33,31.20,49.97
+Nikahatu,Areoix Lie,Acrola,7.21,7937,57.22,5-10M,,,38,31.20,101.09
+Xalavi,Areoix Lie,Acrola,9.60,7937,76.19,5-10M,,,48,30.88,94.32
+Kaimoana,Areoix Lie,Acrola,1.19,7937,9.42,1-5M,,,18,30.59,90.72
+Yuwiha,Areoix Lie,Acrola,1.35,7937,10.71,1-5M,,,20,30.44,99.29
+Rimao,Lycroa,Ayuma,1.13,20635,23.40,1-5M,,,37,29.94,49.03
+Vurahi,Areoix Lie,Acrola,21.58,7937,171.28,>20M,Yes,Yes,154,29.90,90.43
+Lihakoa,Areoix Lie,Acrola,3.58,7937,28.44,1-5M,,,27,29.87,94.97
+Wadika,Siana,Ayuma,5.11,19087,97.54,5-10M,Yes,,87,29.62,39.89
+Shorakim,Eldjo,Ayuma,1.25,13770,17.27,1-5M,Yes,,31,29.44,52.56
+Jungui,Lycroa,Ayuma,9.99,20635,206.14,5-10M,Yes,Yes,177,29.33,47.05
+Vimano,Areoix Lie,Acrola,1.45,7937,11.49,1-5M,,,17,28.97,88.99
+Tungkam,Siana,Ayuma,1.20,19087,22.81,1-5M,,,29,28.75,40.79
+Tavarua,Areoix Lie,Acrola,1.47,7937,11.66,1-5M,,,23,28.68,92.41
+Liambra,Lycroa,Ayuma,3.63,20635,74.84,1-5M,,,55,28.36,46.01
+Huetun,Lycroa,Ayuma,1.17,20635,24.10,1-5M,,,36,27.60,48.85
+Zhrunbei,Emara,Ayuma,1.28,23214,29.62,1-5M,,,38,27.10,42.23
+Baxian,Emara,Ayuma,2.05,23214,47.59,1-5M,,,49,27.06,44.28
+Matini,Areoix Lie,Acrola,1.19,7937,9.46,1-5M,,,17,26.99,108.00
+Tirzovik,Emara,Ayuma,2.91,23214,67.62,1-5M,,,57,26.02,39.17
+Sorvaya,Lycroa,Ayuma,1.12,20635,23.13,1-5M,,,34,26.02,49.14
+Hanzubek,Ukhdari,Ayuma,1.14,11230,12.77,1-5M,,,20,25.73,76.43
+Lunatoa,Areoix Lie,Acrola,1.85,7937,14.72,1-5M,,,22,25.73,100.80
+Xamahu,Areoix Lie,Acrola,1.21,7937,9.57,1-5M,,,18,25.66,93.67
+Brimasha,Praesyu,Ayuma,4.63,14167,65.59,1-5M,Yes,,76,25.62,58.61
+Faramozan,Ukhdari,Ayuma,1.03,11230,11.56,1-5M,Yes,,36,25.12,76.14
+Sompai,Lycroa,Ayuma,2.36,20635,48.66,1-5M,,,43,25.01,47.56
+Tazirun,Ealdorii,Ayuma,1.50,4921,7.36,1-5M,,,15,24.36,62.03
+Borzhai,Emara,Ayuma,3.08,23214,71.45,1-5M,,,57,24.21,42.73
+Rivostan,Emara,Ayuma,14.97,23214,347.45,10-20M,Yes,Yes,232,24.11,41.51
+Shaikuv,Emara,Ayuma,4.57,23214,105.97,1-5M,,,73,24.03,39.71
+Sakhen,Ilicuhe,Ayuma,1.62,29484,47.88,1-5M,Yes,,62,23.78,53.14
+Ashdeer,Praesyu,Ayuma,1.00,14167,14.17,1-5M,,,24,23.78,55.22
+Tianoro,Areoix Lie,Acrola,1.97,7937,15.60,1-5M,,,24,23.78,96.30
+Lashirov,Emara,Ayuma,1.06,23214,24.61,1-5M,,,34,23.57,42.73
+Vikura,Areoix Lie,Acrola,2.56,7937,20.29,1-5M,,,24,23.57,89.57
+Vornak,Ealdorii,Ayuma,1.29,4921,6.35,1-5M,,,15,23.46,64.01
+Yilovka,Emara,Ayuma,3.12,23214,72.31,1-5M,,,58,23.13,40.86
+Kadorak,Ealdorii,Ayuma,1.02,4921,5.02,1-5M,,,13,22.31,65.63
+Khalzhun,Emara,Ayuma,7.32,23214,169.93,5-10M,,,95,22.05,42.91
+Tanbai,Easuhura,Ayuma,9.36,25000,234.00,5-10M,Yes,Yes,194,21.95,47.88
+Boklan,Easuhura,Ayuma,1.13,25000,28.20,1-5M,,,37,21.59,48.78
+Samaru,Acrana,Ayuma,1.07,8849,9.49,1-5M,Yes,,24,21.30,62.71
+Shurqan,Ealdorii,Ayuma,13.29,4921,65.41,10-20M,Yes,Yes,140,21.15,67.86
+Chishanov,Emara,Ayuma,2.72,23214,63.17,1-5M,,,45,20.90,41.87
+Zarhesh,Ealdorii,Ayuma,4.18,4921,20.57,1-5M,,,25,20.76,69.77
+Paviri,Easuhura,Ayuma,1.16,25000,29.02,1-5M,,,36,20.69,45.79
+Khessli,Easuhura,Ayuma,1.26,25000,31.40,1-5M,,,37,20.58,47.59
+Ezrum,Ukhdari,Ayuma,1.33,11230,14.94,1-5M,,,21,20.25,73.80
+Hikorai,Areoix Lie,Acrola,1.14,7937,9.02,1-5M,,,18,20.25,108.18
+Draunak,Ealdorii,Ayuma,1.75,4921,8.60,1-5M,,,14,20.22,68.87
+Chayek,Easuhura,Ayuma,2.77,25000,69.28,1-5M,,,48,20.07,46.73
+Phalanij,Easuhura,Ayuma,1.57,25000,39.20,1-5M,,,39,20.07,50.76
+Havrishka,Ealdorii,Ayuma,2.58,4921,12.71,1-5M,,,19,19.89,67.68
+Tahuato,Acetoa,Acrola,1.28,8333,10.70,1-5M,,,17,19.89,100.08
+Vorsadun,Ealdorii,Ayuma,1.60,4921,7.88,1-5M,,,16,19.75,66.28
+Turashik,Ealdorii,Ayuma,6.32,4921,31.10,5-10M,,,31,19.53,70.31
+Bokayek,Easuhura,Ayuma,1.04,25000,26.02,1-5M,,,36,19.50,48.24
+Borshavi,Ukhdari,Ayuma,4.29,11230,48.19,1-5M,,,36,19.43,72.07
+Veshgadar,Ukhdari,Ayuma,5.77,11230,64.80,5-10M,,,58,18.49,71.71
+Turashik,Ealdorii,Ayuma,6.32,4921,31.10,1-5M,,,30,18.35,69.55
+Aruhala,Acetoa,Acrola,1.08,8333,9.03,1-5M,,,17,18.24,100.73
+Yezhito,Acetoa,Acrola,1.16,8333,9.64,1-5M,Yes,,23,17.63,104.29
+Fanitia,Terressin,Acrola,1.15,4881,5.61,1-5M,,,13,17.52,91.73
+Dy,Ukhdari,Ayuma,1.85,11230,20.73,1-5M,,,25,17.27,71.82
+Borezu,Acrana,Ayuma,1.03,8849,9.09,1-5M,,,18,16.80,66.13
+Hunzavir,Ukhdari,Ayuma,1.21,11230,13.58,1-5M,,,21,16.65,72.47
+Risavo,Crila Republic,New Ayre,3.93,11893,46.77,1-5M,Yes,,42,16.26,-38.95
+Muvash,Ealdorii,Ayuma,1.96,4921,9.63,1-5M,,,17,15.90,71.57
+Zirafu,Zenashan,Ayuma,2.09,2897,6.05,1-5M,Yes,,19,15.47,69.23
+Zurlan,Hkuqo,Ayuma,1.12,2937,3.29,1-5M,,,14,15.47,72.47
+Muntai,Jau,Acrola,1.03,437,0.45,1-5M,Yes,,16,14.67,78.95
+Rudeka,Maalle,New Ayre,1.49,3254,4.84,1-5M,Yes,,18,14.02,-39.89
+Kauhuo,Terressin,Acrola,1.62,4881,7.91,1-5M,,,14,13.84,93.53
+Kavirro,Astye,New Ayre,2.63,3694,9.72,1-5M,Yes,,20,12.98,-42.62
+Hirvasa,Ohtina,New Ayre,1.98,8770,17.35,1-5M,,,19,12.66,-53.21
+Rajalindo,Hkuqo,Ayuma,1.00,2937,2.94,1-5M,,,12,12.22,73.08
+Velloro,Terressin,Acrola,5.09,4881,24.84,5-10M,Yes,,35,12.12,92.59
+Lumeka,Ohtina,New Ayre,2.96,8770,26.00,1-5M,,,23,12.04,-50.11
+Heslian,United Delet,New Ayre,6.88,10198,70.17,5-10M,,,35,11.40,-40.68
+Glonashi,Astye,New Ayre,1.22,3694,4.50,1-5M,,,12,11.14,-42.01
+Fenavo,Ohtina,New Ayre,2.17,8770,19.01,1-5M,,,22,11.07,-50.22
+Roviri,United Delet,New Ayre,2.48,10198,25.26,1-5M,,,28,10.86,-41.47
+Losari,Astye,New Ayre,1.25,3694,4.60,1-5M,,,12,10.78,-46.15
+Tivara,United Delet,New Ayre,1.13,10198,11.53,1-5M,,,20,9.78,-37.76
+Tanshiva,Hkuqo,Ayuma,4.03,2937,11.83,1-5M,Yes,,22,9.63,69.73
+Mantraal,United Delet,New Ayre,19.98,10198,203.76,10-20M,Yes,Yes,133,9.45,-41.26
+Dhamasol,Hkuqo,Ayuma,1.80,2937,5.29,1-5M,,,12,9.27,73.51
+Narvila,United Delet,New Ayre,4.19,10198,42.76,1-5M,,,33,9.24,-35.10
+Chitralna,Hkuqo,Ayuma,1.11,2937,3.27,1-5M,,,11,9.16,72.61
+Kovasi,Nia,New Ayre,1.29,3373,4.34,1-5M,Yes,,18,8.80,-30.24
+Kavlira,Etirha,Atirha,4.22,35397,149.37,1-5M,,,83,8.70,-56.56
+Solekhan,United Delet,New Ayre,1.14,10198,11.62,1-5M,,,21,8.73,-39.13
+Tavon,Eldavpir,Acrola,1.49,1198,1.78,1-5M,,,11,8.73,108.97
+Ravohni,United Delet,New Ayre,1.20,10198,12.22,1-5M,,,20,8.44,-36.65
+Halumbaro,Reerica,Acrola,1.57,7619,11.95,1-5M,Yes,,24,8.44,113.47
+Su Sariko,Ohtina,New Ayre,3.21,8770,28.12,1-5M,Yes,,32,8.26,-52.56
+Lurimah,United Delet,New Ayre,1.74,10198,17.78,1-5M,,,25,8.01,-41.83
+Chavindora,Taval,Massir,1.24,10635,13.22,1-5M,,,21,7.51,66.42
+Lunfrix,Eldavpir,Acrola,1.86,1198,2.24,1-5M,Yes,,18,7.18,97.45
+Firanza,United Delet,New Ayre,2.40,10198,24.51,1-5M,,,27,6.54,-37.08
+Torivis,United Delet,New Ayre,2.04,10198,20.78,1-5M,,,27,6.18,-41.15
+Espralit,Sattle,Acrola,1.19,667,0.80,1-5M,Yes,,17,5.38,102.24
+Talanvi,United Delet,New Ayre,1.16,10198,11.78,1-5M,,,19,5.10,-44.53
+Vindasira,Hkuqo,Ayuma,1.48,2937,4.34,1-5M,,,12,4.52,75.24
+Zadira,United Delet,New Ayre,1.25,10198,12.76,1-5M,,,21,4.23,-40.43
+Chavillar,Iquir,Acrola,6.43,1111,7.14,5-10M,Yes,,29,4.23,88.20
+Dalyar,Pelines,Acrola,10.47,2560,26.80,10-20M,Yes,,36,3.29,113.69
+Harlitak,Othya,Acrola,1.96,1087,2.13,1-5M,Yes,,19,2.61,103.93
+Luzparan,Taval,Massir,1.73,10635,18.39,1-5M,,,22,2.39,60.34
+Caminastra,Taval,Massir,1.64,10635,17.39,1-5M,,,22,2.21,65.70
+Lunavati,Hkuqo,Ayuma,1.11,2937,3.26,1-5M,,,11,2.07,76.68
+Tamalpura,Taval,Massir,5.32,10635,56.58,5-10M,,,45,1.96,67.14
+Tanshivar,Taval,Massir,1.17,10635,12.49,1-5M,,,20,1.78,58.57
+Vidadesh,Taval,Massir,1.55,10635,16.53,1-5M,,,21,1.53,69.95
+Zolittique,Taniduna,Acrola,5.65,234,1.32,5-10M,Yes,,27,0.95,90.79
+Pelviret,Taniduna,Acrola,1.91,234,0.45,1-5M,,,12,-0.20,83.81
+Vesnadi,Taval,Massir,1.61,10635,17.16,1-5M,,,20,-0.49,62.75
+Suraspa,Taval,Massir,3.65,10635,38.84,1-5M,Yes,,36,-1.31,53.64
+Bhanquillo,Taval,Massir,1.17,10635,12.47,1-5M,,,20,-1.35,54.72
+Arokdan,Pelines,Acrola,1.46,2560,3.73,1-5M,,,11,-2.54,109.69
+Frevinta,Ucrua,Massir,1.07,1659,1.78,1-5M,Yes,,16,-2.72,69.30
+Fermahal,Ucrua,Massir,3.89,1659,6.45,1-5M,,,18,-2.97,63.65
+Yagmosantri,Pelines,Acrola,3.84,2560,9.82,1-5M,,,18,-2.97,112.68
+Zambhori,Viussi,Acrola,1.17,1337,1.56,1-5M,Yes,,17,-3.15,103.50
+Hirvani,Umarcia,New Ayre,2.86,6032,17.25,1-5M,Yes,,24,-3.62,-32.58
+Dulravi,Jshain,Acrola,1.20,2905,3.48,1-5M,,,11,-4.16,80.93
+Tovani,Mendereide,New Ayre,3.38,6310,21.32,1-5M,Yes,,25,-4.23,-10.98
+Tijhara,Haiza,Massir,1.22,9325,11.33,1-5M,,,20,-4.41,76.14
+Damsiri,Isari,New Ayre,1.07,7222,7.74,1-5M,Yes,,22,-4.66,-0.40
+Obelinti,Deschon,Acrola,3.69,1821,6.72,1-5M,Yes,,22,-4.84,115.78
+Maphinde,Rijan Bu,Acrola,1.24,8794,10.88,1-5M,,,19,-4.81,117.83
+Ulamsik,Deschon,Acrola,2.64,1821,4.81,1-5M,,,15,-5.06,109.66
+Hunakwe,Deschon,Acrola,2.50,1821,4.56,1-5M,,,15,-5.49,104.94
+Palnoro,Taval,Massir,2.28,10635,24.24,1-5M,,,21,-5.74,47.66
+Lorasak,Erkizil,Quia,1.00,1817,1.82,1-5M,,,10,-5.89,-142.81
+Evue,Iainoa,New Ayre,3.84,3643,14.00,1-5M,Yes,,22,-6.21,-36.07
+Savyan,Jshain,Acrola,1.37,2905,3.98,1-5M,Yes,,17,-6.32,81.90
+Erosan,Erkizil,Quia,4.36,1817,7.92,1-5M,,,16,-6.43,-145.98
+Tsalaka,Erkizil,Quia,1.47,1817,2.67,1-5M,,,11,-6.43,-144.79
+Junik,Inania,Mahea,1.48,3135,4.64,1-5M,,,12,-6.50,119.05
+Koyah,Erkizil,Quia,1.47,1817,2.68,1-5M,,,11,-6.75,-150.37
+Iktavi,Erkizil,Quia,2.79,1817,5.07,1-5M,,,13,-6.86,-147.67
+Sikpah,Ztesh,Quia,1.02,3409,3.47,1-5M,,,13,-7.44,-138.74
+Mirzulek,Shinam,Massir,2.34,492,1.15,1-5M,Yes,,19,-7.58,71.60
+Wahashi,Erkizil,Quia,1.82,1817,3.31,1-5M,,,12,-7.69,-146.95
+Ikkat,Ztesh,Quia,3.98,3409,13.56,1-5M,,,19,-7.69,-140.40
+Tuhli,Erkizil,Quia,1.17,1817,2.12,1-5M,,,11,-8.01,-150.12
+Meenor,Wundry,Quia,2.14,2226,4.76,1-5M,,,13,-8.16,-130.75
+Tiraqsi,Erkizil,Quia,16.90,1817,30.71,10-20M,Yes,Yes,107,-8.23,-148.75
+Reeveta,Wundry,Quia,2.72,2226,6.06,1-5M,,,15,-8.30,-131.58
+Pihkosi,Ztesh,Quia,1.79,3409,6.10,1-5M,,,17,-8.37,-135.90
+Wiskot,Ztesh,Quia,8.99,3409,30.64,5-10M,,,42,-9.20,-139.25
+Nakamik,Ztesh,Quia,1.10,3409,3.76,1-5M,,,15,-9.38,-137.95
+Zundalor,Shinam,Massir,3.85,492,1.90,1-5M,,,17,-9.49,69.12
+Reevon,Wundry,Quia,1.74,2226,3.86,1-5M,,,15,-9.56,-128.23
+Cairiso,Erkizil,Quia,3.42,1817,6.22,1-5M,,,16,-9.81,-145.98
+Vellikar,Erkizil,Quia,3.53,1817,6.41,1-5M,,,15,-10.03,-144.00
+Teeneval,Wundry,Quia,1.08,2226,2.41,1-5M,,,10,-10.03,-123.23
+Kelvizu,Ruylku,Massir,1.46,2663,3.89,1-5M,Yes,,17,-10.03,63.22
+Lenere,Wundry,Quia,1.02,2226,2.28,1-5M,,,11,-10.10,-131.98
+Eteska,Wundry,Quia,1.82,2226,4.05,1-5M,,,16,-10.10,-129.02
+Chavira,Haiza,Massir,1.22,9325,11.40,1-5M,Yes,,25,-10.42,83.41
+Pakikwan,Ztesh,Quia,2.82,3409,9.63,1-5M,,,22,-10.89,-137.34
+Nuhtalu,Erkizil,Quia,1.12,1817,2.04,1-5M,,,11,-11.11,-143.53
+Shawink,Ztesh,Quia,1.19,3409,4.06,1-5M,,,14,-11.25,-135.72
+Enorva,Wundry,Quia,1.04,2226,2.31,1-5M,,,10,-11.43,-123.26
+Vereen,Wundry,Quia,1.69,2226,3.75,1-5M,,,15,-11.54,-127.44
+Pawik,Ztesh,Quia,1.05,3409,3.59,1-5M,,,13,-11.61,-134.71
+Kivalin,Quidic,Quia,2.02,5000,10.11,1-5M,,,17,-11.72,-147.85
+Yoteka,Ztesh,Quia,1.51,3409,5.16,1-5M,,,13,-11.83,-140.83
+Keeter,Wundry,Quia,1.32,2226,2.94,1-5M,,,11,-12.08,-123.91
+Tiyotik,Ztesh,Quia,2.43,3409,8.29,1-5M,,,17,-12.15,-141.73
+Eserni,Wundry,Quia,8.88,2226,19.77,5-10M,,,25,-12.26,-122.65
+Teveme,Wundry,Quia,6.65,2226,14.80,5-10M,Yes,,27,-12.44,-126.94
+Varnai,Ashain,Quia,3.95,12738,50.29,1-5M,,,33,-12.69,-166.39
+Zekrah,Quidic,Quia,1.36,5000,6.79,1-5M,,,14,-12.73,-147.96
+Morzelka,Oscairia,Massir,3.90,1512,5.90,1-5M,Yes,,21,-12.73,61.31
+Seevera,Wundry,Quia,1.68,2226,3.74,1-5M,,,14,-12.80,-125.35
+Dunora,Quidic,Quia,1.18,5000,5.91,1-5M,,,13,-12.91,-146.05
+Zinthi,Inania,Mahea,1.17,3135,3.66,1-5M,,,11,-13.09,105.59
+Nimitik,Ztesh,Quia,2.23,3409,7.59,1-5M,,,23,-13.16,-137.48
+Kaskis,Ztesh,Quia,3.66,3409,12.49,1-5M,,,29,-13.52,-129.35
+Taylan,Inania,Mahea,1.09,3135,3.42,1-5M,,,11,-13.63,120.85
+Hondir,Inania,Mahea,2.82,3135,8.85,1-5M,,,18,-13.77,114.23
+Mikiw,Ztesh,Quia,1.01,3409,3.43,1-5M,,,13,-13.95,-133.49
+Czarnulek,Oscairia,Massir,1.18,1512,1.78,1-5M,,,11,-13.99,69.34
+Zanir,Inania,Mahea,1.38,3135,4.33,1-5M,,,13,-13.99,107.53
+Oposkwe,Ztesh,Quia,3.02,3409,10.30,1-5M,,,21,-14.17,-124.74
+Rikotha,Quidic,Quia,1.54,5000,7.71,1-5M,,,16,-14.31,-143.35
+Ashkik,Ztesh,Quia,4.14,3409,14.11,1-5M,,,23,-14.53,-126.29
+Ratsom,Ztesh,Quia,7.10,3409,24.20,5-10M,,,42,-14.67,-138.13
+Quinliya,Dahe,Massir,1.01,10755,10.88,1-5M,,,21,-14.96,58.61
+Toska,Ztesh,Quia,1.31,3409,4.46,1-5M,,,15,-15.14,-132.41
+Oshkari,Quidic,Quia,2.08,5000,10.40,1-5M,,,18,-15.29,-140.33
+Tewiik,Ztesh,Quia,1.06,3409,3.62,1-5M,,,15,-15.32,-128.45
+Nakos,Ztesh,Quia,25.22,3409,85.97,>20M,Yes,Yes,125,-15.50,-133.56
+Kokema,North Ayre,Massir,1.44,10516,15.12,1-5M,Yes,,26,-15.57,14.26
+Ashwok,Ztesh,Quia,1.10,3409,3.75,1-5M,,,14,-15.61,-137.88
+Sikwan,Ztesh,Quia,1.12,3409,3.83,1-5M,,,16,-15.61,-135.72
+Takhna,Ztesh,Quia,9.86,3409,33.61,5-10M,,,44,-15.61,-131.11
+Yolan,Inania,Mahea,3.88,3135,12.16,1-5M,,,19,-15.65,110.20
+Nekwasa,Ztesh,Quia,1.16,3409,3.95,1-5M,,,13,-15.68,-124.20
+Kavato,Quidic,Quia,1.68,5000,8.40,1-5M,,,17,-15.75,-145.19
+Pakoska,Ztesh,Quia,1.04,3409,3.55,1-5M,,,12,-16.11,-128.77
+Mihkose,Ztesh,Quia,15.33,3409,52.27,10-20M,,Yes,111,-16.29,-123.48
+Horamtu,Ahokini,Quia,1.37,23175,31.77,1-5M,,,34,-16.33,-158.26
+Takamik,Ztesh,Quia,1.06,3409,3.61,1-5M,,,13,-16.47,-133.27
+Kenriko,Ashain,Quia,1.69,12738,21.53,1-5M,,,23,-16.47,165.31
+Ribash,Ahokini,Quia,3.80,23175,88.13,1-5M,Yes,,63,-16.58,-149.58
+Tewapik,Ztesh,Quia,1.76,3409,6.01,1-5M,,,17,-16.83,-123.48
+Zabantuq,Dahe,Massir,1.02,10755,10.98,1-5M,,,20,-17.05,54.97
+Viltira,Quidic,Quia,1.17,5000,5.86,1-5M,,,15,-17.19,-144.72
+Zanikwa,Ztesh,Quia,1.32,3409,4.49,1-5M,,,14,-17.30,-125.64
+Talvani,Quidic,Quia,19.28,5000,96.41,10-20M,Yes,Yes,126,-17.41,-140.94
+Mikway,Ztesh,Quia,1.18,3409,4.01,1-5M,,,14,-17.34,-136.37
+Bardin,Rtesania,Mahea,1.04,889,0.93,1-5M,Yes,,16,-17.41,103.61
+Sakitho,Ztesh,Quia,1.36,3409,4.65,1-5M,,,13,-17.41,-123.66
+Likorin,Quidic,Quia,1.50,5000,7.49,1-5M,,,16,-17.48,-142.31
+Lusvani,Ashain,Quia,2.01,12738,25.62,1-5M,,,23,-17.48,150.84
+Liroska,Inania,Mahea,1.36,3135,4.26,1-5M,,,15,-17.55,110.09
+Vekti,Inania,Mahea,1.00,3135,3.14,1-5M,,,13,-17.55,113.33
+Jiloth,Inania,Mahea,1.82,3135,5.71,1-5M,,,12,-17.70,122.80
+Nihara,Quidic,Quia,1.97,5000,9.84,1-5M,,,18,-17.73,-143.39
+Kaitriss,Ashain,Quia,4.94,12738,62.94,1-5M,,,36,-17.73,148.64
+Makahk,Ztesh,Quia,2.07,3409,7.05,1-5M,,,16,-17.77,-126.72
+Pelfen,Ashain,Quia,4.86,12738,61.84,1-5M,,,33,-17.91,156.89
+Fashti,Inania,Mahea,18.82,3135,59.00,10-20M,Yes,Yes,126,-18.02,108.65
+Yrelth,Inania,Mahea,1.21,3135,3.81,1-5M,,,16,-18.45,107.78
+Varnan,Inania,Mahea,9.01,3135,28.25,5-10M,,,32,-18.45,121.39
+Fenkai,Verste,Quia,1.41,10119,14.24,1-5M,,,20,-18.74,-147.96
+Zinlor,Ashain,Quia,2.58,12738,32.86,1-5M,,,24,-18.74,156.85
+Darnai,Ashain,Quia,1.14,12738,14.55,1-5M,,,22,-18.99,150.91
+Sjoran,Ashain,Quia,14.75,12738,187.90,10-20M,Yes,Yes,121,-19.14,156.24
+Xalar,Verste,Quia,1.23,10119,12.48,1-5M,,,19,-19.21,-150.77
+Zavrik,Inania,Mahea,1.24,3135,3.89,1-5M,,,14,-19.28,113.87
+Parloth,Yihnurda,Quia,1.39,1706,2.38,1-5M,Yes,,17,-19.35,-136.73
+Kastra,Inania,Mahea,1.36,3135,4.26,1-5M,,,15,-19.43,108.36
+Mikori,Quidic,Quia,6.10,5000,30.50,5-10M,,,28,-19.53,-145.98
+Yorvex,Ashain,Quia,2.81,12738,35.82,1-5M,,,24,-19.53,152.39
+Mouyein,Dahe,Massir,1.23,10755,13.24,1-5M,,,21,-19.64,53.71
+Tovsagaan,Anymna,Quia,3.07,10754,32.97,1-5M,,,26,-20.29,-115.20
+Khureldai,Anymna,Quia,3.30,10754,35.51,1-5M,Yes,,39,-20.36,-117.07
+Kirvok,Inania,Mahea,2.15,3135,6.74,1-5M,,,15,-20.40,103.86
+Mendri,Verste,Quia,2.33,10119,23.58,1-5M,,,24,-20.65,-149.04
+Swandor,Inania,Mahea,2.00,3135,6.26,1-5M,,,17,-20.79,105.37
+Khamri,Pelugrotoa,Mahea,4.91,11861,58.21,1-5M,,,47,-20.79,122.94
+Altorg,Anymna,Quia,1.39,10754,14.93,1-5M,,,20,-20.90,-119.52
+Lokren,Inania,Mahea,1.96,3135,6.14,1-5M,,,17,-20.90,107.57
+Prystr Hii,Prystr Hii,Massir,2.65,30992,82.04,1-5M,Yes,,84,-21.08,49.61
+Fengzolu,Dahe,Massir,2.26,10755,24.26,1-5M,,,25,-21.19,61.31
+Ralut,Verste,Quia,7.65,10119,77.41,5-10M,,,47,-21.26,-148.32
+Xianqalu,Dahe,Massir,3.46,10755,37.19,1-5M,,,29,-21.41,49.00
+Vurekh,Anymna,Quia,2.49,10754,26.73,1-5M,,,26,-21.44,-103.57
+Yinbari,Dahe,Massir,2.85,10755,30.63,1-5M,,,29,-21.51,54.36
+Zhwaziko,Dahe,Massir,5.02,10755,53.99,5-10M,,,39,-21.59,50.40
+Shinlotha,Dahe,Massir,13.04,10755,140.27,10-20M,,Yes,148,-21.55,51.12
+Kebenta,Oyreain,Massir,1.03,8056,8.31,1-5M,,,17,-21.95,28.73
+Dambulo,Dahe,Massir,1.10,10755,11.84,1-5M,,,20,-22.16,57.71
+Amrata,Sivoso,Mahea,1.45,3702,5.36,1-5M,Yes,,18,-22.16,85.93
+Syntar,Inania,Mahea,1.14,3135,3.56,1-5M,,,11,-22.27,109.76
+Tselengbo,Dahe,Massir,1.10,10755,11.84,1-5M,,,21,-22.34,53.96
+Dumemzi,Dahe,Massir,4.40,10755,47.28,1-5M,,,33,-22.59,48.60
+Jirakai,Sivoso,Mahea,1.50,3702,5.55,1-5M,,,13,-22.77,84.31
+Sutrah,Verste,Quia,1.60,10119,16.16,1-5M,,,20,-23.24,-150.23
+Wuyani,Dahe,Massir,1.24,10755,13.33,1-5M,,,21,-23.42,59.08
+Xhalenti,Dahe,Massir,1.06,10755,11.39,1-5M,,,20,-23.53,62.46
+Benzanqi,Dahe,Massir,1.18,10755,12.64,1-5M,,,22,-23.53,55.01
+Bongyu,Dahe,Massir,1.59,10755,17.14,1-5M,,,22,-23.71,51.19
+Kaimlo,Verste,Quia,1.28,10119,12.98,1-5M,Yes,,26,-24.03,-149.83
+Tarnokh,Pelugrotoa,Mahea,1.81,11861,21.49,1-5M,,,29,-24.03,128.81
+Otkiru,Sunsokua,Mahea,1.14,12579,14.32,1-5M,,,22,-24.32,135.61
+Gavriko,Verste,Quia,2.80,10119,28.32,1-5M,,,23,-24.39,-152.28
+Katanir,Sunsokua,Mahea,4.00,12579,50.34,1-5M,,,37,-24.43,133.92
+Zulongai,Dahe,Massir,2.84,10755,30.57,1-5M,,,36,-24.97,58.61
+Wekhalu,Dahe,Massir,5.10,10755,54.85,5-10M,,,46,-24.97,48.06
+Jalinth,Pelugrotoa,Mahea,1.92,11861,22.77,1-5M,,,29,-25.12,114.73
+Lupenzhao,Dahe,Massir,1.10,10755,11.84,1-5M,,,21,-25.15,63.83
+Hishara,Finae,Quia,2.24,10794,24.18,1-5M,Yes,,29,-25.22,-82.51
+Walsi,Oyreain,Massir,1.04,8056,8.39,1-5M,,,17,-25.22,34.13
+Kailan,Finae,Quia,1.22,10794,13.15,1-5M,,,21,-25.37,-80.86
+Senkal,Sunsokua,Mahea,1.19,12579,14.96,1-5M,,,22,-25.33,136.69
+Mirek,Pelugrotoa,Mahea,3.92,11861,46.45,1-5M,,,36,-25.40,112.97
+Haldinji,Dahe,Massir,4.20,10755,45.14,1-5M,,,45,-25.48,59.87
+Yamaru,Sunsokua,Mahea,1.19,12579,14.97,1-5M,,,22,-25.51,138.49
+Mwenziqi,Dahe,Massir,1.10,10755,11.85,1-5M,,,22,-25.84,51.91
+Thavrin,Pelugrotoa,Mahea,14.84,11861,176.00,10-20M,Yes,Yes,197,-25.98,115.42
+Trelmar,Pelugrotoa,Mahea,1.43,11861,16.93,1-5M,,,24,-26.02,109.80
+Khuazhin,Dahe,Massir,1.46,10755,15.72,1-5M,,,21,-26.12,63.90
+Muzhara,Sunsokua,Mahea,1.32,12579,16.62,1-5M,,,22,-26.12,134.93
+Velkai,Sunsokua,Mahea,1.68,12579,21.15,1-5M,,,25,-26.20,133.20
+Balsor,Pelugrotoa,Mahea,3.41,11861,40.43,1-5M,,,49,-26.27,129.06
+Togoro,Oyreain,Massir,1.32,8056,10.63,1-5M,,,17,-26.30,38.34
+Zitbajo,Dahe,Massir,1.73,10755,18.58,1-5M,,,23,-26.30,47.70
+Tayolum,Dahe,Massir,1.02,10755,10.94,1-5M,,,21,-26.41,67.39
+Velkhor,Pelugrotoa,Mahea,4.51,11861,53.45,1-5M,,,36,-26.41,117.25
+Rivik,Pelugrotoa,Mahea,1.20,11861,14.27,1-5M,,,23,-26.48,130.50
+Zajkovi,Etretes,Massir,1.10,22897,25.30,1-5M,Yes,,39,-26.66,72.97
+Zimbelo,Dahe,Massir,1.76,10755,18.95,1-5M,,,25,-26.74,55.08
+Xuqilin,Dahe,Massir,13.46,10755,144.79,10-20M,,Yes,162,-26.81,51.37
+Sileth,Pelugrotoa,Mahea,1.99,11861,23.60,1-5M,,,32,-26.84,125.57
+Dorav,Pelugrotoa,Mahea,1.01,11861,11.96,1-5M,,,24,-27.10,116.60
+Liwaya,Dahe,Massir,1.09,10755,11.78,1-5M,,,21,-27.13,62.28
+Alubri City,Emara,Ayuma,1.29,23214,29.97,1-5M,,,36,-27.28,81.43
+Harkanto,Dahe,Massir,9.74,10755,104.75,5-10M,,,109,-27.31,57.24
+Zhawengu,Dahe,Massir,1.00,10755,10.81,1-5M,,,19,-27.38,59.33
+Nabruik,Lieri,Mahea,4.38,929,4.06,1-5M,Yes,,22,-27.38,102.13
+Bombo,Oyreain,Massir,1.17,8056,9.43,1-5M,,,18,-27.46,40.43
+Rizhouka,Dahe,Massir,1.03,10755,11.12,1-5M,,,21,-27.46,66.06
+Vreshin,Pelugrotoa,Mahea,1.03,11861,12.22,1-5M,,,25,-27.64,120.74
+Tshenuza,Dahe,Massir,7.43,10755,79.91,5-10M,,,89,-27.67,53.21
+Pirozu,Sunsokua,Mahea,1.06,12579,13.31,1-5M,,,22,-27.67,139.50
+Veshtak,Pelugrotoa,Mahea,9.50,11861,112.68,5-10M,,,103,-27.74,120.28
+Zilvak,Pelugrotoa,Mahea,7.54,11861,89.43,5-10M,,,68,-27.82,108.18
+Lorvik,Pelugrotoa,Mahea,1.15,11861,13.60,1-5M,,,24,-27.92,104.33
+Rokaba,Oyreain,Massir,1.16,8056,9.38,1-5M,,,17,-28.03,37.98
+Kharim,Pelugrotoa,Mahea,1.12,11861,13.30,1-5M,,,24,-28.10,127.48
+Qianzo,Dahe,Massir,8.65,10755,93.03,5-10M,,,89,-28.28,47.34
+Balsheke,Dahe,Massir,3.49,10755,37.51,1-5M,,,43,-28.28,56.45
+Huxongi,Dahe,Massir,1.35,10755,14.52,1-5M,,,22,-28.36,51.59
+Mikalu,Sunsokua,Mahea,8.43,12579,106.04,5-10M,Yes,Yes,119,-28.36,138.49
+Viralna,Verste,Quia,2.53,10119,25.58,1-5M,,,23,-28.39,-153.36
+Veshro,Pelugrotoa,Mahea,2.80,11861,33.18,1-5M,,,36,-28.39,109.80
+Foreba,Oyreain,Massir,3.67,8056,29.58,1-5M,,,24,-28.46,41.29
+Silka,Trian,Mahea,1.11,15516,17.16,1-5M,,,26,-28.54,83.16
+Shasweli,Sanagara,Massir,1.71,15278,26.09,1-5M,,,28,-28.64,43.13
+Slarim,Pelugrotoa,Mahea,1.00,11861,11.92,1-5M,,,26,-28.64,119.52
+Mansek,Seytinemas,Mahea,1.36,10992,14.94,1-5M,,,20,-28.75,93.35
+Hikrum,Sunsokua,Mahea,10.26,12579,129.03,10-20M,,,78,-28.75,133.02
+Bintarha,Sanagara,Massir,1.13,15278,17.20,1-5M,,,25,-28.90,45.00
+Todorac,Etretes,Massir,2.90,22897,66.33,1-5M,,,45,-28.90,82.33
+Shiruna,Sunsokua,Mahea,2.69,12579,33.90,1-5M,,,34,-28.90,137.95
+Bolanzi,Dahe,Massir,3.31,10755,35.56,1-5M,,,37,-28.93,49.79
+Dalotza,Dahe,Massir,1.22,10755,13.10,1-5M,,,20,-29.00,59.15
+Jinbayo,Dahe,Massir,1.16,10755,12.43,1-5M,,,21,-29.08,63.72
+Yetembo,Oyreain,Massir,1.47,8056,11.82,1-5M,Yes,,24,-29.11,39.85
+Fekhalai,Dahe,Massir,42.49,10755,456.96,>20M,,Yes,266,-29.18,47.52
+Vansor,Pelugrotoa,Mahea,1.01,11861,12.00,1-5M,,,24,-29.26,115.49
+Tairim,Pelugrotoa,Mahea,2.05,11861,24.32,1-5M,,,33,-29.26,122.58
+Kalvor,Pelugrotoa,Mahea,3.12,11861,36.97,1-5M,,,38,-29.29,108.11
+Mankat,Finae,Quia,3.25,10794,35.04,1-5M,,,24,-29.36,-82.26
+Treka,Trian,Mahea,2.77,15516,42.99,1-5M,Yes,,43,-29.54,85.86
+Sodaru,Sunsokua,Mahea,1.06,12579,13.36,1-5M,,,24,-29.62,132.77
+Koyaya,Sanagara,Massir,8.32,15278,127.11,5-10M,Yes,Yes,130,-29.83,42.48
+Merlan,Seytinemas,Mahea,1.09,10992,12.04,1-5M,,,21,-29.80,98.71
+Pothin,Pelugrotoa,Mahea,5.43,11861,64.41,5-10M,,,60,-29.90,122.94
+Xingalu,Dahe,Massir,1.67,10755,17.97,1-5M,,,22,-29.98,52.20
+Dzhonlo,Dahe,Massir,7.88,10755,84.75,5-10M,,,107,-30.08,55.98
+Lunmar,Seytinemas,Mahea,1.44,10992,15.81,1-5M,,,23,-30.08,104.44
+Mukaziya,Dahe,Massir,1.88,10755,20.19,1-5M,,,26,-30.16,62.57
+Sarnin,Pelugrotoa,Mahea,1.20,11861,14.19,1-5M,,,25,-30.12,126.54
+Pakram,Sunsokua,Mahea,1.95,12579,24.55,1-5M,,,27,-30.19,137.09
+Erkadu,Myla,Quia,5.21,7341,38.25,5-10M,Yes,,29,-30.34,-83.66
+Kholisha,Dahe,Massir,1.24,10755,13.38,1-5M,,,21,-30.34,48.67
+Jinzuku,Dahe,Massir,2.96,10755,31.88,1-5M,,,33,-30.34,54.90
+Jalenek,Sunsokua,Mahea,4.03,12579,50.75,1-5M,,,40,-30.34,140.22
+Gwenliya,Dahe,Massir,3.77,10755,40.59,1-5M,,,45,-30.44,57.42
+Olkar,Pelugrotoa,Mahea,1.19,11861,14.06,1-5M,,,25,-30.44,112.03
+Jokla,Myla,Quia,1.56,7341,11.43,1-5M,,,18,-30.62,-87.05
+Havok,Pelugrotoa,Mahea,22.65,11861,268.65,>20M,,Yes,173,-30.73,123.88
+Pungzolai,Dahe,Massir,3.95,10755,42.53,1-5M,,,46,-30.91,58.32
+Tarvic,Seytinemas,Mahea,2.98,10992,32.77,1-5M,,,32,-30.91,96.23
+Yenzhazi,Dahe,Massir,1.64,10755,17.68,1-5M,,,23,-31.06,53.53
+Beylok,Pelugrotoa,Mahea,4.75,11861,56.29,1-5M,,,46,-31.06,107.82
+Vukwazi,Dahe,Massir,10.04,10755,108.00,10-20M,,,130,-31.09,49.32
+Rathghat,Sanagara,Massir,1.82,15278,27.77,1-5M,,,27,-31.24,45.29
+Minoan,Verste,Quia,4.50,10119,45.51,1-5M,,,32,-31.60,-149.04
+Yikashu,Dahe,Massir,1.48,10755,15.95,1-5M,,,23,-31.60,52.49
+Tshahulo,Dahe,Massir,4.16,10755,44.71,1-5M,,,51,-31.81,55.62
+Vurklo,Seytinemas,Mahea,1.09,10992,12.03,1-5M,,,20,-31.81,92.05
+Fekunza,Dahe,Massir,15.40,10755,165.63,10-20M,Yes,Yes,195,-32.14,56.81
+Bolar,Myla,Quia,3.23,7341,23.73,1-5M,,,19,-32.17,-84.06
+Ovetta,Verste,Quia,3.59,10119,36.30,1-5M,,,29,-32.32,-155.56
+Muzhulu,Dahe,Massir,1.19,10755,12.80,1-5M,,,23,-32.32,53.46
+Vulna,Seytinemas,Mahea,11.29,10992,124.08,10-20M,Yes,Yes,183,-32.32,94.43
+Waktala,Sanagara,Massir,1.37,15278,20.93,1-5M,,,25,-32.42,44.17
+Zerash,Seytinemas,Mahea,1.04,10992,11.45,1-5M,,,20,-32.50,100.98
+Qatshilo,Dahe,Massir,2.96,10755,31.82,1-5M,,,27,-32.68,46.55
+Zidanza,Dahe,Massir,1.90,10755,20.41,1-5M,,,22,-32.71,58.86
+Xiyanja,Dahe,Massir,1.22,10755,13.13,1-5M,,,20,-32.78,64.80
+Sivona,Sadain,Mahea,1.60,7500,11.99,1-5M,Yes,,24,-32.78,133.38
+Amhurok,Isnti,Mahea,1.67,1492,2.49,1-5M,,,11,-32.86,123.91
+Bodrul,Sunsokua,Mahea,3.64,12579,45.75,1-5M,,,39,-32.89,143.53
+Ghloumzi,Dahe,Massir,5.05,10755,54.31,5-10M,,,68,-32.96,51.77
+Qalazi,Dahe,Massir,4.36,10755,46.92,1-5M,,,53,-32.96,55.55
+Lungxilo,Dahe,Massir,4.82,10755,51.83,1-5M,,,63,-33.25,53.42
+Fuzhenya,Dahe,Massir,1.20,10755,12.87,1-5M,,,20,-33.22,56.95
+Yokemaru,Sunsokua,Mahea,2.20,12579,27.66,1-5M,,,31,-33.22,141.05
+Phinlaza,Dahe,Massir,4.60,10755,49.46,1-5M,,,47,-33.40,48.13
+Drolmukhazin,Volver,Quia,1.40,7381,10.33,1-5M,Yes,,22,-33.58,-81.79
+Kashibo,Sunsokua,Mahea,1.18,12579,14.82,1-5M,,,23,-33.61,143.24
+Tibokan,Chaenia,Mahea,1.87,16270,30.39,1-5M,,,34,-33.76,96.59
+Lufuliya,Dahe,Massir,1.18,10755,12.71,1-5M,,,23,-33.79,52.38
+Shindzi,Dahe,Massir,1.63,10755,17.53,1-5M,,,23,-34.12,56.77
+Mahsira,Isnti,Mahea,5.03,1492,7.51,5-10M,Yes,,25,-34.30,120.17
+Zhalandi,Dahe,Massir,1.05,10755,11.31,1-5M,,,20,-34.55,55.66
+Hanyalzo,Dahe,Massir,5.54,10755,59.58,5-10M,,,64,-34.66,54.18
+Takolo,Sadain,Mahea,4.01,7500,30.05,1-5M,,,26,-34.69,132.98
+Stravik,Dual Cenryia,Mahea,4.74,3298,15.63,1-5M,,,23,-34.76,98.50
+Kintaluo,Dahe,Massir,3.84,10755,41.30,1-5M,,,36,-34.87,59.04
+Zhulenga,Dahe,Massir,6.21,10755,66.79,5-10M,,,59,-34.94,47.88
+Klemerda,Dual Cenryia,Mahea,1.48,3298,4.87,1-5M,,,13,-34.94,96.41
+Ghezhian,Dahe,Massir,2.21,10755,23.80,1-5M,,,27,-35.02,52.31
+Tzalunya,Dahe,Massir,4.39,10755,47.23,1-5M,,,41,-35.20,57.53
+Bhaliloi,Dahe,Massir,20.08,10755,215.92,>20M,,Yes,184,-35.41,50.33
+Vumbeko,Dahe,Massir,6.77,10755,72.81,5-10M,,,78,-35.41,55.91
+Phetuli,Dahe,Massir,1.51,10755,16.21,1-5M,,,23,-35.56,55.01
+Grimsa,Dual Cenryia,Mahea,1.64,3298,5.40,1-5M,,,12,-35.67,101.27
+Pha Hii,Pha Hii,Massir,2.65,40476,107.14,1-5M,Yes,,104,-35.74,46.80
+Sahmado,Isnti,Mahea,3.71,1492,5.54,1-5M,,,17,-35.74,121.00
+Pheduza,Dahe,Massir,1.44,10755,15.43,1-5M,,,22,-35.77,51.41
+Xibalzi,Dahe,Massir,1.49,10755,16.06,1-5M,,,23,-35.92,53.53
+Zhangola,Dahe,Massir,10.60,10755,114.05,10-20M,,,128,-36.03,52.56
+Mankhulo,Dahe,Massir,4.12,10755,44.26,1-5M,,,43,-36.28,55.44
+Faskel,Dual Cenryia,Mahea,1.03,3298,3.41,1-5M,,,12,-36.31,104.76
+Tumnar,Zhanshe,Quia,1.13,353,0.40,1-5M,Yes,,17,-36.46,-112.07
+Munela,Chaenia,Mahea,1.07,16270,17.46,1-5M,,,27,-36.46,92.70
+Shanghalu,Dahe,Massir,1.41,10755,15.16,1-5M,,,22,-36.75,51.95
+Ndhuloya,Dahe,Massir,1.05,10755,11.32,1-5M,,,20,-36.82,57.06
+Xivutwa,Dahe,Massir,1.20,10755,12.95,1-5M,,,21,-37.18,50.51
+Lutur,Chaenia,Mahea,1.26,16270,20.53,1-5M,Yes,,39,-37.18,93.35
+Panstel,Dual Cenryia,Mahea,6.99,3298,23.05,5-10M,,,24,-37.36,96.37
+Rembili,Dahe,Massir,1.75,10755,18.79,1-5M,,,27,-37.47,52.85
+Hovrith,Dual Cenryia,Mahea,2.66,3298,8.78,1-5M,,,16,-37.72,99.90
+Vardak,Vayvele,Mahea,1.19,8770,10.44,1-5M,,,19,-37.72,136.80
+Altepso,Galca,Mahea,1.12,1560,1.75,1-5M,,,11,-37.75,126.11
+Zalmar,Dual Cenryia,Mahea,1.04,3298,3.42,1-5M,,,11,-37.83,105.66
+Zifuwan,Dahe,Massir,3.59,10755,38.63,1-5M,,,33,-38.08,56.70
+Velkura,United Mihili,Quia,1.19,1655,1.97,1-5M,,,11,-38.19,-148.57
+MavagaT,Nheyes Si,Quia,1.51,3675,5.56,1-5M,Yes,,19,-38.19,-80.03
+Sarnotka,Suenan,Massir,1.06,6429,6.79,1-5M,,,15,-38.37,46.69
+Tonkazi,Dahe,Massir,1.17,10755,12.57,1-5M,,,22,-38.44,48.31
+Mureko,Ocaun,Mahea,1.25,488,0.61,1-5M,,,13,-38.44,120.78
+Zoluhano,Dahe,Massir,9.25,10755,99.48,5-10M,,,76,-38.73,49.61
+Krunka,Dual Cenryia,Mahea,3.06,3298,10.08,1-5M,,,17,-38.91,103.68
+Nalvin,United Mihili,Quia,1.08,1655,1.79,1-5M,,,10,-39.09,-145.62
+Tarimav,Eparia,Massir,1.23,2111,2.59,1-5M,Yes,,17,-39.16,89.89
+Lungqino,Dahe,Massir,1.39,10755,14.98,1-5M,,,20,-39.19,54.72
+Kaisri,Vayvele,Mahea,12.02,8770,105.41,10-20M,Yes,Yes,119,-39.23,136.66
+Jhalenya,Dahe,Massir,3.12,10755,33.56,1-5M,,,31,-39.52,48.24
+Vrandig,Dual Cenryia,Mahea,11.64,3298,38.39,10-20M,Yes,,44,-39.52,102.85
+Gulowin,Dahe,Massir,4.34,10755,46.63,1-5M,,,33,-39.63,62.89
+Silikai,Ocaun,Mahea,3.28,488,1.60,1-5M,,,16,-39.70,122.33
+Beskun,Vayvele,Mahea,1.08,8770,9.49,1-5M,,,17,-39.70,130.68
+Jastinor,Dual Cenryia,Mahea,1.09,3298,3.58,1-5M,,,11,-39.81,103.64
+Kijora,Vayvele,Mahea,1.16,8770,10.13,1-5M,,,20,-39.99,138.42
+Sejla,Selaja,Mahea,3.29,6389,21.03,1-5M,,,20,-40.09,145.76
+Bazinshu,Dahe,Massir,1.85,10755,19.92,1-5M,,,23,-40.24,53.57
+Malinkai,Vesozata,Massir,1.54,3099,4.76,1-5M,,,13,-40.78,86.11
+Daspuru,Suenan,Massir,2.99,6429,19.23,1-5M,Yes,,24,-40.96,44.75
+Dunaro,Ocaun,Mahea,1.23,488,0.60,1-5M,,,11,-40.96,123.95
+Fyntek,Otiiric,Mahea,4.17,3651,15.21,1-5M,Yes,,24,-40.99,96.59
+Wavaru,Ocaun,Mahea,4.33,488,2.11,1-5M,,,16,-40.99,120.42
+Kejira,Ocaun,Mahea,19.62,488,9.58,10-20M,Yes,Yes,97,-41.07,122.76
+Bristel,United Mihili,Quia,3.61,1655,5.97,1-5M,,,14,-41.21,-144.18
+Ruwodai,Dahe,Massir,1.90,10755,20.42,1-5M,,,27,-41.43,49.61
+Dherkiv,Galca,Mahea,1.02,1560,1.59,1-5M,Yes,,16,-41.71,124.45
+Pardesh,Dual Cenryia,Mahea,2.33,3298,7.68,1-5M,,,15,-41.79,106.38
+Weregami,Suenan,Massir,5.04,6429,32.40,5-10M,,,21,-42.07,44.39
+Kandula,Vesozata,Massir,1.04,3099,3.24,1-5M,,,11,-42.58,81.43
+Veshu,Selaja,Mahea,2.16,6389,13.77,1-5M,,,17,-42.69,147.42
+Dilambo,Vesozata,Massir,3.83,3099,11.86,1-5M,,,16,-42.87,83.34
+Velthura,Desaki,Quia,3.09,14048,43.44,1-5M,,,32,-43.30,-143.64
+Mojalun,Ocaun,Mahea,1.81,488,0.89,1-5M,,,12,-43.48,119.41
+Korvani,Vesozata,Massir,10.39,3099,32.20,10-20M,Yes,,32,-43.59,84.56
+Suharimti,Kaastini,Massir,1.05,7341,7.73,1-5M,Yes,,22,-44.13,55.51
+Zarvundon,Suenan,Massir,1.12,6429,7.18,1-5M,,,15,-44.41,45.00
+Olmurra,Desaki,Quia,2.30,14048,32.27,1-5M,Yes,,37,-45.03,-142.49
+Shatiruk,Vesozata,Massir,8.00,3099,24.79,5-10M,,,26,-45.46,84.85
+Mvangiro,Vesozata,Massir,1.63,3099,5.06,1-5M,,,14,-45.82,78.55
+Muvkora,Vesozata,Massir,4.95,3099,15.33,1-5M,,,19,-45.93,81.11
+Zarufeli,Vesozata,Massir,1.22,3099,3.79,1-5M,,,13,-46.65,82.80
+Dulvasra,Exilium,Mahea,2.04,1742,3.56,1-5M,Yes,,18,-47.69,101.27
+Kolino,Ocaun,Mahea,1.10,488,0.54,1-5M,,,11,-47.66,122.47
+Vekura,Ocaun,Mahea,1.27,488,0.62,1-5M,,,11,-47.73,119.52
+Lijola,Vesozata,Massir,2.39,3099,7.41,1-5M,,,14,-48.63,77.26
+Sakali,Vesozata,Massir,1.06,3099,3.28,1-5M,,,14,-48.92,82.73
+Lufiro,Vesozata,Massir,1.09,3099,3.37,1-5M,,,12,-49.24,81.18
+Vahira,Vesozata,Massir,1.13,3099,3.50,1-5M,,,11,-49.96,78.95
+Mataro,Vesozata,Massir,4.26,3099,13.21,1-5M,,,17,-50.14,82.01
+Vaturiko,Vesozata,Massir,1.56,3099,4.83,1-5M,,,12,-51.69,80.93
+Mikavasi,Kusierna,Massir,1.91,6429,12.27,1-5M,Yes,,22,-56.37,77.69
+Droskaneth,Iareva,Quia,4.11,20635,84.75,1-5M,Yes,,58,-58.06,-127.26
+Yshtra,Desaki,Quia,2.96,14048,41.51,1-5M,,,27,-58.10,-140.62
