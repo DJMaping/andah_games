@@ -98,11 +98,15 @@ function renderSelected(container, ctx) {
 // --- Network dashboard (no selection) -----------------------------------
 function renderDashboard(container, ctx) {
     const { network, summary, planner, handlers, source } = ctx;
-    const opts = network.airports
-        .map(a => `<option value="${esc(a.id)}">${esc(a.city)} — ${esc(a.country)}</option>`)
-        .join('');
     const p = planner || {};
     const res = p.result;
+    const cityName = id => {
+        const a = id && network.airportById.get(id);
+        return a ? a.city : '';
+    };
+    const cityOpts = network.airports
+        .map(a => `<option value="${esc(a.city)}">${esc(a.country)}</option>`)
+        .join('');
 
     container.innerHTML = `
         <div class="page-header">
@@ -125,20 +129,28 @@ function renderDashboard(container, ctx) {
 
         <h3 class="flight-list-title">Route planner</h3>
         <div class="flight-planner">
-            <label>From <select data-planner="from">${opts}</select></label>
-            <label>To <select data-planner="to">${opts}</select></label>
+            <div class="flight-planner-row">
+                <label>From <input type="text" data-planner="from" list="flight-planner-cities" placeholder="City" value="${esc(cityName(p.fromId))}"></label>
+                <button type="button" class="flight-pick ${p.picking === 'from' ? 'picking' : ''}" data-pick="from" aria-pressed="${p.picking === 'from'}" title="Pick origin on the map">📍</button>
+            </div>
+            <div class="flight-planner-row">
+                <label>To <input type="text" data-planner="to" list="flight-planner-cities" placeholder="City" value="${esc(cityName(p.toId))}"></label>
+                <button type="button" class="flight-pick ${p.picking === 'to' ? 'picking' : ''}" data-pick="to" aria-pressed="${p.picking === 'to'}" title="Pick destination on the map">📍</button>
+            </div>
             <button type="button" data-action="plan">Find route</button>
         </div>
+        <datalist id="flight-planner-cities">${cityOpts}</datalist>
+        ${p.picking ? `<p class="flight-pick-hint">Click a city on the map or globe to set the ${p.picking === 'from' ? 'origin' : 'destination'}.</p>` : ''}
         <div class="flight-planner-result">${plannerResultHtml(res, network)}</div>
 
         <p class="flight-source">Network ${source === 'prebuilt' ? 'loaded from build output' : 'generated in-browser'}.</p>`;
 
-    const fromSel = container.querySelector('[data-planner="from"]');
-    const toSel = container.querySelector('[data-planner="to"]');
-    if (p.fromId) fromSel.value = p.fromId;
-    if (p.toId) toSel.value = p.toId;
+    const fromInput = container.querySelector('[data-planner="from"]');
+    const toInput = container.querySelector('[data-planner="to"]');
     container.querySelector('[data-action="plan"]').addEventListener('click', () =>
-        handlers.onPlannerRun(fromSel.value, toSel.value));
+        handlers.onPlannerRun(resolveCity(network, fromInput.value), resolveCity(network, toInput.value)));
+    container.querySelectorAll('[data-pick]').forEach(btn =>
+        btn.addEventListener('click', () => handlers.onPlannerPick(btn.dataset.pick)));
     container.querySelectorAll('.flight-leg[data-dest]').forEach(el =>
         el.addEventListener('click', () => handlers.onSelectAirport(el.dataset.dest)));
 }
@@ -163,6 +175,16 @@ function haulBar(summary) {
         return `<span class="haul-seg" style="width:${pct}%;background:${color}" title="${haul}: ${n}"></span>`;
     };
     return seg('short', '#2e9e8f') + seg('medium', '#e0a33c') + seg('long', '#d65a45');
+}
+
+// Resolve typed text (a city name) back to an airport id. Returns null if the
+// box is empty or nothing matches.
+function resolveCity(network, text) {
+    const q = String(text || '').trim().toLowerCase();
+    if (!q) return null;
+    const hit = network.airports.find(a => a.city.toLowerCase() === q)
+        || network.airports.find(a => a.city.toLowerCase().startsWith(q));
+    return hit ? hit.id : null;
 }
 
 // --- formatting ----------------------------------------------------------

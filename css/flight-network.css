@@ -197,6 +197,73 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
+/* --- Airport legend ---------------------------------------------------- */
+.flight-legend {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 6;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px 10px;
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.flight-legend[hidden] {
+    display: none;
+}
+
+.flight-legend-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.flight-legend-close {
+    appearance: none;
+    border: 0;
+    background: none;
+    color: var(--text);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.flight-legend-close:hover {
+    opacity: 1;
+}
+
+.flight-legend-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 5px;
+}
+
+.flight-legend-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.flight-legend-dot {
+    flex: none;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.45);
+}
+
 /* --- Side panel -------------------------------------------------------- */
 .flight-back {
     appearance: none;
@@ -328,7 +395,13 @@
     font-family: var(--sans);
     font-size: 0.85rem;
 }
-.flight-planner select {
+.flight-planner-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.flight-planner-row label { flex: 1 1 auto; }
+.flight-planner input {
     flex: 1 1 auto;
     max-width: 70%;
     padding: 5px 6px;
@@ -337,7 +410,27 @@
     background: var(--bg);
     color: var(--text);
 }
-.flight-planner button {
+.flight-pick {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-soft);
+    cursor: pointer;
+    line-height: 1;
+}
+.flight-pick:hover { background: var(--bg-sunken); }
+.flight-pick.picking {
+    border-color: var(--link);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--link) 35%, transparent);
+}
+.flight-pick-hint {
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    color: var(--link);
+    margin: 6px 0 0;
+}
+.flight-planner button[data-action="plan"] {
     align-self: flex-start;
     padding: 6px 14px;
     border: 1px solid var(--border);

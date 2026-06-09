@@ -22,8 +22,26 @@ const els = {
     globeBtn: () => document.getElementById('view-globe-btn'),
     mapBtn: () => document.getElementById('view-map-btn'),
     globeView: () => document.getElementById('view-globe'),
-    mapView: () => document.getElementById('view-map')
+    mapView: () => document.getElementById('view-map'),
+    legend: () => document.getElementById('flight-legend')
 };
+
+// Colour-coded airport legend (dots are coloured by non-stop destination count).
+function renderLegend() {
+    const el = els.legend();
+    if (!el) return;
+    const rows = (FLIGHT_CONFIG.degreeBands || []).map(b =>
+        `<li><span class="flight-legend-dot" style="background:${b.color}"></span>${b.label}</li>`
+    ).join('');
+    el.innerHTML = `
+        <div class="flight-legend-head">
+            <span>Airport legend</span>
+            <button type="button" class="flight-legend-close" aria-label="Hide legend">&times;</button>
+        </div>
+        <ul class="flight-legend-list">${rows}</ul>`;
+    el.querySelector('.flight-legend-close').addEventListener('click', () => { el.hidden = true; });
+    el.hidden = false;
+}
 
 const state = {
     network: null,
@@ -33,7 +51,7 @@ const state = {
     routeSort: { key: 'demand', dir: 'desc' },
     filterState: null,
     predicate: () => true,
-    planner: { fromId: null, toId: null, result: undefined },
+    planner: { fromId: null, toId: null, result: undefined, picking: null },
     globe: null,
     map: null,
     globeOk: false
@@ -60,14 +78,32 @@ function wireToggle() {
     els.mapBtn().addEventListener('click', () => setView('map'));
 }
 
+// The filtered route list only changes when the filter predicate changes — NOT
+// when a city is selected. Cache it and recompute lazily so selecting a city
+// doesn't re-scan all 7,000+ routes.
+let cachedVisible = null;
+let routesDirty = true;
 function visibleRoutes() {
-    return state.network.routes.filter(state.predicate);
+    if (routesDirty || !cachedVisible) {
+        cachedVisible = state.network.routes.filter(state.predicate);
+        routesDirty = false;
+    }
+    return cachedVisible;
 }
 
+// Coalesce view refreshes into a single animation frame. A rapid burst of
+// changes (e.g. dragging the "min demand" slider, which fires on every input
+// tick) collapses to one globe/map update per frame instead of re-binding all
+// 7,000+ arcs on each event.
+let viewRaf = 0;
 function refreshViews() {
-    const vs = { visibleRoutes: visibleRoutes(), selectedId: state.selectedId };
-    if (state.globe) state.globe.update(vs);
-    if (state.map) state.map.update(vs);
+    if (viewRaf) return;
+    viewRaf = requestAnimationFrame(() => {
+        viewRaf = 0;
+        const vs = { visibleRoutes: visibleRoutes(), selectedId: state.selectedId };
+        if (state.globe) state.globe.update(vs);
+        if (state.map) state.map.update(vs);
+    });
 }
 
 function renderPanelNow() {
@@ -83,9 +119,39 @@ function renderPanelNow() {
             onSelectAirport: selectAirport,
             onClearSelection: clearSelection,
             onSortRoutes: sortRoutes,
-            onPlannerRun: runPlanner
+            onPlannerRun: runPlanner,
+            onPlannerPick: startPlannerPick
         }
     });
+}
+
+// Map/globe clicks route through here: while the planner is arming a slot
+// (and no city is selected) a click fills that slot instead of opening the
+// city's info card.
+function viewSelect(id) {
+    if (id && state.planner.picking && !state.selectedId) {
+        assignPlannerPick(id);
+        return;
+    }
+    selectAirport(id);
+}
+
+function startPlannerPick(slot) {
+    state.planner.picking = state.planner.picking === slot ? null : slot;
+    renderPanelNow();
+}
+
+function assignPlannerPick(id) {
+    const slot = state.planner.picking;
+    if (slot === 'from') state.planner.fromId = id;
+    else state.planner.toId = id;
+    // Picking the origin first auto-advances to the destination.
+    state.planner.picking = (slot === 'from' && !state.planner.toId) ? 'to' : null;
+    if (state.planner.fromId && state.planner.toId && !state.planner.picking) {
+        runPlanner(state.planner.fromId, state.planner.toId);
+    } else {
+        renderPanelNow();
+    }
 }
 
 function selectAirport(id) {
@@ -114,12 +180,13 @@ function sortRoutes(key) {
 
 function runPlanner(fromId, toId) {
     const result = shortestPath(state.network.routes, fromId, toId);
-    state.planner = { fromId, toId, result };
+    state.planner = { fromId, toId, result, picking: null };
     renderPanelNow();
 }
 
 function applyFilters() {
     state.predicate = makePredicate(state.filterState, state.network.airportById);
+    routesDirty = true;   // filter changed -> recompute the visible set next refresh
     refreshViews();
 }
 
@@ -150,12 +217,12 @@ async function init() {
     state.summary = networkSummary(state.network.airports, state.network.routes);
 
     // 2D map first — it has no external dependency and always works.
-    state.map = createMap(els.mapView(), { config: FLIGHT_CONFIG, onSelect: selectAirport });
+    state.map = createMap(els.mapView(), { config: FLIGHT_CONFIG, onSelect: viewSelect });
     state.map.setData(state.network);
 
     // Globe needs globe.gl from a CDN; degrade to map-only if it can't load.
     try {
-        state.globe = await createGlobe(els.globeView(), { config: FLIGHT_CONFIG, onSelect: selectAirport });
+        state.globe = await createGlobe(els.globeView(), { config: FLIGHT_CONFIG, onSelect: viewSelect });
         state.globe.setData(state.network);
         state.globeOk = true;
     } catch (e) {
@@ -177,6 +244,7 @@ async function init() {
     renderPanelNow();
     wireSearch();
 
+    renderLegend();
     setView(state.globeOk ? 'globe' : 'map');
     els.status().style.display = 'none';
     refreshViews();

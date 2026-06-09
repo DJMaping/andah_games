@@ -8,6 +8,8 @@
 // createGlobe() is async because it dynamic-imports globe.gl — if the CDN is
 // unreachable the caller can catch and fall back to the 2D map.
 
+import { degreeColor } from './flight-config.js';
+
 const GLOBE_CDN = 'https://esm.sh/globe.gl@2';
 
 export async function createGlobe(container, { config, onSelect } = {}) {
@@ -38,6 +40,7 @@ export async function createGlobe(container, { config, onSelect } = {}) {
         .arcEndLat('toLat').arcEndLng('toLon')
         .arcColor(arcColor)
         .arcStroke(arcStroke)
+        .arcCurveResolution(config.arcCurveResolution || 64)  // fewer segments/arc -> lighter geometry
         .arcAltitude(0)              // flat against the globe surface
         .arcDashLength(1)            // solid...
         .arcDashGap(0)
@@ -61,7 +64,7 @@ export async function createGlobe(container, { config, onSelect } = {}) {
     }
     function pointColor(d) {
         if (d.id === selectedId) return config.selectedColor;
-        return d.isHub ? config.hubColor : config.pointColor;
+        return degreeColor(d.degree, config);
     }
     function arcColor(r) {
         if (selectedId && !incident.has(key(r))) {
@@ -82,9 +85,16 @@ export async function createGlobe(container, { config, onSelect } = {}) {
     }
 
     function refresh() {
-        // Re-trigger accessors by re-setting the data arrays.
+        // Re-trigger accessors by re-setting the data arrays. With no city
+        // selected (the at-rest view) drop the faintest routes — they're
+        // near-invisible anyway — so the globe carries fewer arcs. Once a city
+        // is selected we bind the full set so its incident routes all show.
+        const cutoff = config.mapMinDemandZoomedOut || 0;
+        const arcs = (!selectedId && cutoff > 0)
+            ? routes.filter(r => (r.demand || 0) >= cutoff)
+            : routes;
         world.pointsData(airports);
-        world.arcsData(routes);
+        world.arcsData(arcs);
     }
 
     const ro = new ResizeObserver(() => {

@@ -7,3 +7,4 @@ node_modules/
 
 # Scratch folder for one-off historical simulations — not part of the site
 _historical-sims/
+.gstack/

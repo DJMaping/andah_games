@@ -122,6 +122,14 @@ function pixelToLatLonWH(x, y, w, h) {
 export async function loadNetwork(config = FLIGHT_CONFIG) {
     const cityDoc = await fetchJson('data/flight-cities.json');
     if (cityDoc && Array.isArray(cityDoc.cities) && cityDoc.cities.length) {
+        // Fast path: a pre-baked network (npm run build:flight) skips the
+        // ~175k-pair gravity computation. Trust it only when its signature
+        // matches the current cities, so stale bakes fall through to live gen.
+        const baked = await fetchJson('data/flight-network.json');
+        if (baked && Array.isArray(baked.airports) && Array.isArray(baked.routes)
+            && baked.signature === citiesSignature(cityDoc.cities)) {
+            return finalizeNetwork(baked.airports, baked.routes, 'baked', baked.map || cityDoc.map || LEGACY_MAP);
+        }
         const airports = await buildCityAirports(cityDoc);
         const net = generateNetwork(airports, config);
         return finalizeNetwork(net.airports, net.routes, 'tagged', cityDoc.map || LEGACY_MAP);
@@ -155,13 +163,19 @@ export async function loadNetwork(config = FLIGHT_CONFIG) {
 // country stats), so cities in richer nations pull more traffic.
 async function buildCityAirports(cityDoc) {
     const data = await loadCountries();
-    // nation -> capital city name, so each nation's capital airport can be flagged
-    // (flight-cities.json doesn't mark capitals; the join supplies it).
+    // flight-cities.json doesn't mark capitals; the capitals join supplies it.
     const capitals = await loadCapitals();
+    return buildCityAirportsFrom(cityDoc, data.countries || [], capitals || []);
+}
+
+// Pure join of tagged cities + country GDP-per-capita + capitals into airport
+// nodes. Shared by the browser (buildCityAirports above) and the Node baker
+// (scripts/bake-flight-network.js) so both produce an identical network.
+export function buildCityAirportsFrom(cityDoc, countries = [], capitals = []) {
     const capitalByNation = new Map((capitals || []).map(c => [c.name, c.capital]));
     const gpcByNation = new Map();
     let gpcSum = 0, gpcN = 0;
-    for (const c of data.countries || []) {
+    for (const c of countries) {
         const gpc = nominalGdpPerCapita(c.metrics);
         if (Number.isFinite(gpc) && gpc > 0) {
             gpcByNation.set(c.name, gpc);
@@ -210,6 +224,22 @@ function nominalGdpPerCapita(metrics) {
         if (Number.isFinite(v) && v > 0) return v;
     }
     return NaN;
+}
+
+// Cheap deterministic signature (FNV-1a) of the tagged-city inputs. A baked
+// network (data/flight-network.json) stores the signature of the cities it was
+// built from; the loader recomputes it from the live flight-cities.json and
+// only trusts the baked routes when they match — so editing the cities without
+// re-baking safely falls back to live generation instead of showing stale data.
+export function citiesSignature(cities = []) {
+    let h = 0x811c9dc5;
+    const mix = v => {
+        const s = String(v);
+        for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+        h ^= 0x7c;   // field separator
+    };
+    for (const c of cities) { mix(c.id); mix(c.x); mix(c.y); mix(c.population); mix(c.nation); mix(c.band); }
+    return (h >>> 0).toString(16);
 }
 
 function finalizeNetwork(airports, routes, source, map) {

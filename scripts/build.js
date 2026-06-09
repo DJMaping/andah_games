@@ -6,6 +6,7 @@ import { buildData } from './build-data.js';
 import { fetchWiki } from './fetch-wiki.js';
 import { extractIntros } from './extract-intros.js';
 import { buildRoutes } from './generate-routes.js';
+import { bakeFlightNetwork } from './bake-flight-network.js';
 
 async function main() {
     if (process.env.SKIP_DATA !== '1') {
@@ -20,6 +21,13 @@ async function main() {
         await buildRoutes();
     } else {
         console.log('SKIP_ROUTES=1, skipping flight-route generation.');
+    }
+
+    if (process.env.SKIP_FLIGHT !== '1') {
+        console.log('--- build:flight ---');
+        await bakeFlightNetwork();
+    } else {
+        console.log('SKIP_FLIGHT=1, skipping flight-network bake.');
     }
 
     if (process.env.SKIP_INTROS !== '1') {

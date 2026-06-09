@@ -25,11 +25,16 @@ export const FLIGHT_CONFIG = {
     beta: 1.15,                  // gentler distance decay -> more medium/long routes between big cities
 
     // --- Hubs -------------------------------------------------------------
-    // GLOBAL hubs = the top-N airports by economic mass (population × nation
-    // GDP-per-capita). They interconnect freely, are exempt from the range cap
-    // (long-haul flagships), and get a high degree-cap floor so they fan out
-    // nearly everywhere (see hubCapFloor below).
-    hubCount: 28,
+    // GLOBAL hubs = the top-N airports by blended node weight (economic mass +
+    // raw population; see popWeight). They interconnect freely, are exempt from
+    // the range cap (long-haul flagships), and get a high degree-cap floor so they
+    // fan out nearly everywhere (see hubCapFloor below).
+    hubCount: 36,
+    // Blend raw population into hub ranking AND route demand: 0 = pure economic mass
+    // (old behaviour), 1 = pure population. At 0.5 (with the wider hubCount above)
+    // megacity capitals in poor nations — e.g. Nakos & Mihkose in Ztesh — qualify as
+    // hubs and earn long-haul trunk routes, without erasing the wealth signal.
+    popWeight: 0.5,
     // Global trunk network: every pair of hubs within this range gets a
     // guaranteed long-haul route (the real-world "London <-> Moscow/Rio/Dubai/NYC"
     // flagship mesh), so the major world cities all interconnect regardless of
@@ -52,6 +57,13 @@ export const FLIGHT_CONFIG = {
     // adds flat extra routes to its degree cap so it fans out even when not the largest.
     capitalBoost: 2.2,          // multiplier on a capital's economic mass (demand + hub ranking)
     capitalCapBonus: 6,         // flat extra routes added to a capital's degree cap
+    // Manual per-city spotlight, keyed by city id: multiplies that city's effective
+    // mass (more demand + better hub ranking) AND its route-count ceiling, so a
+    // hand-picked city flies more than its population/GDP alone would earn. 1 = none.
+    cityBoost: {
+        faramozan: 1.4,
+        veshgadar: 1.4
+    },
     // Per-airport degree cap = a BLEND of nation wealth and city POPULATION:
     //   cap = capMin + (capMax-capMin) × (wealthWeight·wealth^capWealthExp
     //                                     + (1-wealthWeight)·popFraction^sizeExp)
@@ -89,6 +101,14 @@ export const FLIGHT_CONFIG = {
     hubColor: '#f2c14e',
     pointColor: '#4a90d9',
     selectedColor: '#ffffff',
+    // Airport dots are colour-coded by connectivity (non-stop destinations =
+    // node degree). Bands + colours match the on-map "Airport legend".
+    degreeBands: [
+        { min: 100, color: '#12306b', label: '> 100 non-stop destinations' },
+        { min: 30,  color: '#2f7fe0', label: '> 30 non-stop destinations' },
+        { min: 7,   color: '#d6a425', label: '> 7 non-stop destinations' },
+        { min: 0,   color: '#cf4036', label: '< 7 non-stop destinations' }
+    ],
     // Point radius (globe) / dot radius (map) scale with sqrt(population).
     pointMinRadius: 0.18,
     pointMaxRadius: 0.9,
@@ -97,5 +117,26 @@ export const FLIGHT_CONFIG = {
     arcAltitudeMax: 0.35,
     arcStrokeMin: 0.1,
     arcStrokeMax: 0.3,          // keep arcs very thin: even top-demand trunk/domestic edges stay slim
-    dimOpacity: 0.06            // opacity of non-selected routes when a city is selected
+    dimOpacity: 0.06,           // opacity of non-selected routes when a city is selected
+
+    // --- Performance ------------------------------------------------------
+    // globe.gl tessellates each arc into this many segments. Default is 64;
+    // arcs sit flat on the surface (arcAltitude 0) so ~28 looks identical while
+    // roughly halving arc geometry — speeds up first paint and every selection.
+    arcCurveResolution: 28,
+    // When NO city is selected and the 2D map is zoomed out (fit-to-width), skip
+    // routes whose normalised demand (0..1) is below this — they render as
+    // near-invisible hairlines anyway. 0 = full fidelity: draw EVERY route at all
+    // times (the offscreen cache keeps that fast). Raise it (e.g. 0.04) only if a
+    // weak machine needs to shed faint hairlines when zoomed out.
+    mapMinDemandZoomedOut: 0
 };
+
+// Dot colour for an airport's connectivity (degree = number of non-stop
+// destinations). Bands are checked high-to-low; the last band is the fallback.
+export function degreeColor(degree, config = FLIGHT_CONFIG) {
+    const d = degree || 0;
+    const bands = config.degreeBands || [];
+    for (const b of bands) if (d > b.min) return b.color;
+    return bands.length ? bands[bands.length - 1].color : config.pointColor;
+}

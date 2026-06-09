@@ -69,10 +69,24 @@ export function generateNetwork(airportsIn, cfg) {
     // largest city). emass = capital-adjusted economic mass used everywhere demand or
     // hub ranking is computed; the unadjusted massOf still drives GDP/capita aggregates.
     const capMul = a => (a.isCapital ? (cfg.capitalBoost || 1) : 1);
-    const emass = a => massOf(a) * capMul(a);
+    // Per-city thumb on the scale (cfg.cityBoost keyed by id): a manual multiplier
+    // on a single city's effective mass, to spotlight a city beyond what its
+    // population/GDP alone would earn. 1 (or absent) = no change.
+    const cityMul = a => (cfg.cityBoost && cfg.cityBoost[a.id]) || 1;
+    const emass = a => massOf(a) * capMul(a) * cityMul(a);
 
-    // Global hubs: top-N by (capital-adjusted) economic mass (id tiebreak for determinism).
-    const byMass = [...eligible].sort((x, y) => emass(y) - emass(x) || x.id.localeCompare(y.id));
+    // Hub ranking + demand node weight: blend economic mass with raw population so
+    // very populous capitals in poor nations (huge pop, modest GDP/capita) can rank
+    // as hubs and pull traffic — not only rich-nation cities. popWeight=0 reproduces
+    // the old pure-economic-mass behaviour. Both terms are normalised to [0,1] by
+    // their max across `eligible` so the wildly different units are comparable.
+    const maxEmassW = eligible.reduce((m, a) => Math.max(m, emass(a)), 0) || 1;
+    const maxPopW   = eligible.reduce((m, a) => Math.max(m, pop(a)),   0) || 1;
+    const popW = clamp(cfg.popWeight || 0, 0, 1);
+    const nodeWeight = a => (1 - popW) * (emass(a) / maxEmassW) + popW * (pop(a) / maxPopW);
+
+    // Global hubs: top-N by blended node weight (id tiebreak for determinism).
+    const byMass = [...eligible].sort((x, y) => nodeWeight(y) - nodeWeight(x) || x.id.localeCompare(y.id));
     const hubSet = new Set(byMass.slice(0, cfg.hubCount).map(a => a.id));
     for (const a of airports) a.isHub = hubSet.has(a.id);
 
@@ -165,7 +179,7 @@ export function generateNetwork(airportsIn, cfg) {
             // dampening on top. We normalise by the spoke scale (below) so the
             // domestic boost lifts domestic edges above the international scale and
             // trunk routes top out thick.
-            const base = Math.pow(emass(A) * emass(B), cfg.alpha) / denom;
+            const base = Math.pow(nodeWeight(A) * nodeWeight(B), cfg.alpha) / denom;
             const domestic = !!(A.country && B.country && A.country === B.country);
             let demandRaw = base;
             if (domestic) demandRaw *= cfg.domesticDemandMult;
@@ -208,6 +222,7 @@ export function generateNetwork(airportsIn, cfg) {
         let cap = cfg.capMin + (cfg.capMax - cfg.capMin) * blend;
         if (a.isHub) cap = Math.max(cap, cfg.hubCapFloor);
         if (a.isCapital) cap += (cfg.capitalCapBonus || 0);   // capitals fan out more even when not the largest city
+        cap *= cityMul(a);   // manual per-city boost lifts the route ceiling too, not just demand
         const hardMax = (cfg.capHardMax == null ? Infinity : cfg.capHardMax);
         return Math.round(clamp(cap, cfg.capHardMin, hardMax));
     };
