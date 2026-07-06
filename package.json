@@ -13,6 +13,7 @@
     "build:routes": "node scripts/generate-routes.js",
     "build:flight": "node scripts/bake-flight-network.js",
     "gdp:columns": "node scripts/add-gdp-columns.js",
+    "gdp:build": "node scripts/build-gdp-history.js",
     "serve": "npx --yes serve ."
   },
   "engines": {

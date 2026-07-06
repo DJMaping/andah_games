@@ -75,6 +75,34 @@
         .gdp-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: 0.82rem; margin: 0.4rem 0 0; }
         .gdp-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
         .gdp-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+        /* --- authoring (Edit mode) --- */
+        .gdp-modes { display: inline-flex; gap: 0; margin: 0.25rem 0 0.5rem; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .gdp-modes button { border: none; background: var(--bg-soft); color: var(--text); font: inherit; font-size: 0.88rem; padding: 0.35rem 1rem; cursor: pointer; }
+        .gdp-modes button[aria-selected="true"] { background: var(--correct-bg); color: var(--correct-text); font-weight: bold; }
+        .gdp-dirty { background: var(--note-bg, var(--bg-sunken)); border: 1px solid var(--correct-border); border-radius: 6px; padding: 0.5rem 0.85rem; margin: 0.5rem 0; font-size: 0.88rem; }
+        .gdp-edit-panel {
+            background: var(--bg-soft); border: 1px solid var(--border-soft); border-radius: 8px;
+            padding: 0.85rem 1rem; margin: 0.75rem 0; display: grid; gap: 0.75rem;
+        }
+        .gdp-edit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.9rem; }
+        .gdp-edit-row strong { font-size: 0.9rem; min-width: 8.5rem; }
+        .gdp-edit-panel input[type="number"], .gdp-edit-panel select {
+            background: var(--bg); color: var(--text); border: 1px solid var(--border);
+            border-radius: 4px; padding: 0.25rem 0.4rem; font: inherit; font-size: 0.88rem;
+        }
+        .gdp-edit-panel button {
+            border: 1px solid var(--border); background: var(--bg); color: var(--text);
+            font: inherit; font-size: 0.88rem; padding: 0.35rem 0.85rem; border-radius: 5px; cursor: pointer;
+        }
+        .gdp-edit-panel button:hover { background: var(--bg-sunken); }
+        .gdp-edit-panel button.primary { background: var(--correct-bg); color: var(--correct-text); border-color: var(--correct-border); font-weight: bold; }
+        .gdp-pin-chip { display: inline-block; background: var(--bg-sunken); border: 1px solid var(--border-soft); border-radius: 12px; padding: 0.1rem 0.55rem; font-size: 0.82rem; }
+        .gdp-pin-chip b { cursor: pointer; color: var(--wrong-text, #c0392b); margin-left: 0.25rem; }
+        .gdp-edit-cell { text-align: right; }
+        .gdp-g-input { width: 4.2rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 3px; padding: 0.1rem 0.3rem; font: inherit; font-size: 0.82rem; text-align: right; }
+        .gdp-pin-btn { cursor: pointer; margin-right: 0.3rem; opacity: 0.55; }
+        .gdp-pin-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -91,18 +119,17 @@
 
 <div class="gdp-shell">
     <h1>GDP Explorer</h1>
-    <p class="gdp-summary">Reads <code>Population Growth(2).xlsx</code> — type <strong>GDP/cap growth</strong> rates
-        (and optional <strong>override $</strong> pins) in columns G–H using <strong>Excel or Google Sheets</strong>,
-        then open the file here. Per-capita history compounds backward from each country's 2015 anchor in <code>andah-stats.js</code>.</p>
-    <p class="gdp-note"><strong>Google Sheets:</strong> after editing, use <em>File → Download → Microsoft Excel (.xlsx)</em>
-        and drop that downloaded file below. Type growth as <code>3%</code> or <code>0.03</code>.</p>
+    <p class="gdp-summary">Population history loads from <code>data/gdp-history.json</code>; you author each country's
+        <strong>GDP/cap growth</strong> right here in <strong>Edit</strong> mode. Per-capita history compounds backward
+        from each country's 2015 anchor. Save with <em>Download gdp-growth.json</em> and commit the file.</p>
+    <p class="gdp-status" id="gdp-status">Loading…</p>
 
-    <div class="gdp-load" id="gdp-drop">
-        <button type="button" id="gdp-open">Open Population Growth(2).xlsx…</button>
-        <p>…or drag &amp; drop the file anywhere on this box. Re-open after editing (Excel or a Google Sheets .xlsx download) to refresh.</p>
-        <span class="gdp-status" id="gdp-status">No data loaded yet.</span>
-        <input type="file" id="gdp-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+    <div class="gdp-modes" role="tablist" aria-label="Mode">
+        <button type="button" id="mode-view" aria-selected="true">View</button>
+        <button type="button" id="mode-edit" aria-selected="false">✎ Edit</button>
     </div>
+    <p class="gdp-dirty gdp-hidden" id="gdp-dirty">You have <strong>unsaved edits</strong> (kept in this browser only).
+        Click <em>Download gdp-growth.json</em> below and commit it to make them durable.</p>
 
     <div id="gdp-main" class="gdp-hidden">
         <div class="gdp-tabs" role="tablist">
@@ -160,6 +187,36 @@
                 </label>
                 <span class="gdp-status" id="country-status"></span>
             </div>
+
+            <!-- authoring panel (Edit mode only) -->
+            <div class="gdp-edit-panel gdp-hidden" id="edit-panel">
+                <div class="gdp-edit-row">
+                    <strong>$ checkpoints</strong>
+                    <span class="gdp-note">Pin an exact per-capita $ at a few years, then interpolate — the tool solves a smooth growth curve between pins (the 2015 anchor is one end).</span>
+                </div>
+                <div class="gdp-edit-row">
+                    <label>Earth Year <input type="number" id="edit-pin-year" min="1950" max="2015" step="1" value="1950" style="width:5rem"></label>
+                    <button type="button" id="edit-addpin">Add / edit $ pin…</button>
+                    <button type="button" id="edit-interpolate" class="primary">Interpolate between pins</button>
+                    <span id="edit-pins" class="gdp-note"></span>
+                </div>
+                <div class="gdp-edit-row">
+                    <strong>Paste a column</strong>
+                    <span class="gdp-note">Copy the <b>GDP/cap growth</b> column from Excel, click the year cell in the table below to start at (e.g. <b>2015</b>, the top), then paste (<b>Ctrl+V</b>) — values fill straight down. A <code>%</code> sign or numbers like <code>3</code> = 3%; a column of small decimals like <code>0.03</code> is auto-read as 3%. Blank cells clear that year.</span>
+                </div>
+                <div class="gdp-edit-row">
+                    <span id="paste-status" class="gdp-note"></span>
+                </div>
+                <div class="gdp-edit-row">
+                    <strong>Quick shapes</strong>
+                    <select id="ctl-archetype"></select>
+                    <span class="gdp-note">Applies a template growth curve you can then fine-tune by dragging the purple line or editing the table.</span>
+                </div>
+                <div class="gdp-edit-row">
+                    <button type="button" id="edit-clearcountry">Reset this country's edits</button>
+                    <span class="gdp-note">Drag the <b>“GDP/cap growth (drag me)”</b> points on the chart, or type % directly in the table below.</span>
+                </div>
+            </div>
             <div class="gdp-charts">
                 <div class="gdp-chart-card">
                     <h3>Total GDP &amp; GDP per capita</h3>
@@ -176,18 +233,18 @@
         </section>
 
         <div class="gdp-actions">
-            <button type="button" id="gdp-export">Download gdp-dataset.json</button>
-            <button type="button" id="gdp-clear">Clear cached data</button>
+            <button type="button" id="gdp-export">Download gdp-growth.json</button>
+            <button type="button" id="gdp-clear">Discard unsaved edits</button>
         </div>
-        <p class="gdp-note">Data autosaves to <em>this browser only</em> (localStorage) so charts survive a refresh.
-            Your spreadsheet (Excel file or Google Sheet) remains the durable source — re-open the .xlsx here after every editing session.</p>
+        <p class="gdp-note">Edits autosave to <em>this browser only</em> (localStorage) so they survive a refresh.
+            The durable source is <code>data/gdp-growth.json</code> — click <em>Download gdp-growth.json</em>, replace the
+            file in <code>data/</code>, and commit it to deploy.</p>
     </div>
 </div>
 
-<script src="js/vendor/xlsx.full.min.js"></script>
 <script src="js/vendor/chart.umd.min.js"></script>
+<script src="js/vendor/chartjs-plugin-dragdata.min.js"></script>
 <script src="js/script.js"></script>
-<script src="js/andah-stats.js"></script>
 <script type="module" src="js/gdp-explorer.js"></script>
 </body>
 </html>

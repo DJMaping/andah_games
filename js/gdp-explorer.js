@@ -1,28 +1,37 @@
-// gdp-explorer.js — reads Population Growth(2).xlsx (with GDP input columns G/H),
-// recomputes the per-capita chain in JS (never trusts Excel's cached results),
-// and renders cross-country bar/pie charts per year plus per-country time series.
+// gdp-explorer.js — loads Andah GDP data from repo JSON (no upload), renders
+// cross-country and per-country charts, and lets DJ AUTHOR the per-capita history
+// in the browser: $ checkpoints + auto-interpolate, draggable growth curve, and
+// archetype presets. Edits export to data/gdp-growth.json (commit it).
 //
-// Math (mirrors scripts/add-gdp-columns.js):
-//   perCap(2015)  = override ?? anchor          (anchor = andahStats gdpPerNominal)
+// Data:
+//   data/gdp-history.json  — fixed population substrate + 2015 anchors (read-only)
+//   data/gdp-growth.json   — sparse authored { growth:{year:rate}, overrides:{year:$} }
+//
+// Math (mirrors the old spreadsheet, unchanged):
+//   perCap(2015)  = override ?? anchor
 //   perCap(Y-1)   = override ?? perCap(Y) / (1 + growth(Y))   [blank growth = 0%]
 // A year is "determined" only if every step from 2015 down to it had a growth
 // input, or an override pinned it; undetermined years are flat placeholders.
 
-const SUMMARY_SHEETS = new Set(['GlobalContinent Population', 'Geoscheme Population']);
-const CACHE_KEY = 'andah-gdp-cache';
+const HISTORY_URL = 'data/gdp-history.json';
+const GROWTH_URL = 'data/gdp-growth.json';
+const DRAFT_KEY = 'andah-gdp-draft';   // in-browser working copy of unsaved edits
 
 const PALETTE = ['#4269d0', '#efb118', '#ff725c', '#6cc5b0', '#3ca951', '#ff8ab7', '#a463f2', '#97bbf5', '#9c6b4e', '#9498a0'];
 
 const $ = (id) => document.getElementById(id);
 
 const state = {
-    countries: [],        // [{name, rows:[{earthYear, year, pop, g, h}] newest-first}]
-    computed: new Map(),  // name -> rows enriched with perCap/gdp/determined/growths
-    continents: new Map(),// name -> continent
+    history: [],          // [{name, anchor, rows:[[earthYear, year, pop]]}] newest-first
+    baseGrowth: {},       // committed data/gdp-growth.json .countries (name -> {growth, overrides})
+    edits: {},            // unsaved overlay, same shape as baseGrowth
+    countries: [],        // [{name, rows:[{earthYear, year, pop, g, h}]}] built from history+growth
+    computed: new Map(),  // name -> rows enriched with perCap/gdp/determined
+    continents: new Map(),
     continentColors: new Map(),
     anchors: new Map(),
-    source: null,
     year: 2015,
+    mode: 'view',         // 'view' | 'edit'
     charts: {},
 };
 
@@ -54,14 +63,6 @@ function themeColors() {
     };
 }
 
-// ---------- anchors ----------
-function loadAnchors() {
-    // andah-stats.js is a classic script whose top-level `const` lives in the
-    // global lexical environment, NOT on window — read the bare identifier.
-    const stats = typeof andahStats !== 'undefined' ? andahStats : (window.andahStats || []);
-    for (const s of stats) state.anchors.set(s.name, s.gdpPerNominal);
-}
-
 // ---------- continents (optional; degrades gracefully) ----------
 async function loadContinents() {
     try {
@@ -82,29 +83,42 @@ function colorOf(name) {
     return state.continentColors.get(continentOf(name)) || PALETTE[0];
 }
 
-// ---------- workbook parsing ----------
-function parseWorkbook(buf, sourceName) {
-    const wb = XLSX.read(buf, { type: 'array' });
-    const countries = [];
-    for (const sheetName of wb.SheetNames) {
-        if (SUMMARY_SHEETS.has(sheetName)) continue;
-        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: null });
-        const out = [];
-        for (let i = 1; i < rows.length; i++) {
-            const r = rows[i];
-            if (!r || typeof r[2] !== 'number') break; // contiguous data rows only
-            out.push({
-                earthYear: r[0], year: r[1], pop: r[2],
-                g: typeof r[6] === 'number' ? r[6] : null,   // GDP/cap growth input
-                h: typeof r[7] === 'number' ? r[7] : null,   // override $
-            });
-        }
-        if (out.length) countries.push({ name: sheetName, rows: out });
-    }
-    return { countries, source: sourceName };
+// ---------- merged growth (base ∪ edits) ----------
+function growthFor(name) {
+    const base = state.baseGrowth[name] || {};
+    const edit = state.edits[name] || {};
+    return {
+        growth: { ...(base.growth || {}), ...(edit.growth || {}) },
+        overrides: { ...(base.overrides || {}), ...(edit.overrides || {}) },
+    };
+}
+function editsFor(name) {
+    if (!state.edits[name]) state.edits[name] = { growth: {}, overrides: {} };
+    if (!state.edits[name].growth) state.edits[name].growth = {};
+    if (!state.edits[name].overrides) state.edits[name].overrides = {};
+    return state.edits[name];
+}
+function hasEdits() {
+    return Object.values(state.edits).some((e) =>
+        (e.growth && Object.keys(e.growth).length) || (e.overrides && Object.keys(e.overrides).length));
 }
 
-// ---------- the per-capita chain ----------
+// ---------- build country rows from history + growth ----------
+function buildCountries() {
+    state.countries = state.history.map((h) => {
+        const g = growthFor(h.name);
+        return {
+            name: h.name,
+            rows: h.rows.map(([earthYear, year, pop]) => ({
+                earthYear, year, pop,
+                g: typeof g.growth[earthYear] === 'number' ? g.growth[earthYear] : null,
+                h: typeof g.overrides[earthYear] === 'number' ? g.overrides[earthYear] : null,
+            })),
+        };
+    });
+}
+
+// ---------- the per-capita chain (unchanged math) ----------
 function computeCountry(country) {
     const anchor = state.anchors.get(country.name) ?? null;
     const rows = country.rows.map((r) => ({ ...r }));
@@ -140,27 +154,39 @@ function computeAll() {
     for (const c of state.countries) state.computed.set(c.name, computeCountry(c));
 }
 
-// ---------- cache ----------
-function saveCache() {
-    try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({
-            savedAt: new Date().toISOString(),
-            source: state.source,
-            countries: state.countries,
-        }));
-    } catch (e) { /* quota — non-fatal, Excel is the durable copy */ }
+// Recompute just one country after an edit and refresh its view + dirty banner.
+function refreshCountry(name) {
+    const c = state.countries.find((x) => x.name === name);
+    if (!c) return;
+    const g = growthFor(name);
+    for (const r of c.rows) {
+        r.g = typeof g.growth[r.earthYear] === 'number' ? g.growth[r.earthYear] : null;
+        r.h = typeof g.overrides[r.earthYear] === 'number' ? g.overrides[r.earthYear] : null;
+    }
+    state.computed.set(name, computeCountry(c));
+    saveDraft();
+    renderCountryView();
+    updateDirty();
 }
-function loadCache() {
+
+// ---------- draft persistence (localStorage) ----------
+function saveDraft() {
     try {
-        const raw = localStorage.getItem(CACHE_KEY);
-        if (!raw) return false;
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), edits: state.edits }));
+    } catch (e) { /* quota — non-fatal, the committed JSON is durable */ }
+}
+function loadDraft() {
+    try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (!raw) return;
         const data = JSON.parse(raw);
-        if (!data.countries || !data.countries.length) return false;
-        state.countries = data.countries;
-        state.source = data.source;
-        $('gdp-status').textContent = `Loaded ${data.countries.length} countries from browser cache (${data.source || 'xlsx'}, saved ${new Date(data.savedAt).toLocaleString()}).`;
-        return true;
-    } catch (e) { return false; }
+        if (data && data.edits) state.edits = data.edits;
+    } catch (e) { /* ignore corrupt draft */ }
+}
+function updateDirty() {
+    const banner = $('gdp-dirty');
+    if (!banner) return;
+    banner.classList.toggle('gdp-hidden', !hasEdits());
 }
 
 // ---------- year range ----------
@@ -177,7 +203,9 @@ function yearRange() {
     return isFinite(min) ? { min, max } : { min: 1950, max: 2015 };
 }
 
-// ---------- view 1: all countries, one year ----------
+// ========================================================================
+//  View 1: all countries, one year
+// ========================================================================
 function rowFor(name, earthYear) {
     const rows = state.computed.get(name);
     if (!rows) return null;
@@ -206,12 +234,11 @@ function renderYearView() {
     const valueOf = (e) => metric === 'gdp' ? e.row.gdp : metric === 'perCap' ? e.row.perCap : e.row.gdpGrowth;
     entries.sort((a, b) => (valueOf(b) ?? -Infinity) - (valueOf(a) ?? -Infinity));
 
-    // world summary (GDP-based, over included countries)
     const worldGdp = entries.reduce((s, e) => s + (e.row.gdp || 0), 0);
     const worldPop = entries.reduce((s, e) => s + (e.row.pop || 0), 0);
     $('year-summary').textContent = entries.length
         ? `World (of ${entries.length} countries with data): total GDP ${fmtMoney(worldGdp)} · GDP per capita ${fmtMoney(worldPop ? worldGdp / worldPop : null)}`
-        : 'No countries have GDP data for this year yet — type growth rates in Excel columns G–H and re-open the file.';
+        : 'No countries have GDP data for this year yet — switch to Edit and author some growth curves.';
     $('year-hidden').textContent = hidden ? `(${hidden} countries hidden — GDP not yet determined for ${year}. Blank growth years compound as 0%; a year counts as determined only when every year back from 2015 has a growth rate or an override pin.)` : '';
 
     // ----- bar -----
@@ -221,7 +248,6 @@ function renderYearView() {
     const values = shown.map((e) => valueOf(e));
     const colors = shown.map((e) => colorOf(e.name));
     if (rest.length && metric !== 'growth') {
-        // aggregate Others meaningfully: sum for GDP, pop-weighted mean for per-capita
         if (metric === 'gdp') {
             labels.push(`Others (${rest.length})`);
             values.push(rest.reduce((s, e) => s + (e.row.gdp || 0), 0));
@@ -259,7 +285,6 @@ function renderYearView() {
         },
     });
 
-    // continent legend under the bar
     const legend = $('bar-legend');
     legend.innerHTML = '';
     if (state.continentColors.size) {
@@ -272,7 +297,7 @@ function renderYearView() {
         }
     }
 
-    // ----- pie (always GDP shares — shares of % growth aren't meaningful) -----
+    // ----- pie (always GDP shares) -----
     const pieMode = $('ctl-pie').value;
     $('pie-note').textContent = metric !== 'gdp' ? 'Pie always shows Total GDP shares.' : '';
     destroyChart('pie');
@@ -323,13 +348,20 @@ function renderYearView() {
     });
 }
 
-// ---------- view 2: one country over time ----------
+// ========================================================================
+//  View 2: one country over time (+ editing in Edit mode)
+// ========================================================================
+function selectedCountry() { return $('ctl-country').value; }
+
+let lastPasteCountry = null;
 function renderCountryView() {
-    const name = $('ctl-country').value;
+    const name = selectedCountry();
     const rows = state.computed.get(name);
     if (!rows) return;
+    if (name !== lastPasteCountry) { setPasteStatus(''); lastPasteCountry = name; }
     const asc = [...rows].reverse(); // oldest -> newest for time axis
     const tc = themeColors();
+    const editing = state.mode === 'edit';
     const filled = rows.filter((r) => r.determined).length;
     $('country-status').textContent = `${filled}/${rows.length} years determined · anchor ${fmtMoney(state.anchors.get(name))} per capita (2015)`;
 
@@ -366,50 +398,277 @@ function renderCountryView() {
         },
     });
 
-    destroyChart('lineGrowth');
-    state.charts.lineGrowth = new Chart($('chart-line-growth'), {
-        type: 'line',
-        data: {
-            labels: asc.map((r) => r.earthYear),
-            datasets: [
-                { label: 'GDP growth (total)', data: asc.map((r) => r.growthDetermined ? r.gdpGrowth : null), borderColor: PALETTE[4], backgroundColor: PALETTE[4], pointRadius: 0, borderWidth: 2 },
-                { label: 'GDP/cap growth', data: asc.map((r) => r.growthDetermined ? r.perCapGrowth : null), borderColor: PALETTE[6], backgroundColor: PALETTE[6], pointRadius: 0, borderWidth: 2 },
-                { label: 'Pop growth', data: asc.map((r) => {
-                    const older = rows.find((x) => x.earthYear === r.earthYear - 1);
-                    return older && older.pop ? r.pop / older.pop - 1 : null;
-                }), borderColor: tc.muted, backgroundColor: tc.muted, pointRadius: 0, borderWidth: 1, borderDash: [3, 3] },
-            ],
-        },
-        options: {
-            responsive: true,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { labels: { color: tc.text } },
-                tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}` } },
-            },
-            scales: {
-                x: { ticks: { color: tc.muted }, grid: { display: false } },
-                y: { ticks: { color: tc.muted, callback: (v) => fmtPct(v) }, grid: { color: tc.grid } },
-            },
-        },
-    });
+    renderGrowthChart(name, asc, tc, editing);
+    renderCountryTable(name, rows, editing);
+    if (editing) renderPinList(name);
+}
 
-    // table (newest first, like the spreadsheet)
+// Growth line chart. In Edit mode the "GDP/cap growth" series becomes draggable
+// (via chartjs-plugin-dragdata) with a point at every year, so DJ can reshape the
+// curve by hand; dragging a point writes edits.growth[earthYear].
+function renderGrowthChart(name, asc, tc, editing) {
+    destroyChart('lineGrowth');
+
+    // editable series: input g where present, else current perCap growth, else 0
+    const editData = asc.map((r) => r.g != null ? r.g : (r.perCapGrowth != null ? r.perCapGrowth : 0));
+    const rows = state.computed.get(name);
+
+    const datasets = [
+        {
+            label: editing ? 'GDP/cap growth (drag me)' : 'GDP/cap growth',
+            data: editing ? editData : asc.map((r) => r.growthDetermined ? r.perCapGrowth : null),
+            borderColor: PALETTE[6], backgroundColor: PALETTE[6],
+            pointRadius: editing ? 3 : 0, pointHoverRadius: editing ? 6 : 0,
+            borderWidth: 2, dragData: editing,
+        },
+        {
+            label: 'GDP growth (total)',
+            data: asc.map((r) => r.growthDetermined ? r.gdpGrowth : null),
+            borderColor: PALETTE[4], backgroundColor: PALETTE[4], pointRadius: 0, borderWidth: 2, dragData: false,
+        },
+        {
+            label: 'Pop growth',
+            data: asc.map((r) => {
+                const older = rows.find((x) => x.earthYear === r.earthYear - 1);
+                return older && older.pop ? r.pop / older.pop - 1 : null;
+            }),
+            borderColor: tc.muted, backgroundColor: tc.muted, pointRadius: 0, borderWidth: 1, borderDash: [3, 3], dragData: false,
+        },
+    ];
+
+    const options = {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { labels: { color: tc.text } },
+            tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}` } },
+        },
+        scales: {
+            x: { ticks: { color: tc.muted }, grid: { display: false } },
+            y: { ticks: { color: tc.muted, callback: (v) => fmtPct(v) }, grid: { color: tc.grid } },
+        },
+    };
+
+    const cfgPlugins = [];
+    if (editing && dragPlugin) {
+        options.plugins.dragData = {
+            round: 4,
+            dragX: false,
+            onDragEnd: (e, datasetIndex, index, value) => {
+                if (datasetIndex !== 0) return;             // only the editable series
+                const earthYear = asc[index].earthYear;
+                if (earthYear === yearRange().min) return;  // oldest year has no "growth into" it
+                editsFor(name).growth[earthYear] = Math.round(value * 10000) / 10000;
+                refreshCountry(name);
+            },
+        };
+        cfgPlugins.push(dragPlugin);
+    }
+
+    state.charts.lineGrowth = new Chart($('chart-line-growth'), {
+        type: 'line', data: { labels: asc.map((r) => r.earthYear), datasets }, options, plugins: cfgPlugins,
+    });
+}
+
+function renderCountryTable(name, rows, editing) {
     const table = $('country-table');
-    const head = `<tr><th>Earth Year</th><th>Year</th><th>Population</th><th>GDP/cap growth (input)</th><th>GDP per Capita</th><th>Total GDP</th><th>GDP growth (total)</th></tr>`;
-    const body = rows.map((r) => `
+    const head = `<tr><th>Earth Year</th><th>Year</th><th>Population</th><th>GDP/cap growth${editing ? ' ✎' : ' (input)'}</th><th>GDP per Capita</th><th>Total GDP</th><th>GDP growth (total)</th></tr>`;
+    const minYear = yearRange().min;
+    const body = rows.map((r) => {
+        const growthCell = editing && r.earthYear !== minYear
+            ? `<td class="gdp-edit-cell"><input type="text" class="gdp-g-input" data-year="${r.earthYear}" value="${r.g != null ? (r.g * 100).toFixed(2) : ''}" placeholder="–" inputmode="decimal">%</td>`
+            : `<td>${r.g != null ? fmtPct(r.g) : '–'}</td>`;
+        const pcCell = editing
+            ? `<td class="gdp-edit-cell ${r.pinned ? 'pinned' : ''}"><span class="gdp-pin-btn" data-year="${r.earthYear}" title="Pin an exact per-capita $ for this year">📌</span>${fmtMoney(r.perCap)}</td>`
+            : `<td class="${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Pinned by override' : ''}">${fmtMoney(r.perCap)}</td>`;
+        return `
         <tr class="${r.determined ? '' : 'undetermined'}">
             <td>${r.earthYear}</td><td>${r.year ?? '–'}</td>
             <td>${fmtInt(r.pop)}</td>
-            <td>${r.g != null ? fmtPct(r.g) : '–'}</td>
-            <td class="${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Pinned by override' : ''}">${fmtMoney(r.perCap)}</td>
+            ${growthCell}
+            ${pcCell}
             <td>${fmtMoney(r.gdp)}</td>
             <td>${r.growthDetermined ? fmtPct(r.gdpGrowth) : '–'}</td>
-        </tr>`).join('');
+        </tr>`;
+    }).join('');
     table.innerHTML = head + body;
+
+    if (editing) {
+        table.querySelectorAll('.gdp-g-input').forEach((inp) => {
+            inp.addEventListener('change', () => {
+                const year = Number(inp.dataset.year);
+                const txt = inp.value.trim();
+                if (txt === '') delete editsFor(name).growth[year];
+                else {
+                    const pct = parseFloat(txt);
+                    if (!isFinite(pct)) return;
+                    editsFor(name).growth[year] = pct / 100; // typed as percent (e.g. 3 -> 0.03)
+                }
+                refreshCountry(name);
+            });
+            // Paste a whole column at once (Excel-style): click the year to start
+            // at, Ctrl+V, and values flow DOWN the table (newest -> oldest).
+            inp.addEventListener('paste', (ev) => {
+                const cb = ev.clipboardData || window.clipboardData;
+                const text = cb ? cb.getData('text') : '';
+                if (!text || !/[\n\t]/.test(text.trim())) return; // single value -> normal paste
+                ev.preventDefault();
+                pasteGrowthColumn(name, Number(inp.dataset.year), text);
+            });
+        });
+        table.querySelectorAll('.gdp-pin-btn').forEach((btn) => {
+            btn.addEventListener('click', () => promptPin(name, Number(btn.dataset.year)));
+        });
+    }
 }
 
-// ---------- chart plumbing ----------
+// ========================================================================
+//  Authoring tools
+// ========================================================================
+
+// --- $ checkpoints + auto-interpolate ---
+function promptPin(name, year) {
+    const rows = state.computed.get(name);
+    const r = rows.find((x) => x.earthYear === year);
+    const current = r && r.perCap != null ? Math.round(r.perCap) : '';
+    const val = window.prompt(`Pin exact GDP per capita ($) for ${name} in Earth Year ${year}:\n(blank to remove pin)`, current);
+    if (val === null) return;
+    const t = val.trim();
+    if (t === '') delete editsFor(name).overrides[year];
+    else {
+        const num = parseFloat(t.replace(/[$,]/g, ''));
+        if (!isFinite(num)) return;
+        editsFor(name).overrides[year] = num;
+    }
+    refreshCountry(name);
+}
+
+// --- paste a column of growth rates at once ---
+// text: newline-separated values copied from Excel (col G). startYear: the year
+// of the cell pasted into; values fill DOWN the table from there (newest->oldest,
+// matching both the table order and the workbook's row order).
+// Interpretation: a trailing '%' always means percent; otherwise the whole
+// column is read as decimals (0.03 = 3%) when every value is < 1, else as
+// percents (3 = 3%). Blank cells clear that year's growth.
+function pasteGrowthColumn(name, startYear, text) {
+    const lines = text.replace(/\r/g, '').split('\n');
+    if (lines.length && lines[lines.length - 1].trim() === '') lines.pop(); // Excel's trailing newline
+    if (!lines.length) return;
+
+    const cells = lines.map((line) => {
+        const s = line.split('\t')[0].trim(); // first column only, if multiple copied
+        if (s === '') return { blank: true };
+        const isPct = /%/.test(s);
+        const n = parseFloat(s.replace(/[%,\s$]/g, ''));
+        return { blank: false, isPct, n: isFinite(n) ? n : null };
+    });
+
+    const bare = cells.filter((c) => !c.blank && c.n != null && !c.isPct).map((c) => Math.abs(c.n));
+    const bareAsDecimal = bare.length > 0 && Math.max(...bare) < 1; // whole column < 1 -> decimals
+
+    // growth-input years in table order (newest-first, excludes the oldest year)
+    const minYear = yearRange().min;
+    const years = state.computed.get(name).map((r) => r.earthYear).filter((y) => y !== minYear);
+    const start = years.indexOf(startYear);
+    if (start < 0) return;
+
+    const e = editsFor(name);
+    let set = 0, cleared = 0, skipped = 0, k = 0;
+    for (; k < cells.length && start + k < years.length; k++) {
+        const year = years[start + k];
+        const c = cells[k];
+        if (c.blank) { delete e.growth[year]; cleared++; continue; }
+        if (c.n == null) { skipped++; continue; }
+        const rate = c.isPct ? c.n / 100 : (bareAsDecimal ? c.n : c.n / 100);
+        e.growth[year] = Math.round(rate * 1e6) / 1e6;
+        set++;
+    }
+    const overflow = cells.length - k; // values that ran past the oldest year
+    refreshCountry(name);
+
+    const first = years[start], last = years[Math.min(start + k, years.length) - 1];
+    const read = bareAsDecimal ? 'decimals (0.03 → 3%)' : 'percent (3 → 3%)';
+    const bits = [`Pasted ${set} value${set === 1 ? '' : 's'} into ${first} → ${last}, read as ${read}`];
+    if (cleared) bits.push(`${cleared} cleared`);
+    if (skipped) bits.push(`${skipped} unreadable skipped`);
+    if (overflow > 0) bits.push(`${overflow} ignored (ran past ${minYear + 1})`);
+    setPasteStatus(bits.join(' · '));
+}
+
+function setPasteStatus(msg) {
+    const el = $('paste-status');
+    if (el) el.textContent = msg || '';
+}
+
+// Fill growth between consecutive $ pins (and the 2015 anchor) with constant CAGR.
+function interpolatePins(name) {
+    const anchor = state.anchors.get(name);
+    const { min, max } = yearRange();
+    const merged = growthFor(name);
+
+    // pin set: overrides + the anchor at the max year (unless already overridden)
+    const pins = new Map();
+    for (const [y, v] of Object.entries(merged.overrides)) pins.set(Number(y), v);
+    if (!pins.has(max) && anchor != null) pins.set(max, anchor);
+
+    const years = [...pins.keys()].sort((a, b) => a - b); // ascending (old -> new)
+    if (years.length < 2) {
+        window.alert('Add at least one per-capita $ pin (📌) — the 2015 anchor is the other end. Then interpolate.');
+        return;
+    }
+
+    const e = editsFor(name);
+    for (let i = 0; i < years.length - 1; i++) {
+        const yo = years[i], yn = years[i + 1];        // older, newer
+        const po = pins.get(yo), pn = pins.get(yn);
+        if (!(po > 0) || !(pn > 0)) continue;
+        const g = Math.pow(pn / po, 1 / (yn - yo)) - 1; // constant per-year growth
+        for (let y = yo + 1; y <= yn; y++) e.growth[y] = Math.round(g * 1e6) / 1e6;
+    }
+    refreshCountry(name);
+}
+
+// --- archetype presets --- (earthYear -> per-capita growth rate)
+const ARCHETYPES = {
+    developing: { label: 'Developing (fast catch-up, slowing)', fn: (t) => 0.03 + 0.04 * (1 - t) },
+    developed: { label: 'Developed (steady ~2%)', fn: () => 0.02 },
+    postwar: { label: 'Postwar boom then slowdown', fn: (t) => t < 0.46 ? 0.05 : 0.022 },
+    boombust: { label: 'Boom–bust (oscillating ~3%)', fn: (t, y) => 0.03 + 0.035 * Math.sin((y - 1950) / 3.2) },
+};
+function applyArchetype(name, kind) {
+    const arch = ARCHETYPES[kind];
+    if (!arch) return;
+    const { min, max } = yearRange();
+    const span = max - min || 1;
+    const e = editsFor(name);
+    e.growth = {}; // archetype defines the whole curve; pins still override exact $
+    for (let y = min + 1; y <= max; y++) {
+        const t = (y - min) / span;
+        e.growth[y] = Math.round(arch.fn(t, y) * 1e6) / 1e6;
+    }
+    refreshCountry(name);
+}
+
+// --- pin list UI ---
+function renderPinList(name) {
+    const box = $('edit-pins');
+    if (!box) return;
+    const ov = growthFor(name).overrides;
+    const years = Object.keys(ov).map(Number).sort((a, b) => b - a);
+    box.innerHTML = years.length
+        ? 'Pins: ' + years.map((y) => `<span class="gdp-pin-chip">${y} = ${fmtMoney(ov[y])} <b data-year="${y}">×</b></span>`).join(' ')
+        : '<span class="gdp-note">No $ pins yet — click 📌 in the table, or add one below.</span>';
+    box.querySelectorAll('.gdp-pin-chip b').forEach((x) => {
+        x.addEventListener('click', () => {
+            delete editsFor(name).overrides[Number(x.dataset.year)];
+            refreshCountry(name);
+        });
+    });
+}
+
+// ========================================================================
+//  Chart plumbing / mode / events
+// ========================================================================
 function destroyChart(key) {
     if (state.charts[key]) { state.charts[key].destroy(); delete state.charts[key]; }
 }
@@ -419,22 +678,14 @@ function rerenderAll() {
     if (!$('view-country').classList.contains('gdp-hidden')) renderCountryView();
 }
 
-// ---------- data intake ----------
-async function ingest(buf, sourceName) {
-    const parsed = parseWorkbook(buf, sourceName);
-    if (!parsed.countries.length) {
-        $('gdp-status').textContent = 'No country sheets found in that file — is it the Population Growth workbook?';
-        return;
-    }
-    state.countries = parsed.countries;
-    state.source = sourceName;
-    computeAll();
-    saveCache();
-    const withInputs = state.countries.filter((c) => c.rows.some((r) => r.g != null || r.h != null)).length;
-    $('gdp-status').textContent = `Loaded ${state.countries.length} countries from ${sourceName} · ${withInputs} have GDP inputs so far.`;
-    initControls();
-    $('gdp-main').classList.remove('gdp-hidden');
-    rerenderAll();
+function setMode(mode) {
+    state.mode = mode;
+    $('mode-view').setAttribute('aria-selected', String(mode === 'view'));
+    $('mode-edit').setAttribute('aria-selected', String(mode === 'edit'));
+    $('edit-panel').classList.toggle('gdp-hidden', mode !== 'edit');
+    // editing lives in the country view — switch to it when entering Edit mode
+    if (mode === 'edit') switchTab('country');
+    else renderCountryView();
 }
 
 function initControls() {
@@ -447,26 +698,16 @@ function initControls() {
     const sel = $('ctl-country');
     const current = sel.value;
     sel.innerHTML = state.countries.map((c) => `<option${c.name === current ? ' selected' : ''}>${c.name}</option>`).join('');
+
+    const arch = $('ctl-archetype');
+    if (arch && !arch.dataset.filled) {
+        arch.innerHTML = '<option value="">Archetype…</option>' +
+            Object.entries(ARCHETYPES).map(([k, a]) => `<option value="${k}">${a.label}</option>`).join('');
+        arch.dataset.filled = '1';
+    }
 }
 
-// ---------- events ----------
 function bindEvents() {
-    $('gdp-open').addEventListener('click', () => $('gdp-file').click());
-    $('gdp-file').addEventListener('change', async (e) => {
-        const f = e.target.files[0];
-        if (f) await ingest(await f.arrayBuffer(), f.name);
-        e.target.value = '';
-    });
-
-    const drop = $('gdp-drop');
-    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
-    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
-    drop.addEventListener('drop', async (e) => {
-        e.preventDefault(); drop.classList.remove('dragover');
-        const f = e.dataTransfer.files[0];
-        if (f) await ingest(await f.arrayBuffer(), f.name);
-    });
-
     $('ctl-year').addEventListener('input', (e) => { state.year = Number(e.target.value); renderYearView(); });
     for (const id of ['ctl-metric', 'ctl-topn', 'ctl-all', 'ctl-pie']) {
         $(id).addEventListener('change', renderYearView);
@@ -476,13 +717,34 @@ function bindEvents() {
     $('tab-year').addEventListener('click', () => switchTab('year'));
     $('tab-country').addEventListener('click', () => switchTab('country'));
 
-    $('gdp-export').addEventListener('click', exportJson);
-    $('gdp-clear').addEventListener('click', () => {
-        localStorage.removeItem(CACHE_KEY);
-        $('gdp-status').textContent = 'Cache cleared — open the Excel file to reload.';
+    $('mode-view').addEventListener('click', () => setMode('view'));
+    $('mode-edit').addEventListener('click', () => setMode('edit'));
+
+    // authoring actions
+    $('edit-interpolate').addEventListener('click', () => interpolatePins(selectedCountry()));
+    $('edit-addpin').addEventListener('click', () => {
+        const y = Number($('edit-pin-year').value);
+        const { min, max } = yearRange();
+        if (!(y >= min && y <= max)) { window.alert(`Enter an Earth Year between ${min} and ${max}.`); return; }
+        promptPin(selectedCountry(), y);
+    });
+    $('ctl-archetype').addEventListener('change', (e) => {
+        if (e.target.value) { applyArchetype(selectedCountry(), e.target.value); e.target.value = ''; }
+    });
+    $('edit-clearcountry').addEventListener('click', () => {
+        const name = selectedCountry();
+        delete state.edits[name];
+        refreshCountry(name);
     });
 
-    // re-skin charts when the theme toggles
+    $('gdp-export').addEventListener('click', exportGrowthJson);
+    $('gdp-clear').addEventListener('click', () => {
+        if (!window.confirm('Discard ALL unsaved edits and revert to the committed gdp-growth.json?')) return;
+        state.edits = {};
+        localStorage.removeItem(DRAFT_KEY);
+        computeAll(); rerenderAll(); updateDirty();
+    });
+
     new MutationObserver(rerenderAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }
 
@@ -495,43 +757,56 @@ function switchTab(which) {
     if (yearTab) renderYearView(); else renderCountryView();
 }
 
-function exportJson() {
-    const doc = {
-        generatedAt: new Date().toISOString(),
-        source: state.source,
-        anchorNote: 'perCap compounds backward from 2015 gdpPerNominal in js/andah-stats.js; blank growth = 0%; undetermined years are flat placeholders.',
-        countries: state.countries.map((c) => ({
-            name: c.name,
-            continent: continentOf(c.name),
-            anchor: state.anchors.get(c.name) ?? null,
-            series: (state.computed.get(c.name) || []).map((r) => ({
-                earthYear: r.earthYear, year: r.year, population: r.pop,
-                perCapGrowthInput: r.g, overrideInput: r.h,
-                gdpPerCapita: r.perCap, gdp: r.gdp,
-                gdpGrowth: r.growthDetermined ? r.gdpGrowth : null,
-                perCapGrowth: r.growthDetermined ? r.perCapGrowth : null,
-                determined: r.determined,
-            })),
-        })),
-    };
-    const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+// Export the sparse growth JSON (committed base merged with edits).
+function exportGrowthJson() {
+    const out = { generatedAt: new Date().toISOString(), countries: {} };
+    const names = new Set([...Object.keys(state.baseGrowth), ...Object.keys(state.edits)]);
+    for (const name of names) {
+        const g = growthFor(name);
+        const growth = {}, overrides = {};
+        for (const [y, v] of Object.entries(g.growth)) if (typeof v === 'number') growth[y] = v;
+        for (const [y, v] of Object.entries(g.overrides)) if (typeof v === 'number') overrides[y] = v;
+        if (Object.keys(growth).length || Object.keys(overrides).length) out.countries[name] = { growth, overrides };
+    }
+    const blob = new Blob([JSON.stringify(out, null, 2) + '\n'], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'gdp-dataset.json';
+    a.download = 'gdp-growth.json';
     a.click();
     URL.revokeObjectURL(a.href);
 }
 
 // ---------- boot ----------
+let dragPlugin = null;
+function resolveDragPlugin() {
+    const p = window.ChartJSDragDataPlugin;
+    dragPlugin = p ? (p.default || p) : null;
+}
+
 async function boot() {
-    loadAnchors();
-    await loadContinents();
-    bindEvents();
-    if (loadCache()) {
-        computeAll();
-        initControls();
-        $('gdp-main').classList.remove('gdp-hidden');
-        rerenderAll();
+    resolveDragPlugin();
+    const [histRes] = await Promise.all([fetch(HISTORY_URL), loadContinents()]);
+    if (!histRes.ok) {
+        $('gdp-status').textContent = 'Could not load data/gdp-history.json — run `npm run gdp:build` first.';
+        return;
     }
+    const hist = await histRes.json();
+    state.history = hist.countries || [];
+    for (const c of state.history) state.anchors.set(c.name, c.anchor);
+
+    try {
+        const gRes = await fetch(GROWTH_URL);
+        if (gRes.ok) { const g = await gRes.json(); state.baseGrowth = g.countries || {}; }
+    } catch (e) { /* no committed growth yet — start blank */ }
+
+    loadDraft();
+    buildCountries();
+    computeAll();
+    initControls();
+    bindEvents();
+    updateDirty();
+    $('gdp-status').textContent = `${state.history.length} countries loaded · ${Object.keys(state.baseGrowth).length} with committed growth data.`;
+    $('gdp-main').classList.remove('gdp-hidden');
+    rerenderAll();
 }
 boot();
