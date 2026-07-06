@@ -12,6 +12,7 @@
     "build:fifa": "node scripts/build-fifa-data.js",
     "build:routes": "node scripts/generate-routes.js",
     "build:flight": "node scripts/bake-flight-network.js",
+    "gdp:columns": "node scripts/add-gdp-columns.js",
     "serve": "npx --yes serve ."
   },
   "engines": {
@@ -19,7 +20,9 @@
   },
   "dependencies": {
     "@netlify/functions": "^2.8.0",
+    "chart.js": "^4.5.1",
     "cheerio": "^1.0.0",
+    "exceljs": "^4.4.0",
     "xlsx": "^0.18.5"
   }
 }

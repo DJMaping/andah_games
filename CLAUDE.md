@@ -93,6 +93,23 @@ Several `*-tagger.html` / `*-editor.html` pages are one-off, browser-based autho
 
 Schema inference lives in [scripts/util/schema.js](scripts/util/schema.js). Labels and formatting overrides go in `data-sources.json` (read by `build-data.js`). Full details in [docs/datasets.md](docs/datasets.md).
 
+## GDP Explorer
+
+`gdp-explorer.html` + [js/gdp-explorer.js](js/gdp-explorer.js) visualize historical GDP built on top of
+`.xlsx files/Population Growth(2).xlsx` (172 country sheets, Earth Years 2015→1950). The data model:
+DJ types a **GDP-per-capita growth rate** per year (column G) and optional **per-capita $ override pins**
+(column H) in the spreadsheet; per-capita history compounds **backward from each country's 2015 anchor**
+(`gdpPerNominal` in [js/andah-stats.js](js/andah-stats.js)): `perCap(Y-1) = override ?? perCap(Y)/(1+growth(Y))`.
+Blank growth = 0% placeholder; a year is "determined" only if every step back from 2015 had an input or a pin.
+
+- `npm run gdp:columns` ([scripts/add-gdp-columns.js](scripts/add-gdp-columns.js)) injects the input columns
+  G–H and live formula columns I–K into every country sheet (idempotent; never overwrites typed G/H values;
+  one-time backup at `Population Growth(2).backup.xlsx`).
+- The tool is client-side only: open/drag the .xlsx into the page (SheetJS reads it; the per-capita chain is
+  recomputed in JS, never trusting Excel's cached results), charts via Chart.js — both vendored in
+  [js/vendor/](js/vendor/). Data caches to localStorage; "Download gdp-dataset.json" exports the computed set.
+- Continent colors come from `data/countries.json` `categorical.Continent` (degrades gracefully if absent).
+
 ## Flight network
 
 `flight-network.html` loads airports from (in priority order):
