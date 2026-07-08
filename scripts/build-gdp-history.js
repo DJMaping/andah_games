@@ -70,7 +70,9 @@ function main() {
       if (!r || typeof r[C_POP] !== 'number') break; // contiguous data rows only
       const earthYear = r[C_EARTH];
       outRows.push([earthYear, r[C_YEAR], r[C_POP]]);
-      if (typeof r[C_GROWTH] === 'number') { g[earthYear] = r[C_GROWTH]; growthCells++; }
+      // Col G stores WHOLE-percent (per _fix_gdp_growth_percent.cjs: 3.21 = 3.21%),
+      // but gdp-growth.json / the Explorer expect a fraction (0.0321). Divide by 100.
+      if (typeof r[C_GROWTH] === 'number') { g[earthYear] = Number((r[C_GROWTH] / 100).toFixed(6)); growthCells++; }
       if (typeof r[C_OVERRIDE] === 'number') { ov[earthYear] = r[C_OVERRIDE]; growthCells++; }
     }
     if (!outRows.length) continue;

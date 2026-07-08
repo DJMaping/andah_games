@@ -3,8 +3,8 @@
 const fs = require("fs");
 const JSZip = require("jszip");
 
-const SRC = ".xlsx files/Population Growth(2).xlsx";
-const OUT = ".xlsx files/Population Growth(2).edited.xlsx";
+const SRC = ".xlsx files/Population Growth(2) (pre-crisis-notes backup).xlsx";
+const OUT = ".xlsx files/_work.xlsx";
 
 const ALL = JSON.parse(fs.readFileSync("_allsheets.json","utf8")); // 172 country sheets
 const MASSIR = ["Canldives","Cloja","Dahe","Eparia","Etretes","Haiza","Ihner","Kaastini","Kusierna","Migoku","North Ayre","Oscairia","Oyreain","Pha Hii","Pruim Fijan","Prystr Hii","Ruylku","Sanagara","Shinam","Stinebar","Suenan","Taval","Ucrua","Vesozata","Welenu Fana","Western Migoku"];
@@ -55,19 +55,20 @@ add("Sanagara",1717,"Won independence amid Siana's collapse.","sinian");
 ALL.forEach(c=>add(c,1725,"Oil Crisis - hit by the global oil shortage & price spike (MPU supply cut).","oil"));
 // Shadow Oil Scandal 1728
 add("Raledria",1728,"Shadow Oil Scandal - exposed as manipulating oil in neutral states.","shadow");
-// Massiran Credit Crisis 1729 - ALL Massir nations
+// Global Austerity 1729 - EVERYONE (Massir nations overridden below)
+ALL.forEach(c=>add(c,1729,"GTU 'Global Austerity' doctrine adopted amid the Massiran Credit Crisis.","austerity"));
+// Massiran Credit Crisis 1729 - ALL Massir nations (override the austerity note)
 MASSIR.forEach(c=>add(c,1729,"Massiran Credit Crisis - regional banking & credit crunch spreading from Dahe.","massir"));
 add("Dahe",1729,"Massiran Credit Crisis - epicentre: banking sector collapsed, saved only by government bailouts.","massir");
 add("Vesozata",1729,"Massiran Credit Crisis - cargo ships seized by Dahe; trade & relations collapsed.","massir");
 add("Pelugrotoa",1729,"Massiran Credit Crisis - oil-price collapse -> inflation & deadly food riots.","massir");
 add("Sunsokua",1729,"Massiran Credit Crisis - oil-price collapse -> inflation & deadly food riots.","massir");
-["Raledria","Emara","Estijan"].forEach(c=>add(c,1729,"GTU 'Global Austerity' doctrine adopted amid the Massiran Credit Crisis.","austerity"));
 // Great War of Massir 1731 - Dahe + Etretes + North Massir
 GREATWAR.forEach(c=>add(c,1731,"Great War of Massir begins - northern-Massir war economy.","gwar"));
-// Great Crash & Collapse of the Huan 1740
+// Great Crash & Collapse of the Huan 1740 - global crash EVERYONE; Huan wording for Estijan + successors
+ALL.forEach(c=>add(c,1740,"The Great Crash - global stock-market crash & recession.","crash"));
 add("Estijan",1740,"Collapse of the Huan (Jan) & the Great Crash (Mar) - hyperinflation & empire dissolution.","huan");
 ["Ikzen","Darewa","Ealdorii","Fermori","Eldavpir"].forEach(c=>add(c,1740,"Collapse of the Huan - secession & transition shock.","huan"));
-["Dahe","Raledria","Emara","Etirha","Areoix Lie","Lycroa","Verusa","Ashain"].forEach(c=>add(c,1740,"The Great Crash - global stock-market crash & recession.","crash"));
 // Nation-level
 add("Ztesh",1702,"Keiratam War with Erkizil & forced population transfer.","keiratam");
 add("Erkizil",1702,"Keiratam War with Ztesh & population transfer.","keiratam");
@@ -87,7 +88,7 @@ add("Ahokini",1703,"Ahokini Civil War (1703-11).","ahokini");
 // --- restored (canon-compatible) crises ---
 add("Emara",1711,"Islatan Stabilisation Crisis - 6th Republic falls; the Islatan is reset under the 7th Republic.","islatan");
 ["Siana","Oyreain","Taval"].forEach(c=>add(c,1721,"Sokato Spice Bubble bursts - colonial spice-trade mania & crash.","sokato"));
-["Dahe","Raledria","Areoix Lie","Pelugrotoa","Estijan","Etirha","Emara","Lycroa","Verusa","Ztesh","Sunsokua","Ukhdari","United Delet","New Misos","Ashain","Seytinemas","Siana","Easuhura","Inania","Quidic","Ealdorii","Vayvele","Sanagara","Praesyu","Verste"].forEach(c=>add(c,1730,"The Great Slump - global depression after the Massiran Credit Crisis & Global Austerity.","slump"));
+ALL.forEach(c=>add(c,1730,"The Great Slump - global depression after the Massiran Credit Crisis & Global Austerity.","slump"));
 ["Pelugrotoa","Sunsokua","Seytinemas","Inania","Vayvele","Trian","Dual Cenryia","Chaenia","Selaja","Sadain","Sivoso","Otiiric","Isnti","Exilium","Ocaun","Lieri","Taing","Inrea","Galca","Taoisia","Ozinia","Byllu","Rtesania","Amcha","Cruthi Anoso"].forEach(c=>add(c,1750,"Mahean Debt Crisis - continent-wide defaults after over-borrowing.","mahean"));
 ["Estijan","Raledria","Dahe"].forEach(c=>add(c,1752,"Rearmament Squeeze - Cold War military budgets crowd out civilian growth.","rearm"));
 
