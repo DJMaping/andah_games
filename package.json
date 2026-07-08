@@ -14,6 +14,8 @@
     "build:flight": "node scripts/bake-flight-network.js",
     "gdp:columns": "node scripts/add-gdp-columns.js",
     "gdp:build": "node scripts/build-gdp-history.js",
+    "barrace:data": "node scripts/build-barrace.js",
+    "barrace:render": "node scripts/render-barrace.mjs",
     "serve": "npx --yes serve ."
   },
   "engines": {

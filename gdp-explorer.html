@@ -72,6 +72,13 @@
         }
         .gdp-actions button:hover, .gdp-load button:hover { background: var(--bg-sunken); }
         .gdp-hidden { display: none !important; }
+        /* lahn currency glyph (used instead of "$"); swaps to white in dark mode */
+        .lahn-sym {
+            display: inline-block; width: 0.82em; height: 0.69em;
+            background: url("Lahn.png") no-repeat center / contain;
+            vertical-align: -0.02em; margin-right: 0.14em;
+        }
+        [data-theme="dark"] .lahn-sym { background-image: url("Lahn-white.png"); }
         .gdp-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: 0.82rem; margin: 0.4rem 0 0; }
         .gdp-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
         .gdp-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
@@ -243,7 +250,7 @@
                         <label class="gdp-inline-ctl">Show
                             <select id="ctl-area-mode">
                                 <option value="share" selected>share of world %</option>
-                                <option value="absolute">absolute $</option>
+                                <option value="absolute">absolute (lahn)</option>
                             </select>
                         </label>
                     </div>
@@ -278,12 +285,12 @@
             <!-- authoring panel (Edit mode only) -->
             <div class="gdp-edit-panel gdp-hidden" id="edit-panel">
                 <div class="gdp-edit-row">
-                    <strong>$ checkpoints</strong>
-                    <span class="gdp-note">Pin an exact per-capita $ at a few years, then interpolate — the tool solves a smooth growth curve between pins (the 2015 anchor is one end).</span>
+                    <strong><span class="lahn-sym" role="img" aria-label="lahn"></span> checkpoints</strong>
+                    <span class="gdp-note">Pin an exact per-capita <span class="lahn-sym" role="img" aria-label="lahn"></span> amount at a few years, then interpolate — the tool solves a smooth growth curve between pins (the 2015 anchor is one end).</span>
                 </div>
                 <div class="gdp-edit-row">
                     <label>Earth Year <input type="number" id="edit-pin-year" min="1950" max="2015" step="1" value="1950" style="width:5rem"></label>
-                    <button type="button" id="edit-addpin">Add / edit $ pin…</button>
+                    <button type="button" id="edit-addpin">Add / edit <span class="lahn-sym" role="img" aria-label="lahn"></span> pin…</button>
                     <button type="button" id="edit-interpolate" class="primary">Interpolate between pins</button>
                     <span id="edit-pins" class="gdp-note"></span>
                 </div>

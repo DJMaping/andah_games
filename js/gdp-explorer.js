@@ -53,13 +53,20 @@ const state = {
 };
 
 // ---------- formatting ----------
+// Symbol-free: the lahn glyph is added by lahnMoney() (HTML) or lahnAxisPlugin
+// (chart axes). Tooltips call fmtMoney directly and stay plain, as chosen.
 function fmtMoney(v) {
     if (v == null || !isFinite(v)) return '–';
     const abs = Math.abs(v);
-    if (abs >= 1e12) return '$' + (v / 1e12).toFixed(2) + 'T';
-    if (abs >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
-    if (abs >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
-    return '$' + Math.round(v).toLocaleString('en-US');
+    if (abs >= 1e12) return (v / 1e12).toFixed(2) + 'T';
+    if (abs >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+    if (abs >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+    return Math.round(v).toLocaleString('en-US');
+}
+// HTML money with a leading lahn glyph (theme-aware via CSS). Use in innerHTML.
+function lahnMoney(v) {
+    if (v == null || !isFinite(v)) return fmtMoney(v);
+    return `<span class="lahn-sym" role="img" aria-label="lahn"></span>${fmtMoney(v)}`;
 }
 function fmtPct(v) {
     if (v == null || !isFinite(v)) return '–';
@@ -99,6 +106,120 @@ function continentOf(name) { return state.continents.get(name) || 'Unknown'; }
 function colorOf(name) {
     return state.continentColors.get(continentOf(name)) || CONTINENT_COLORS.Unknown;
 }
+
+// ---------- flag images for horizontal bar-chart labels ----------
+// Chart.js can't embed images in tick labels, so the two country bar charts
+// (top-N metric + CAGR) draw a small flag just left of each country's y-axis
+// name via flagLabelsPlugin. Flags live at flags/<Name>.png (same convention
+// the games use). Images are cached module-wide so switching years is instant.
+const FLAG_H = 13;    // flag height in px (~ the tick font size)
+const FLAG_GAP = 5;   // gap between flag and the name
+const FLAG_PAD = 36;  // left padding reserved on the chart for the flag column
+const flagImages = new Map(); // name -> HTMLImageElement (may still be loading)
+
+function flagImage(name, onReady) {
+    let img = flagImages.get(name);
+    if (img) return img;
+    img = new Image();
+    img.onload = () => { onReady && onReady(); };
+    img.onerror = () => { img.broken = true; };
+    img.src = `flags/${encodeURIComponent(name)}.png`;
+    flagImages.set(name, img);
+    return img;
+}
+
+const flagLabelsPlugin = {
+    id: 'flagLabels',
+    afterDraw(chart) {
+        const yScale = chart.scales.y;
+        if (!yScale || !chart.ctx) return;
+        const labels = chart.data.labels || [];
+        const ctx = chart.ctx;
+        const tickFont = (chart.options.scales.y.ticks || {}).font || {};
+        const size = tickFont.size || Chart.defaults.font.size || 12;
+        const family = tickFont.family || Chart.defaults.font.family;
+        const padRight = (chart.options.scales.y.ticks || {}).padding ?? 4;
+        ctx.save();
+        ctx.font = `${size}px ${family}`;
+        for (const tick of yScale.ticks) {
+            const name = labels[tick.value];
+            // skip synthetic rows like "Others (12)" — only real countries have flags
+            if (typeof name !== 'string' || !state.anchors.has(name)) continue;
+            const img = flagImage(name, () => { try { chart.draw(); } catch (e) { /* chart gone */ } });
+            if (!img.complete || img.broken || !img.naturalWidth) continue;
+            const w = Math.min(Math.round(FLAG_H * img.naturalWidth / img.naturalHeight), 26);
+            const textW = ctx.measureText(name).width;
+            const labelLeft = chart.chartArea.left - padRight - textW;
+            const fx = labelLeft - FLAG_GAP - w;
+            const fy = yScale.getPixelForTick(yScale.ticks.indexOf(tick)) - FLAG_H / 2;
+            try { ctx.drawImage(img, fx, fy, w, FLAG_H); } catch (e) { /* decode race */ }
+        }
+        ctx.restore();
+    },
+};
+
+// ---------- lahn currency symbol (replaces "$") ----------
+// The Andah currency is the lahn; its glyph lives at Lahn.png (black, for light
+// mode) and Lahn-white.png (for dark mode). fmtMoney() itself is symbol-free —
+// HTML money uses <span class="lahn-sym"> (see lahnMoney) and money chart AXES
+// draw the glyph before each tick via lahnAxisPlugin. Tooltips stay plain.
+const lahnLight = new Image(); lahnLight.src = 'Lahn.png';
+const lahnDark = new Image(); lahnDark.src = 'Lahn-white.png';
+function currentLahnImage() {
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? lahnDark : lahnLight;
+}
+// once a glyph finishes loading, repaint any live charts so their axes get it
+[lahnLight, lahnDark].forEach((im) => {
+    im.onload = () => { for (const k in state.charts) { try { state.charts[k].draw(); } catch (e) { /* gone */ } } };
+});
+
+// Draw the lahn glyph immediately left of each tick label on any scale tagged
+// `lahn: true` (money axes). Works for the bottom value axis (bar/bubble) and
+// left/right y axes (line/compare/area). Mirrors the flag-label technique.
+const lahnAxisPlugin = {
+    id: 'lahnAxis',
+    afterDraw(chart) {
+        const img = currentLahnImage();
+        if (!img || !img.complete || !img.naturalWidth || !chart.ctx) return;
+        const ctx = chart.ctx;
+        for (const id in chart.scales) {
+            const scale = chart.scales[id];
+            if (!scale || !scale.options || !scale.options.lahn) continue;
+            const f = (scale.options.ticks || {}).font || {};
+            const size = f.size || Chart.defaults.font.size || 12;
+            const family = f.family || Chart.defaults.font.family;
+            const pad = (scale.options.ticks || {}).padding ?? 3;
+            const h = Math.round(size * 0.98);
+            const w = Math.max(1, Math.round(h * img.naturalWidth / img.naturalHeight));
+            const gap = 3;
+            const tickLen = (scale.options.grid && scale.options.grid.tickLength != null) ? scale.options.grid.tickLength : 8;
+            const horizontal = scale.isHorizontal();
+            const cb = (scale.options.ticks || {}).callback;
+            ctx.save();
+            ctx.font = `${size}px ${family}`;
+            for (let i = 0; i < scale.ticks.length; i++) {
+                const t = scale.ticks[i];
+                let label = cb ? cb.call(scale, t.value, i, scale.ticks) : `${t.value}`;
+                if (Array.isArray(label)) label = label.join(' ');
+                label = String(label ?? '');
+                if (!label || label === '–') continue;
+                const textW = ctx.measureText(label).width;
+                let gx, gy;
+                if (horizontal) {
+                    const cx = scale.getPixelForTick(i);
+                    gx = cx - textW / 2 - gap - w;
+                    gy = scale.top + tickLen + pad + size / 2 - h / 2; // below the axis line + tick marks
+                } else {
+                    const numLeft = scale.position === 'right' ? scale.left + pad : scale.right - pad - textW;
+                    gx = numLeft - gap - w;
+                    gy = scale.getPixelForTick(i) - h / 2;
+                }
+                try { ctx.drawImage(img, gx, gy, w, h); } catch (e) { /* decode race */ }
+            }
+            ctx.restore();
+        }
+    },
+};
 
 // ---------- merged growth (base ∪ edits) ----------
 function growthFor(name) {
@@ -255,8 +376,8 @@ function renderYearView(opts = {}) {
 
     const worldGdp = entries.reduce((s, e) => s + (e.row.gdp || 0), 0);
     const worldPop = entries.reduce((s, e) => s + (e.row.pop || 0), 0);
-    $('year-summary').textContent = entries.length
-        ? `World (of ${entries.length} countries with data): total GDP ${fmtMoney(worldGdp)} · GDP per capita ${fmtMoney(worldPop ? worldGdp / worldPop : null)}`
+    $('year-summary').innerHTML = entries.length
+        ? `World (of ${entries.length} countries with data): total GDP ${lahnMoney(worldGdp)} · GDP per capita ${lahnMoney(worldPop ? worldGdp / worldPop : null)}`
         : 'No countries have GDP data for this year yet — switch to Edit and author some growth curves.';
     $('year-hidden').textContent = hidden ? `(${hidden} countries hidden — GDP not yet determined for ${year}. Blank growth years compound as 0%; a year counts as determined only when every year back from 2015 has a growth rate or an override pin.)` : '';
 
@@ -293,15 +414,17 @@ function renderYearView(opts = {}) {
         options: {
             indexAxis: 'y',
             responsive: true, maintainAspectRatio: false,
+            layout: { padding: { left: FLAG_PAD } }, // room for the flag column
             plugins: {
                 legend: { display: false },
                 tooltip: { callbacks: { label: (ctx) => ' ' + fmtVal(ctx.parsed.x) } },
             },
             scales: {
-                x: { ticks: { color: tc.muted, callback: (v) => fmtVal(v) }, grid: { color: tc.grid } },
+                x: { lahn: metric !== 'growth', ticks: { color: tc.muted, callback: (v) => fmtVal(v) }, grid: { color: tc.grid } },
                 y: { ticks: { color: tc.text, autoSkip: false }, grid: { display: false } },
             },
         },
+        plugins: [flagLabelsPlugin, lahnAxisPlugin],
     });
 
     const legend = $('bar-legend');
@@ -394,7 +517,7 @@ function renderCountryView() {
     const tc = themeColors();
     const editing = state.mode === 'edit';
     const filled = rows.filter((r) => r.determined).length;
-    $('country-status').textContent = `${filled}/${rows.length} years determined · anchor ${fmtMoney(state.anchors.get(name))} per capita (2015)`;
+    $('country-status').innerHTML = `${filled}/${rows.length} years determined · anchor ${lahnMoney(state.anchors.get(name))} per capita (2015)`;
 
     destroyChart('lineGdp');
     state.charts.lineGdp = new Chart($('chart-line-gdp'), {
@@ -423,10 +546,11 @@ function renderCountryView() {
             },
             scales: {
                 x: { ticks: { color: tc.muted }, grid: { display: false } },
-                y: { position: 'left', ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
-                y1: { position: 'right', ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { display: false } },
+                y: { position: 'left', lahn: true, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
+                y1: { position: 'right', lahn: true, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { display: false } },
             },
         },
+        plugins: [lahnAxisPlugin],
     });
 
     renderGrowthChart(name, asc, tc, editing);
@@ -511,15 +635,15 @@ function renderCountryTable(name, rows, editing) {
             ? `<td class="gdp-edit-cell"><input type="text" class="gdp-g-input" data-year="${r.earthYear}" value="${r.g != null ? (r.g * 100).toFixed(2) : ''}" placeholder="–" inputmode="decimal">%</td>`
             : `<td>${r.g != null ? fmtPct(r.g) : '–'}</td>`;
         const pcCell = editing
-            ? `<td class="gdp-edit-cell ${r.pinned ? 'pinned' : ''}"><span class="gdp-pin-btn" data-year="${r.earthYear}" title="Pin an exact per-capita $ for this year">📌</span>${fmtMoney(r.perCap)}</td>`
-            : `<td class="${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Pinned by override' : ''}">${fmtMoney(r.perCap)}</td>`;
+            ? `<td class="gdp-edit-cell ${r.pinned ? 'pinned' : ''}"><span class="gdp-pin-btn" data-year="${r.earthYear}" title="Pin an exact per-capita amount (lahn) for this year">📌</span>${lahnMoney(r.perCap)}</td>`
+            : `<td class="${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Pinned by override' : ''}">${lahnMoney(r.perCap)}</td>`;
         return `
         <tr class="${r.determined ? '' : 'undetermined'}">
             <td>${r.earthYear}</td><td>${r.year ?? '–'}</td>
             <td>${fmtInt(r.pop)}</td>
             ${growthCell}
             ${pcCell}
-            <td>${fmtMoney(r.gdp)}</td>
+            <td>${lahnMoney(r.gdp)}</td>
             <td>${r.growthDetermined ? fmtPct(r.gdpGrowth) : '–'}</td>
         </tr>`;
     }).join('');
@@ -563,7 +687,7 @@ function promptPin(name, year) {
     const rows = state.computed.get(name);
     const r = rows.find((x) => x.earthYear === year);
     const current = r && r.perCap != null ? Math.round(r.perCap) : '';
-    const val = window.prompt(`Pin exact GDP per capita ($) for ${name} in Earth Year ${year}:\n(blank to remove pin)`, current);
+    const val = window.prompt(`Pin exact GDP per capita (in lahn) for ${name} in Earth Year ${year}:\n(blank to remove pin)`, current);
     if (val === null) return;
     const t = val.trim();
     if (t === '') delete editsFor(name).overrides[year];
@@ -645,7 +769,7 @@ function interpolatePins(name) {
 
     const years = [...pins.keys()].sort((a, b) => a - b); // ascending (old -> new)
     if (years.length < 2) {
-        window.alert('Add at least one per-capita $ pin (📌) — the 2015 anchor is the other end. Then interpolate.');
+        window.alert('Add at least one per-capita lahn pin (📌) — the 2015 anchor is the other end. Then interpolate.');
         return;
     }
 
@@ -688,8 +812,8 @@ function renderPinList(name) {
     const ov = growthFor(name).overrides;
     const years = Object.keys(ov).map(Number).sort((a, b) => b - a);
     box.innerHTML = years.length
-        ? 'Pins: ' + years.map((y) => `<span class="gdp-pin-chip">${y} = ${fmtMoney(ov[y])} <b data-year="${y}">×</b></span>`).join(' ')
-        : '<span class="gdp-note">No $ pins yet — click 📌 in the table, or add one below.</span>';
+        ? 'Pins: ' + years.map((y) => `<span class="gdp-pin-chip">${y} = ${lahnMoney(ov[y])} <b data-year="${y}">×</b></span>`).join(' ')
+        : '<span class="gdp-note">No <span class="lahn-sym" role="img" aria-label="lahn"></span> pins yet — click 📌 in the table, or add one below.</span>';
     box.querySelectorAll('.gdp-pin-chip b').forEach((x) => {
         x.addEventListener('click', () => {
             delete editsFor(name).overrides[Number(x.dataset.year)];
@@ -776,10 +900,11 @@ function renderBubble() {
                 tooltip: { callbacks: { label: (ctx) => { const p = ctx.raw._p; return ` ${p.name}: per cap ${fmtMoney(p.x)} · pop ${fmtInt(p.y)} · GDP ${fmtMoney(p.gdp)}`; } } },
             },
             scales: {
-                x: { type: 'logarithmic', title: { display: true, text: 'GDP per capita', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
+                x: { type: 'logarithmic', lahn: true, title: { display: true, text: 'GDP per capita', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
                 y: { type: 'logarithmic', title: { display: true, text: 'Population', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtInt(v) }, grid: { color: tc.grid } },
             },
         },
+        plugins: [lahnAxisPlugin],
     });
 }
 
@@ -935,10 +1060,10 @@ function renderContinentArea() {
             },
             scales: {
                 x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
-                y: Object.assign({ stacked: true, beginAtZero: true, min: 0, ticks: { color: tc.muted, callback: yFmt }, grid: { color: tc.grid } }, mode === 'share' ? { max: 100 } : {}),
+                y: Object.assign({ stacked: true, beginAtZero: true, min: 0, lahn: mode !== 'share', ticks: { color: tc.muted, callback: yFmt }, grid: { color: tc.grid } }, mode === 'share' ? { max: 100 } : {}),
             },
         },
-        plugins: [yearMarkerPlugin],
+        plugins: [yearMarkerPlugin, lahnAxisPlugin],
     });
 }
 
@@ -970,12 +1095,14 @@ function renderCagr() {
         data: { labels: shown.map((e) => e.name), datasets: [{ data: shown.map((e) => e.cagr), backgroundColor: shown.map((e) => colorOf(e.name)), borderWidth: 0 }] },
         options: {
             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            layout: { padding: { left: FLAG_PAD } }, // room for the flag column
             plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ' ' + fmtPct(ctx.parsed.x) } } },
             scales: {
                 x: { ticks: { color: tc.muted, callback: (v) => fmtPct(v) }, grid: { color: tc.grid } },
                 y: { ticks: { color: tc.text, autoSkip: false }, grid: { display: false } },
             },
         },
+        plugins: [flagLabelsPlugin],
     });
 }
 
@@ -1024,12 +1151,12 @@ function renderCompare() {
     const scales = dual
         ? {
             x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
-            y: { position: 'left', beginAtZero: true, title: { display: true, text: 'Total GDP (dashed)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
-            y1: { position: 'right', beginAtZero: true, title: { display: true, text: 'GDP per capita (solid)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { display: false } },
+            y: { position: 'left', beginAtZero: true, lahn: true, title: { display: true, text: 'Total GDP (dashed)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
+            y1: { position: 'right', beginAtZero: true, lahn: true, title: { display: true, text: 'GDP per capita (solid)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { display: false } },
         }
         : {
             x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
-            y: { ticks: { color: tc.muted, callback: (v) => fmt(v) }, grid: { color: tc.grid } },
+            y: { lahn: metric !== 'growth', ticks: { color: tc.muted, callback: (v) => fmt(v) }, grid: { color: tc.grid } },
         };
     state.charts.compare = new Chart($('chart-compare'), {
         type: 'line',
@@ -1043,6 +1170,7 @@ function renderCompare() {
             },
             scales,
         },
+        plugins: [lahnAxisPlugin],
     });
 }
 
