@@ -19,6 +19,21 @@ const DRAFT_KEY = 'andah-gdp-draft';   // in-browser working copy of unsaved edi
 
 const PALETTE = ['#4269d0', '#efb118', '#ff725c', '#6cc5b0', '#3ca951', '#ff8ab7', '#a463f2', '#97bbf5', '#9c6b4e', '#9498a0'];
 
+// Fixed per-continent colours (DJ's mapping). Anything not listed falls back to
+// the PALETTE; Unknown/N-a stay grey.
+const CONTINENT_COLORS = {
+    Ayuma: '#e4463c',          // red
+    Atirha: '#4269d0',         // blue
+    Massir: '#3ca951',         // green
+    Mahea: '#9c6b4e',          // brown
+    Quia: '#ff8ab7',           // pink
+    Acrola: '#efb118',         // yellow
+    'New Ayre': '#97bbf5',     // light blue
+    'Ayuma/Acrola': '#6cc5b0', // (left as-is — distinct teal)
+    Unknown: '#9498a0',        // grey
+    'N/a': '#9498a0',          // grey
+};
+
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -33,6 +48,8 @@ const state = {
     year: 2015,
     mode: 'view',         // 'view' | 'edit'
     charts: {},
+    playTimer: null,      // setInterval handle for the racing-bar animation
+    playSpeed: 350,       // ms per year
 };
 
 // ---------- formatting ----------
@@ -75,12 +92,12 @@ async function loadContinents() {
             if (c.name && cont) state.continents.set(c.name, cont);
         }
         const names = [...new Set(state.continents.values())].sort();
-        names.forEach((n, i) => state.continentColors.set(n, PALETTE[i % PALETTE.length]));
+        names.forEach((n, i) => state.continentColors.set(n, CONTINENT_COLORS[n] || PALETTE[i % PALETTE.length]));
     } catch (e) { /* file:// or missing build — charts fall back to single hue */ }
 }
 function continentOf(name) { return state.continents.get(name) || 'Unknown'; }
 function colorOf(name) {
-    return state.continentColors.get(continentOf(name)) || PALETTE[0];
+    return state.continentColors.get(continentOf(name)) || CONTINENT_COLORS.Unknown;
 }
 
 // ---------- merged growth (base ∪ edits) ----------
@@ -212,7 +229,7 @@ function rowFor(name, earthYear) {
     return rows.find((r) => r.earthYear === earthYear) || null;
 }
 
-function renderYearView() {
+function renderYearView(opts = {}) {
     const year = state.year;
     const metric = $('ctl-metric').value;
     const showAll = $('ctl-all').checked;
@@ -230,6 +247,8 @@ function renderYearView() {
         entries.push({ name: c.name, row: r });
     }
     $('ctl-year-label').textContent = `${year}${fictionalYear != null ? ` (${fictionalYear})` : ''}`;
+    // Chart titles lead with the Andah year and show the Earth year in brackets.
+    const titleYear = fictionalYear != null ? `${fictionalYear} (${year})` : `${year}`;
 
     const valueOf = (e) => metric === 'gdp' ? e.row.gdp : metric === 'perCap' ? e.row.perCap : e.row.gdpGrowth;
     entries.sort((a, b) => (valueOf(b) ?? -Infinity) - (valueOf(a) ?? -Infinity));
@@ -261,7 +280,7 @@ function renderYearView() {
     }
 
     const metricLabel = metric === 'gdp' ? 'Total GDP' : metric === 'perCap' ? 'GDP per capita' : 'GDP growth (total)';
-    $('bar-title').textContent = `${metricLabel} — ${year}`;
+    $('bar-title').textContent = `${metricLabel} — ${titleYear}`;
     const tc = themeColors();
     const fmtVal = metric === 'growth' ? fmtPct : fmtMoney;
 
@@ -312,7 +331,7 @@ function renderYearView() {
         pieLabels = sorted.map(([k]) => k);
         pieValues = sorted.map(([, v]) => v);
         pieColors = sorted.map(([k]) => state.continentColors.get(k) || '#9498a0');
-        $('pie-title').textContent = `GDP by continent — ${year}`;
+        $('pie-title').textContent = `GDP by continent — ${titleYear}`;
     } else {
         const byGdp = [...entries].sort((a, b) => (b.row.gdp || 0) - (a.row.gdp || 0));
         const top = byGdp.slice(0, topN);
@@ -325,7 +344,7 @@ function renderYearView() {
             pieValues.push(others.reduce((s, e) => s + (e.row.gdp || 0), 0));
             pieColors.push('#9498a0');
         }
-        $('pie-title').textContent = `Share of world GDP — ${year}`;
+        $('pie-title').textContent = `Share of world GDP — ${titleYear}`;
     }
     state.charts.pie = new Chart($('chart-pie'), {
         type: 'doughnut',
@@ -346,6 +365,18 @@ function renderYearView() {
             },
         },
     });
+
+    // ----- new snapshot + trend charts -----
+    renderBubble();
+    renderTreemap();
+    if (opts.snapshot) {
+        // year-independent trends don't change while the slider moves — just
+        // nudge the continent-area year marker (cheap redraw, no rebuild).
+        if (state.charts.continentArea) state.charts.continentArea.update('none');
+    } else {
+        renderContinentArea();
+        renderCagr();
+    }
 }
 
 // ========================================================================
@@ -401,6 +432,7 @@ function renderCountryView() {
     renderGrowthChart(name, asc, tc, editing);
     renderCountryTable(name, rows, editing);
     if (editing) renderPinList(name);
+    renderCompare();
 }
 
 // Growth line chart. In Edit mode the "GDP/cap growth" series becomes draggable
@@ -667,6 +699,354 @@ function renderPinList(name) {
 }
 
 // ========================================================================
+//  New visualizations (all additive, reuse state.computed)
+// ========================================================================
+
+// small helpers ---------------------------------------------------------
+function withAlpha(hex, a) {
+    const m = String(hex).replace('#', '');
+    if (m.length < 6) return hex;
+    const n = parseInt(m, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+// fictional (Andah) year label for an Earth year, e.g. "1765 (2015)"
+function labelYear(earthYear) {
+    for (const c of state.countries) {
+        const r = rowFor(c.name, earthYear);
+        if (r && r.year != null) return `${r.year} (${earthYear})`;
+    }
+    return `${earthYear}`;
+}
+// diverging growth colour: negative→red, ~0→grey, positive→green
+function growthColor(v, max = 0.15) {
+    if (v == null || !isFinite(v)) return '#6b7078';
+    const t = Math.max(-1, Math.min(1, v / max));
+    const neg = [192, 57, 43], mid = [122, 127, 135], pos = [46, 139, 87];
+    const lerp = (a, b, f) => Math.round(a + (b - a) * f);
+    const to = t < 0 ? neg : pos, f = Math.abs(t);
+    return `rgb(${lerp(mid[0], to[0], f)},${lerp(mid[1], to[1], f)},${lerp(mid[2], to[2], f)})`;
+}
+
+// --- animated racing bars ----------------------------------------------
+function stopPlay() {
+    if (state.playTimer) { clearInterval(state.playTimer); state.playTimer = null; }
+    const b = $('ctl-play');
+    if (b) { b.textContent = '▶'; b.setAttribute('aria-pressed', 'false'); }
+}
+function startPlay() {
+    const { min, max } = yearRange();
+    if (state.year >= max) state.year = min;   // reached the end → replay from start
+    $('ctl-year').value = state.year;
+    renderYearView({ snapshot: true });
+    state.playTimer = setInterval(() => {
+        const { max } = yearRange();
+        if (state.year >= max) { stopPlay(); return; }
+        state.year++;
+        $('ctl-year').value = state.year;
+        renderYearView({ snapshot: true });
+    }, state.playSpeed);
+    const b = $('ctl-play');
+    if (b) { b.textContent = '⏸'; b.setAttribute('aria-pressed', 'true'); }
+}
+function togglePlay() { state.playTimer ? stopPlay() : startPlay(); }
+
+// --- development-landscape bubble ---------------------------------------
+function renderBubble() {
+    destroyChart('bubble');
+    const canvas = $('chart-bubble');
+    if (!canvas) return;
+    const year = state.year, tc = themeColors();
+    const pts = [];
+    let maxGdp = 0;
+    for (const c of state.countries) {
+        const r = rowFor(c.name, year);
+        if (!r || !r.determined || !(r.perCap > 0) || !(r.pop > 0)) continue;
+        maxGdp = Math.max(maxGdp, r.gdp || 0);
+        pts.push({ name: c.name, x: r.perCap, y: r.pop, gdp: r.gdp, color: colorOf(c.name) });
+    }
+    const t = $('bubble-title'); if (t) t.textContent = `Development landscape — ${labelYear(year)}`;
+    const data = pts.map((p) => ({ x: p.x, y: p.y, r: 4 + 26 * Math.sqrt((p.gdp || 0) / (maxGdp || 1)), _p: p }));
+    state.charts.bubble = new Chart(canvas, {
+        type: 'bubble',
+        data: { datasets: [{ data, backgroundColor: pts.map((p) => withAlpha(p.color, 0.6)), borderColor: pts.map((p) => p.color), borderWidth: 1 }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: (ctx) => { const p = ctx.raw._p; return ` ${p.name}: per cap ${fmtMoney(p.x)} · pop ${fmtInt(p.y)} · GDP ${fmtMoney(p.gdp)}`; } } },
+            },
+            scales: {
+                x: { type: 'logarithmic', title: { display: true, text: 'GDP per capita', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
+                y: { type: 'logarithmic', title: { display: true, text: 'Population', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtInt(v) }, grid: { color: tc.grid } },
+            },
+        },
+    });
+}
+
+// --- stock-market treemap heatmap (hand-rolled squarified, DOM boxes) ---
+// items: [{value, ...}] (value>0). rect: {x,y,w,h}. Returns items + {x,y,w,h}.
+function squarify(items, rect) {
+    const out = [];
+    const total = items.reduce((s, i) => s + i.value, 0);
+    if (!items.length || total <= 0 || rect.w <= 0 || rect.h <= 0) return out;
+    let { x, y, w, h } = rect;
+    const scaled = items.map((i) => ({ item: i, area: (i.value / total) * (rect.w * rect.h) }));
+    const worst = (rowArea, side, maxA, minA) =>
+        Math.max((side * side * maxA) / (rowArea * rowArea), (rowArea * rowArea) / (side * side * minA));
+    let i = 0;
+    while (i < scaled.length) {
+        const side = Math.min(w, h);
+        const row = [scaled[i]];
+        let rowArea = scaled[i].area;
+        let j = i + 1;
+        while (j < scaled.length) {
+            let maxA = -Infinity, minA = Infinity;
+            for (const c of row) { maxA = Math.max(maxA, c.area); minA = Math.min(minA, c.area); }
+            const cur = worst(rowArea, side, maxA, minA);
+            const nMax = Math.max(maxA, scaled[j].area), nMin = Math.min(minA, scaled[j].area);
+            const next = worst(rowArea + scaled[j].area, side, nMax, nMin);
+            if (next > cur) break;
+            row.push(scaled[j]); rowArea += scaled[j].area; j++;
+        }
+        const thickness = rowArea / side;
+        let offset = 0;
+        for (const c of row) {
+            const length = c.area / thickness;
+            if (w >= h) out.push({ ...c.item, x, y: y + offset, w: thickness, h: length });
+            else out.push({ ...c.item, x: x + offset, y, w: length, h: thickness });
+            offset += length;
+        }
+        if (w >= h) { x += thickness; w -= thickness; } else { y += thickness; h -= thickness; }
+        i = j;
+    }
+    return out;
+}
+function renderTreemap() {
+    const el = $('treemap');
+    if (!el) return;
+    const year = state.year;
+    const W = el.clientWidth, H = el.clientHeight;
+    el.innerHTML = '';
+    if (!W || !H) return;
+
+    const items = [];
+    for (const c of state.countries) {
+        const r = rowFor(c.name, year);
+        if (!r || !r.determined || !(r.gdp > 0)) continue;
+        items.push({ name: c.name, value: r.gdp, growth: r.growthDetermined ? r.gdpGrowth : null, cont: continentOf(c.name), perCap: r.perCap, pop: r.pop });
+    }
+    if (!items.length) { el.innerHTML = '<p class="gdp-note" style="padding:1rem">No determined GDP for this year yet — author some growth curves in Edit mode.</p>'; return; }
+
+    const byCont = new Map();
+    for (const it of items) { if (!byCont.has(it.cont)) byCont.set(it.cont, []); byCont.get(it.cont).push(it); }
+    const contItems = [...byCont.entries()]
+        .map(([cont, list]) => ({ cont, list, value: list.reduce((s, i) => s + i.value, 0) }))
+        .sort((a, b) => b.value - a.value);
+
+    const gap = 3;
+    for (const block of squarify(contItems, { x: 0, y: 0, w: W, h: H })) {
+        const bx = block.x + gap / 2, by = block.y + gap / 2;
+        const bw = Math.max(0, block.w - gap), bh = Math.max(0, block.h - gap);
+        const cells = squarify(block.list.slice().sort((a, b) => b.value - a.value), { x: bx, y: by, w: bw, h: bh });
+        for (const cell of cells) {
+            const box = document.createElement('div');
+            box.className = 'gdp-treemap-box';
+            box.style.left = cell.x + 'px'; box.style.top = cell.y + 'px';
+            box.style.width = Math.max(0, cell.w - 1) + 'px'; box.style.height = Math.max(0, cell.h - 1) + 'px';
+            box.style.background = growthColor(cell.growth);
+            const gStr = cell.growth != null ? fmtPct(cell.growth) : '–';
+            box.title = `${cell.name} (${cell.cont})\nTotal GDP ${fmtMoney(cell.value)}\nGDP growth ${gStr}\nPer capita ${fmtMoney(cell.perCap)}`;
+            if (cell.w > 36 && cell.h > 20) {
+                box.innerHTML = `<span class="gdp-tm-name">${cell.name}</span>` + (cell.h > 34 ? `<span class="gdp-tm-val">${gStr}</span>` : '');
+            }
+            el.appendChild(box);
+        }
+        if (bw > 60 && bh > 28) {
+            const lab = document.createElement('div');
+            lab.className = 'gdp-treemap-cont';
+            lab.style.left = bx + 'px'; lab.style.top = by + 'px';
+            lab.textContent = block.cont;
+            el.appendChild(lab);
+        }
+    }
+}
+
+// --- continental power over time (stacked area) ------------------------
+// draws a dashed vertical marker at the currently-selected year
+const yearMarkerPlugin = {
+    id: 'yearMarker',
+    afterDatasetsDraw(chart) {
+        const idx = chart.data.labels.indexOf(state.year);
+        if (idx < 0) return;
+        const x = chart.scales.x.getPixelForValue(idx);
+        if (x == null || isNaN(x)) return;
+        const { ctx, chartArea } = chart;
+        ctx.save();
+        ctx.strokeStyle = themeColors().muted;
+        ctx.setLineDash([4, 3]); ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
+        ctx.restore();
+    },
+};
+function renderContinentArea() {
+    destroyChart('continentArea');
+    const canvas = $('chart-continent-area');
+    if (!canvas) return;
+    const tc = themeColors();
+    const { min, max } = yearRange();
+    const years = [];
+    for (let y = min; y <= max; y++) years.push(y);
+    const byCont = new Map();
+    const world = years.map(() => 0);
+    for (const [name, rows] of state.computed) {
+        const cont = continentOf(name);
+        if (!byCont.has(cont)) byCont.set(cont, years.map(() => 0));
+        const arr = byCont.get(cont);
+        for (const r of rows) {
+            if (!r.determined || !(r.gdp > 0)) continue;
+            const i = r.earthYear - min;
+            if (i < 0 || i >= years.length) continue;
+            arr[i] += r.gdp; world[i] += r.gdp;
+        }
+    }
+    const mode = $('ctl-area-mode') ? $('ctl-area-mode').value : 'share';
+    const datasets = [...byCont.entries()]
+        .filter(([, arr]) => arr.some((v) => v > 0))
+        .sort((a, b) => b[1].reduce((s, v) => s + v, 0) - a[1].reduce((s, v) => s + v, 0))
+        .map(([cont, arr]) => {
+            const col = state.continentColors.get(cont) || '#9498a0';
+            return {
+                label: cont,
+                data: arr.map((v, i) => mode === 'share' ? (world[i] ? v / world[i] * 100 : 0) : v),
+                borderColor: col, backgroundColor: withAlpha(col, 0.55),
+                fill: true, pointRadius: 0, borderWidth: 1, tension: 0.15,
+            };
+        });
+    const yFmt = mode === 'share' ? (v) => v + '%' : (v) => fmtMoney(v);
+    state.charts.continentArea = new Chart(canvas, {
+        type: 'line',
+        data: { labels: years, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: tc.text, boxWidth: 12, font: { size: 10 } } },
+                tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${mode === 'share' ? ctx.parsed.y.toFixed(1) + '%' : fmtMoney(ctx.parsed.y)}` } },
+            },
+            scales: {
+                x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+                y: Object.assign({ stacked: true, beginAtZero: true, min: 0, ticks: { color: tc.muted, callback: yFmt }, grid: { color: tc.grid } }, mode === 'share' ? { max: 100 } : {}),
+            },
+        },
+        plugins: [yearMarkerPlugin],
+    });
+}
+
+// --- long-run per-capita CAGR ranking ----------------------------------
+function renderCagr() {
+    destroyChart('cagr');
+    const canvas = $('chart-cagr');
+    if (!canvas) return;
+    const tc = themeColors();
+    const { min, max } = yearRange();
+    const span = max - min || 1;
+    const list = [];
+    for (const c of state.countries) {
+        const rows = state.computed.get(c.name);
+        if (!rows) continue;
+        const rMax = rows.find((r) => r.earthYear === max);
+        const rMin = rows.find((r) => r.earthYear === min);
+        if (!rMax || !rMin || !rMax.determined || !rMin.determined || !(rMin.perCap > 0) || !(rMax.perCap > 0)) continue;
+        list.push({ name: c.name, cagr: Math.pow(rMax.perCap / rMin.perCap, 1 / span) - 1 });
+    }
+    list.sort((a, b) => b.cagr - a.cagr);
+    const topN = Math.max(3, Math.min(list.length || 3, Number($('ctl-topn').value) || 18));
+    const shown = list.slice(0, topN);
+    const t = $('cagr-title');
+    if (t) t.textContent = `Long-run growth champions — per-capita CAGR ${min}→${max} (top ${shown.length})`;
+    canvas.parentElement.style.height = Math.max(220, shown.length * 24 + 50) + 'px';
+    state.charts.cagr = new Chart(canvas, {
+        type: 'bar',
+        data: { labels: shown.map((e) => e.name), datasets: [{ data: shown.map((e) => e.cagr), backgroundColor: shown.map((e) => colorOf(e.name)), borderWidth: 0 }] },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ' ' + fmtPct(ctx.parsed.x) } } },
+            scales: {
+                x: { ticks: { color: tc.muted, callback: (v) => fmtPct(v) }, grid: { color: tc.grid } },
+                y: { ticks: { color: tc.text, autoSkip: false }, grid: { display: false } },
+            },
+        },
+    });
+}
+
+// --- multi-country comparison overlay (Tab B, view-only) ---------------
+function renderCompare() {
+    const card = $('compare-card');
+    if (!card) return;
+    destroyChart('compare');
+    const sel = $('ctl-compare');
+    const picks = sel ? [...sel.selectedOptions].map((o) => o.value) : [];
+    const editing = state.mode === 'edit';
+    if (editing || !picks.length) { card.classList.add('gdp-hidden'); return; }
+    card.classList.remove('gdp-hidden');
+
+    const primary = selectedCountry();
+    const names = [primary, ...picks.filter((n) => n !== primary)].slice(0, 6);
+    const metric = $('ctl-compare-metric') ? $('ctl-compare-metric').value : 'perCap';
+    const tc = themeColors();
+    const { min, max } = yearRange();
+    const years = [];
+    for (let y = min; y <= max; y++) years.push(y);
+    // In per-capita mode, also overlay each country's TOTAL GDP on a second
+    // axis (per capita = solid/right, total = dashed/left, same colour).
+    const dual = metric === 'perCap';
+    const seriesVal = (r, which) => {
+        if (!r) return null;
+        if (which === 'growth') return r.growthDetermined ? r.perCapGrowth : null;
+        return r.determined ? (which === 'gdp' ? r.gdp : r.perCap) : null;
+    };
+    const datasets = [];
+    names.forEach((name, i) => {
+        const rows = state.computed.get(name);
+        if (!rows) return;
+        const byYear = new Map(rows.map((r) => [r.earthYear, r]));
+        const col = PALETTE[i % PALETTE.length];
+        if (dual) {
+            datasets.push({ label: `${name} · per cap`, data: years.map((y) => seriesVal(byYear.get(y), 'perCap')), yAxisID: 'y1', borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 2, spanGaps: true });
+            datasets.push({ label: `${name} · total`, data: years.map((y) => seriesVal(byYear.get(y), 'gdp')), yAxisID: 'y', borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 1.5, borderDash: [5, 4], spanGaps: true });
+        } else {
+            datasets.push({ label: name, data: years.map((y) => seriesVal(byYear.get(y), metric)), borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 2, spanGaps: true });
+        }
+    });
+    const fmt = metric === 'growth' ? fmtPct : fmtMoney;
+    const metricLabel = metric === 'gdp' ? 'Total GDP' : metric === 'growth' ? 'GDP/cap growth' : 'GDP per capita & total';
+    const t = $('compare-title'); if (t) t.textContent = `Compare — ${metricLabel}`;
+    const scales = dual
+        ? {
+            x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+            y: { position: 'left', beginAtZero: true, title: { display: true, text: 'Total GDP (dashed)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
+            y1: { position: 'right', beginAtZero: true, title: { display: true, text: 'GDP per capita (solid)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { display: false } },
+        }
+        : {
+            x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+            y: { ticks: { color: tc.muted, callback: (v) => fmt(v) }, grid: { color: tc.grid } },
+        };
+    state.charts.compare = new Chart($('chart-compare'), {
+        type: 'line',
+        data: { labels: years, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: tc.text } },
+                tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } },
+            },
+            scales,
+        },
+    });
+}
+
+// ========================================================================
 //  Chart plumbing / mode / events
 // ========================================================================
 function destroyChart(key) {
@@ -679,6 +1059,7 @@ function rerenderAll() {
 }
 
 function setMode(mode) {
+    if (mode === 'edit') stopPlay();
     state.mode = mode;
     $('mode-view').setAttribute('aria-selected', String(mode === 'view'));
     $('mode-edit').setAttribute('aria-selected', String(mode === 'edit'));
@@ -699,6 +1080,12 @@ function initControls() {
     const current = sel.value;
     sel.innerHTML = state.countries.map((c) => `<option${c.name === current ? ' selected' : ''}>${c.name}</option>`).join('');
 
+    const cmp = $('ctl-compare');
+    if (cmp) {
+        const picked = new Set([...cmp.selectedOptions].map((o) => o.value));
+        cmp.innerHTML = state.countries.map((c) => `<option${picked.has(c.name) ? ' selected' : ''}>${c.name}</option>`).join('');
+    }
+
     const arch = $('ctl-archetype');
     if (arch && !arch.dataset.filled) {
         arch.innerHTML = '<option value="">Archetype…</option>' +
@@ -708,11 +1095,19 @@ function initControls() {
 }
 
 function bindEvents() {
-    $('ctl-year').addEventListener('input', (e) => { state.year = Number(e.target.value); renderYearView(); });
+    $('ctl-year').addEventListener('input', (e) => { stopPlay(); state.year = Number(e.target.value); renderYearView({ snapshot: true }); });
     for (const id of ['ctl-metric', 'ctl-topn', 'ctl-all', 'ctl-pie']) {
-        $(id).addEventListener('change', renderYearView);
+        $(id).addEventListener('change', () => renderYearView());
     }
+    $('ctl-play').addEventListener('click', togglePlay);
+    $('ctl-speed').addEventListener('change', (e) => {
+        state.playSpeed = Number(e.target.value) || 350;
+        if (state.playTimer) { stopPlay(); startPlay(); } // restart at the new cadence
+    });
+    $('ctl-area-mode').addEventListener('change', renderContinentArea);
     $('ctl-country').addEventListener('change', renderCountryView);
+    $('ctl-compare').addEventListener('change', renderCompare);
+    $('ctl-compare-metric').addEventListener('change', renderCompare);
 
     $('tab-year').addEventListener('click', () => switchTab('year'));
     $('tab-country').addEventListener('click', () => switchTab('country'));
@@ -749,6 +1144,7 @@ function bindEvents() {
 }
 
 function switchTab(which) {
+    stopPlay();
     const yearTab = which === 'year';
     $('tab-year').setAttribute('aria-selected', String(yearTab));
     $('tab-country').setAttribute('aria-selected', String(!yearTab));
@@ -781,6 +1177,13 @@ let dragPlugin = null;
 function resolveDragPlugin() {
     const p = window.ChartJSDragDataPlugin;
     dragPlugin = p ? (p.default || p) : null;
+    // The UMD build auto-registers globally, which would make EVERY line/bar
+    // chart draggable (e.g. the read-only "Continental power over time" area).
+    // We only want the growth curve draggable, so pull it out of the global
+    // registry — the growth chart re-adds it locally via its own plugins array.
+    if (dragPlugin && window.Chart && typeof window.Chart.unregister === 'function') {
+        try { window.Chart.unregister(dragPlugin); } catch (e) { /* wasn't registered */ }
+    }
 }
 
 async function boot() {

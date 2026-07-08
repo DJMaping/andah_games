@@ -103,6 +103,41 @@
         .gdp-g-input { width: 4.2rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 3px; padding: 0.1rem 0.3rem; font: inherit; font-size: 0.82rem; text-align: right; }
         .gdp-pin-btn { cursor: pointer; margin-right: 0.3rem; opacity: 0.55; }
         .gdp-pin-btn:hover { opacity: 1; }
+
+        /* --- new visualizations --- */
+        .gdp-controls button {
+            border: 1px solid var(--border); background: var(--bg); color: var(--text);
+            font: inherit; font-size: 0.9rem; padding: 0.2rem 0.6rem; border-radius: 5px;
+            cursor: pointer; line-height: 1;
+        }
+        .gdp-controls button:hover { background: var(--bg-sunken); }
+        .gdp-controls select[multiple] { min-width: 11rem; }
+        .gdp-charts-stack { display: grid; gap: 1.25rem; margin-top: 1.25rem; }
+        .gdp-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+        .gdp-card-head h3 { margin: 0; }
+        .gdp-inline-ctl { font-size: 0.85rem; display: inline-flex; gap: 0.4rem; align-items: center; }
+        .gdp-inline-ctl select {
+            background: var(--bg); color: var(--text); border: 1px solid var(--border);
+            border-radius: 4px; padding: 0.15rem 0.35rem; font: inherit; font-size: 0.85rem;
+        }
+        .gdp-tall-wrap { position: relative; height: 340px; }
+        .gdp-treemap {
+            position: relative; width: 100%; height: 460px; overflow: hidden;
+            border: 1px solid var(--border-soft); border-radius: 6px; background: var(--bg-sunken);
+        }
+        .gdp-treemap-box {
+            position: absolute; overflow: hidden; box-sizing: border-box;
+            border: 1px solid rgba(0, 0, 0, 0.28); color: #fff; font-size: 0.72rem;
+            line-height: 1.05; padding: 2px 3px; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+        }
+        .gdp-treemap-box .gdp-tm-name { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gdp-treemap-box .gdp-tm-val { opacity: 0.85; }
+        .gdp-treemap-cont { position: absolute; pointer-events: none; font-size: 0.7rem; font-weight: 700; color: var(--text); opacity: 0.5; padding: 1px 3px; }
+        .gdp-treemap-legend { align-items: center; }
+        .gdp-treemap-legend .gdp-grad {
+            width: 130px; height: 10px; border-radius: 2px; display: inline-block;
+            background: linear-gradient(to right, rgb(192, 57, 43), rgb(122, 127, 135), rgb(46, 139, 87));
+        }
     </style>
 </head>
 <body>
@@ -144,6 +179,14 @@
                     <input type="range" id="ctl-year" min="1950" max="2015" step="1" value="2015">
                     <span class="gdp-year-value" id="ctl-year-label">2015 (1765)</span>
                 </label>
+                <label>Play
+                    <button type="button" id="ctl-play" aria-pressed="false" title="Animate through the years">▶</button>
+                    <select id="ctl-speed" title="Animation speed">
+                        <option value="600">Slow</option>
+                        <option value="350" selected>Normal</option>
+                        <option value="150">Fast</option>
+                    </select>
+                </label>
                 <label>Metric
                     <select id="ctl-metric">
                         <option value="gdp" selected>Total GDP</option>
@@ -177,6 +220,40 @@
                 </div>
             </div>
             <p class="gdp-note" id="year-hidden"></p>
+
+            <div class="gdp-charts-stack">
+                <div class="gdp-chart-card">
+                    <h3 id="bubble-title">Development landscape</h3>
+                    <p class="gdp-note">Each bubble is a country: x = GDP per capita, y = population, size = total GDP,
+                        colour = continent. Both axes are log scale.</p>
+                    <div class="gdp-tall-wrap"><canvas id="chart-bubble"></canvas></div>
+                </div>
+                <div class="gdp-chart-card">
+                    <h3 id="treemap-title">GDP market map</h3>
+                    <p class="gdp-note">Every country sized by total GDP, grouped by continent, coloured by GDP growth
+                        (green = growth, red = contraction) — like a stock-market heatmap. Drag the slider or press Play to watch it move.</p>
+                    <div id="treemap" class="gdp-treemap"></div>
+                    <div class="gdp-legend gdp-treemap-legend" id="treemap-legend">
+                        <span>Contraction</span><span class="gdp-grad"></span><span>Growth</span>
+                    </div>
+                </div>
+                <div class="gdp-chart-card">
+                    <div class="gdp-card-head">
+                        <h3>Continental economic power over time</h3>
+                        <label class="gdp-inline-ctl">Show
+                            <select id="ctl-area-mode">
+                                <option value="share" selected>share of world %</option>
+                                <option value="absolute">absolute $</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="gdp-tall-wrap"><canvas id="chart-continent-area"></canvas></div>
+                </div>
+                <div class="gdp-chart-card">
+                    <h3 id="cagr-title">Long-run growth champions (per-capita CAGR)</h3>
+                    <div class="gdp-bar-wrap"><canvas id="chart-cagr"></canvas></div>
+                </div>
+            </div>
         </section>
 
         <!-- ============ View 2: one country over time ============ -->
@@ -186,6 +263,16 @@
                     <select id="ctl-country"></select>
                 </label>
                 <span class="gdp-status" id="country-status"></span>
+                <label>Compare with
+                    <select id="ctl-compare" multiple size="4"></select>
+                </label>
+                <label>Compare metric
+                    <select id="ctl-compare-metric">
+                        <option value="perCap" selected>GDP per capita</option>
+                        <option value="gdp">Total GDP</option>
+                        <option value="growth">GDP/cap growth</option>
+                    </select>
+                </label>
             </div>
 
             <!-- authoring panel (Edit mode only) -->
@@ -226,6 +313,12 @@
                     <h3>Growth rates</h3>
                     <canvas id="chart-line-growth"></canvas>
                 </div>
+            </div>
+            <div class="gdp-chart-card gdp-hidden" id="compare-card" style="margin-top:1.25rem">
+                <h3 id="compare-title">Compare countries</h3>
+                <p class="gdp-note">Pick one or more countries in “Compare with” above to overlay them against the selected
+                    country. View mode only — hidden while editing.</p>
+                <div class="gdp-tall-wrap"><canvas id="chart-compare"></canvas></div>
             </div>
             <div class="gdp-table-wrap">
                 <table class="gdp-table" id="country-table"></table>
