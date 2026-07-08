@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* lahn currency glyph (theme-aware), matching the GDP Explorer */
+        .lahn-sym {
+            display: inline-block; width: 0.82em; height: 0.69em;
+            background: url("Lahn.png") no-repeat center / contain;
+            vertical-align: -0.02em; margin-right: 0.14em;
+        }
+        [data-theme="dark"] .lahn-sym { background-image: url("Lahn-white.png"); }
+        .tm-year {
+            display: block; margin-top: 10px; font-family: var(--serif);
+            font-size: 1.6rem; font-weight: 700; color: var(--text);
+        }
+        .tm-fixed-year { font-weight: 700; }
+    </style>
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah Economy Games collection</p>
+            <h1 class="huge-title">Richer or Poorer: Time Machine</h1>
+            <p class="subtitle" id="game-prompt">Which was richer per person?</p>
+        </div>
+
+        <div class="mode-tabs" aria-label="Game mode">
+            <button class="mode-tab" data-mode="years" type="button">Same country · two years</button>
+            <button class="mode-tab" data-mode="countries" type="button">Two countries · one year</button>
+        </div>
+
+        <p class="result-text" id="context" aria-live="polite"></p>
+        <div id="comparison" class="comparison-grid"></div>
+        <div id="result" class="result-text" aria-live="polite"></div>
+
+        <div class="score-panel">
+            <div class="score-block"><label>Score</label><strong id="score">0</strong></div>
+            <div class="score-block"><label>High score</label><strong id="highscore">0</strong></div>
+        </div>
+
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="js/script.js"></script>
+<script src="js/gdp-series.js"></script>
+<script>
+    const HS_KEY = 'richerPoorerTimeHighScore';
+    let mode = new URLSearchParams(location.search).get('mode');
+    if (mode !== 'countries') mode = 'years';
+
+    let series = null;         // { countries, byName, minYear, maxYear }
+    let score = 0, highScore = 0;
+    let correctKey = null;     // which card is the answer
+    let locked = false;
+
+    const $ = (id) => document.getElementById(id);
+    const rint = (n) => Math.floor(Math.random() * n);
+    const flagUrl = (name) => `flags/${encodeURIComponent(name)}.png`;
+    const lahn = (v) => `<span class="lahn-sym" role="img" aria-label="lahn"></span>${Math.round(v).toLocaleString('en-US')}`;
+    const yearLabel = (r) => r.year != null ? `${r.year} (${r.earthYear})` : `${r.earthYear}`;
+
+    function loadHighScore() { highScore = Number(localStorage.getItem(HS_KEY)) || 0; }
+    function saveHighScore() { localStorage.setItem(HS_KEY, String(highScore)); }
+    function updateScore() { $('score').innerText = score; $('highscore').innerText = highScore; }
+
+    function determinedRows(c) { return c.rows.filter((r) => r.determined && r.perCap > 0); }
+
+    // Pick a country with at least two determined years spread apart, then two of
+    // those years with different per-capita values.
+    function pickYears() {
+        const eligible = series.countries.filter((c) => {
+            const d = determinedRows(c);
+            if (d.length < 2) return false;
+            const yrs = d.map((r) => r.earthYear);
+            return Math.max(...yrs) - Math.min(...yrs) >= 10;
+        });
+        if (!eligible.length) return null;
+        for (let attempt = 0; attempt < 200; attempt++) {
+            const c = eligible[rint(eligible.length)];
+            const d = determinedRows(c);
+            const a = d[rint(d.length)], b = d[rint(d.length)];
+            if (a === b) continue;
+            if (Math.abs(a.earthYear - b.earthYear) < 8) continue;
+            if (a.perCap === b.perCap) continue;
+            const cards = [
+                { key: 'A', country: c, row: a },
+                { key: 'B', country: c, row: b },
+            ].sort(() => 0.5 - Math.random());
+            return { cards, correctKey: (a.perCap > b.perCap ? a : b) === cards[0].row ? cards[0].key : cards[1].key };
+        }
+        return null;
+    }
+
+    // Pick a year, then two countries both determined that year with different
+    // per-capita. Falls back to the fully-determined 2015 anchor year.
+    function pickCountries() {
+        const { minYear, maxYear } = series;
+        const tryYear = (yr) => series.countries
+            .map((c) => ({ country: c, row: c.rows.find((r) => r.earthYear === yr) }))
+            .filter((e) => e.row && e.row.determined && e.row.perCap > 0);
+        for (let attempt = 0; attempt < 60; attempt++) {
+            const yr = attempt < 55 ? minYear + rint(maxYear - minYear + 1) : maxYear;
+            const pool = tryYear(yr);
+            if (pool.length < 2) continue;
+            const a = pool[rint(pool.length)];
+            let b = pool[rint(pool.length)], guard = 0;
+            while ((b.country.name === a.country.name || b.row.perCap === a.row.perCap) && guard++ < 50) b = pool[rint(pool.length)];
+            if (b.country.name === a.country.name || b.row.perCap === a.row.perCap) continue;
+            const cards = [
+                { key: 'A', country: a.country, row: a.row },
+                { key: 'B', country: b.country, row: b.row },
+            ].sort(() => 0.5 - Math.random());
+            const winRow = a.row.perCap > b.row.perCap ? a.row : b.row;
+            return { year: yr, cards, correctKey: winRow === cards[0].row ? cards[0].key : cards[1].key };
+        }
+        return null;
+    }
+
+    function newRound() {
+        locked = false;
+        $('result').innerText = '';
+        const round = mode === 'years' ? pickYears() : pickCountries();
+        if (!round) { $('context').innerText = 'Not enough determined GDP history for this mode yet.'; return; }
+        correctKey = round.correctKey;
+
+        if (mode === 'years') {
+            $('context').innerHTML = `In which year was <strong>${round.cards[0].country.name}</strong> richer per person?`;
+        } else {
+            const rr = round.cards[0].row;
+            $('context').innerHTML = `In <span class="tm-fixed-year">${yearLabel(rr)}</span>, which country was richer per person?`;
+        }
+
+        const comparison = $('comparison');
+        comparison.innerHTML = '';
+        round.cards.forEach((card) => {
+            const btn = document.createElement('button');
+            btn.className = 'country-choice';
+            btn.type = 'button';
+            btn.dataset.key = card.key;
+            btn.dataset.value = card.row.perCap;
+            const yearMarkup = mode === 'years' ? `<span class="tm-year">${yearLabel(card.row)}</span>` : '';
+            const label = mode === 'years' ? 'Pick this year' : 'Pick this country';
+            btn.innerHTML = `
+                <span class="choice-name"><img src="${flagUrl(card.country.name)}" alt="" onerror="this.style.visibility='hidden'">${card.country.name}</span>
+                ${yearMarkup}
+                <span class="choice-label">${label}</span>
+                <span class="choice-value" data-percap="${Math.round(card.row.perCap)}"></span>`;
+            btn.onclick = () => answer(btn, card);
+            comparison.appendChild(btn);
+        });
+    }
+
+    function answer(btn, card) {
+        if (locked) return;
+        locked = true;
+        const correct = card.key === correctKey;
+        document.querySelectorAll('.country-choice').forEach((el) => {
+            el.disabled = true;
+            el.classList.add('revealed');
+            el.classList.toggle('correct', el.dataset.key === correctKey);
+            const v = el.querySelector('.choice-value');
+            v.innerHTML = `${lahn(Number(v.dataset.percap))} per person`;
+        });
+        if (!correct) btn.classList.add('wrong');
+
+        if (correct) {
+            score++;
+            if (score > highScore) { highScore = score; saveHighScore(); }
+            $('result').innerText = 'Correct!';
+        } else {
+            if (score > highScore) { highScore = score; saveHighScore(); }
+            score = 0;
+            $('result').innerText = 'Not quite — the richer one is highlighted.';
+        }
+        updateScore();
+        setTimeout(newRound, 1600);
+    }
+
+    function setMode(next) {
+        mode = next;
+        score = 0;
+        loadHighScore();
+        updateScore();
+        $('game-prompt').innerText = mode === 'years'
+            ? 'Same nation, two moments in history — which was richer per person?'
+            : 'Two nations, one year — which was richer per person?';
+        document.querySelectorAll('.mode-tab').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+        const url = new URL(location.href); url.searchParams.set('mode', mode); history.replaceState(null, '', url);
+        newRound();
+    }
+
+    document.querySelectorAll('.mode-tab').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+    $('context').innerText = 'Loading GDP history…';
+    loadGdpSeries().then((s) => { series = s; setMode(mode); })
+        .catch((e) => { $('context').innerText = 'Could not load GDP history (data/gdp-history.json). Run the build first.'; });
+</script>
+</body>
+</html>

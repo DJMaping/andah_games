@@ -45,6 +45,8 @@ const state = {
     continents: new Map(),
     continentColors: new Map(),
     anchors: new Map(),
+    mapCoords: [],           // [{name, x, y}] centroids in maps/map.png pixel space
+    mapCoordByName: new Map(),
     year: 2015,
     mode: 'view',         // 'view' | 'edit'
     charts: {},
@@ -135,10 +137,16 @@ const flagLabelsPlugin = {
         if (!yScale || !chart.ctx) return;
         const labels = chart.data.labels || [];
         const ctx = chart.ctx;
-        const tickFont = (chart.options.scales.y.ticks || {}).font || {};
+        const yTicks = chart.options.scales.y.ticks || {};
+        const yGrid = chart.options.scales.y.grid || {};
+        const tickFont = yTicks.font || {};
         const size = tickFont.size || Chart.defaults.font.size || 12;
         const family = tickFont.family || Chart.defaults.font.family;
-        const padRight = (chart.options.scales.y.ticks || {}).padding ?? 4;
+        const padRight = yTicks.padding ?? 3;
+        // Chart.js pushes the labels left by the tick-mark length (drawn even when
+        // gridlines are hidden), so subtract it or the flag overlaps the name.
+        const tickLen = yGrid.tickLength != null ? yGrid.tickLength : 8;
+        const off = yGrid.drawTicks !== false ? tickLen : 0;
         ctx.save();
         ctx.font = `${size}px ${family}`;
         for (const tick of yScale.ticks) {
@@ -149,7 +157,7 @@ const flagLabelsPlugin = {
             if (!img.complete || img.broken || !img.naturalWidth) continue;
             const w = Math.min(Math.round(FLAG_H * img.naturalWidth / img.naturalHeight), 26);
             const textW = ctx.measureText(name).width;
-            const labelLeft = chart.chartArea.left - padRight - textW;
+            const labelLeft = chart.chartArea.left - off - padRight - textW;
             const fx = labelLeft - FLAG_GAP - w;
             const fy = yScale.getPixelForTick(yScale.ticks.indexOf(tick)) - FLAG_H / 2;
             try { ctx.drawImage(img, fx, fy, w, FLAG_H); } catch (e) { /* decode race */ }
@@ -192,7 +200,10 @@ const lahnAxisPlugin = {
             const h = Math.round(size * 0.98);
             const w = Math.max(1, Math.round(h * img.naturalWidth / img.naturalHeight));
             const gap = 3;
+            // When gridlines are on, Chart.js offsets tick labels by the tick-mark
+            // length; account for that so the glyph doesn't overlap the number.
             const tickLen = (scale.options.grid && scale.options.grid.tickLength != null) ? scale.options.grid.tickLength : 8;
+            const off = (scale.options.grid && scale.options.grid.drawTicks === false) ? 0 : tickLen;
             const horizontal = scale.isHorizontal();
             const cb = (scale.options.ticks || {}).callback;
             ctx.save();
@@ -208,9 +219,9 @@ const lahnAxisPlugin = {
                 if (horizontal) {
                     const cx = scale.getPixelForTick(i);
                     gx = cx - textW / 2 - gap - w;
-                    gy = scale.top + tickLen + pad + size / 2 - h / 2; // below the axis line + tick marks
+                    gy = scale.top + off + pad + size / 2 - h / 2; // below the axis line + tick marks
                 } else {
-                    const numLeft = scale.position === 'right' ? scale.left + pad : scale.right - pad - textW;
+                    const numLeft = scale.position === 'right' ? scale.left + off + pad : scale.right - off - pad - textW;
                     gx = numLeft - gap - w;
                     gy = scale.getPixelForTick(i) - h / 2;
                 }
@@ -492,13 +503,19 @@ function renderYearView(opts = {}) {
     // ----- new snapshot + trend charts -----
     renderBubble();
     renderTreemap();
+    renderGdpMap();       // year-dependent (colours redraw each year)
+    renderConvergence();  // year-dependent (window ends at the selected year)
     if (opts.snapshot) {
         // year-independent trends don't change while the slider moves — just
-        // nudge the continent-area year marker (cheap redraw, no rebuild).
+        // nudge their year markers (cheap redraw, no rebuild).
         if (state.charts.continentArea) state.charts.continentArea.update('none');
+        if (state.charts.inequality) state.charts.inequality.update('none');
+        if (state.charts.sabove) state.charts.sabove.update('none');
     } else {
         renderContinentArea();
         renderCagr();
+        renderInequality();
+        renderSabove();
     }
 }
 
@@ -539,6 +556,7 @@ function renderCountryView() {
         },
         options: {
             responsive: true,
+            layout: { padding: { left: 22 } }, // room for the lahn glyph on the widest y label
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: tc.text } },
@@ -1053,6 +1071,7 @@ function renderContinentArea() {
         data: { labels: years, datasets },
         options: {
             responsive: true, maintainAspectRatio: false,
+            layout: { padding: { left: 22 } }, // room for the lahn glyph on the widest y label
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: tc.text, boxWidth: 12, font: { size: 10 } } },
@@ -1163,6 +1182,7 @@ function renderCompare() {
         data: { labels: years, datasets },
         options: {
             responsive: true, maintainAspectRatio: false,
+            layout: { padding: { left: 22 } }, // room for the lahn glyph on the widest y label
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: tc.text } },
@@ -1171,6 +1191,302 @@ function renderCompare() {
             scales,
         },
         plugins: [lahnAxisPlugin],
+    });
+}
+
+// ========================================================================
+//  Animated GDP world map (graduated coloured dots)
+// ========================================================================
+// A true fill-choropleth needs per-country polygons; Andah's map is a raster
+// with only centroid coords (js/andah-map-coords.js, in maps/map.png's
+// 8966x3943 pixel space), so we colour one dot per country and scrub the year
+// slider to animate. Colour = per-capita wealth (log sequential) or growth
+// (diverging red↔green, reusing growthColor).
+const GDP_MAP_SRC = 'maps/map.png';
+const GDP_MAP_W = 8966, GDP_MAP_H = 3943;
+let gdpMapImg = null;
+function gdpMapImage(onReady) {
+    if (gdpMapImg) return gdpMapImg;
+    gdpMapImg = new Image();
+    gdpMapImg.onload = () => onReady && onReady();
+    gdpMapImg.onerror = () => { gdpMapImg.broken = true; };
+    gdpMapImg.src = GDP_MAP_SRC;
+    return gdpMapImg;
+}
+// sequential wealth ramp (pale wheat -> deep blue), t in [0,1]
+function seqColor(t) {
+    if (t == null || !isFinite(t)) return 'rgba(150,150,150,0.4)';
+    const c = Math.max(0, Math.min(1, t));
+    const lo = [245, 235, 190], hi = [26, 76, 145];
+    const m = (a, b) => Math.round(a + (b - a) * c);
+    return `rgb(${m(lo[0], hi[0])},${m(lo[1], hi[1])},${m(lo[2], hi[2])})`;
+}
+
+function renderGdpMap() {
+    const canvas = $('chart-gdp-map');
+    if (!canvas) return;
+    const note = $('gdp-map-note');
+    if (!state.mapCoords.length) {
+        if (note) note.textContent = 'Map coordinates unavailable (js/andah-map-coords.js not loaded).';
+        return;
+    }
+    const img = gdpMapImage(() => renderGdpMap());
+    if (!img.complete || img.broken || !img.naturalWidth) {
+        if (img.broken && note) note.textContent = 'Map image could not be loaded.';
+        return;
+    }
+    const metric = ($('ctl-map-metric') || {}).value || 'perCap';
+    const year = state.year;
+
+    const pts = [];
+    let lo = Infinity, hi = -Infinity;
+    for (const c of state.countries) {
+        const coord = state.mapCoordByName.get(c.name);
+        if (!coord) continue;
+        const r = rowFor(c.name, year);
+        let v = null;
+        if (r) {
+            if (metric === 'growth') { if (r.growthDetermined) v = r.gdpGrowth; }
+            else if (r.determined && r.perCap > 0) v = r.perCap;
+        }
+        if (v != null && isFinite(v) && metric === 'perCap') { if (v < lo) lo = v; if (v > hi) hi = v; }
+        pts.push({ coord, name: c.name, v });
+    }
+
+    let colorFor;
+    if (metric === 'growth') colorFor = (v) => v == null ? null : growthColor(v);
+    else {
+        const llo = Math.log10(Math.max(lo, 1)), lhi = Math.log10(Math.max(hi, 10));
+        colorFor = (v) => v == null ? null : seqColor((Math.log10(v) - llo) / Math.max(lhi - llo, 1e-9));
+    }
+
+    const cssW = (canvas.parentElement.clientWidth) || 700;
+    const cssH = Math.round(cssW * GDP_MAP_H / GDP_MAP_W);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.height = cssH + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    ctx.drawImage(img, 0, 0, cssW, cssH);
+
+    const sx = cssW / GDP_MAP_W, sy = cssH / GDP_MAP_H;
+    const radius = Math.max(3, Math.min(11, cssW / 90));
+    const hits = [];
+    for (const p of pts) {
+        const x = p.coord.x * sx, y = p.coord.y * sy;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = colorFor(p.v) || 'rgba(150,150,150,0.4)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 1;
+        ctx.fill();
+        ctx.stroke();
+        hits.push({ name: p.name, v: p.v, x, y, r: radius });
+    }
+    canvas._hits = hits;
+    canvas._metric = metric;
+
+    const t = $('gdp-map-title');
+    if (t) t.textContent = `${metric === 'growth' ? 'GDP growth' : 'GDP per capita'} map — ${labelYear(year)}`;
+    const legend = $('gdp-map-legend');
+    if (legend) {
+        if (metric === 'growth') legend.innerHTML = '<span>Contraction</span><span class="gdp-grad"></span><span>Growth</span>';
+        else if (isFinite(lo) && isFinite(hi)) legend.innerHTML = `<span><span class="lahn-sym"></span>${fmtMoney(lo)}</span><span class="gdp-map-ramp"></span><span><span class="lahn-sym"></span>${fmtMoney(hi)}</span>`;
+        else legend.innerHTML = '';
+    }
+    if (note) {
+        const det = pts.filter((p) => p.v != null).length;
+        note.textContent = det ? '' : 'No determined data for this year yet — author some growth curves in Edit mode.';
+    }
+}
+function findMapHit(canvas, px, py) {
+    const hits = canvas._hits || [];
+    let best = null, bestD = Infinity;
+    for (const h of hits) {
+        const dx = px - h.x, dy = py - h.y, d = dx * dx + dy * dy;
+        if (d <= h.r * h.r * 1.8 && d < bestD) { best = h; bestD = d; }
+    }
+    return best;
+}
+
+// ========================================================================
+//  β-convergence scatter — do poor nations catch up?
+// ========================================================================
+function renderConvergence() {
+    const canvas = $('chart-convergence');
+    if (!canvas) return;
+    destroyChart('convergence');
+    const tc = themeColors();
+    const { min, max } = yearRange();
+    const winSel = $('ctl-conv-window');
+    let W = winSel ? Number(winSel.value) : 20;
+    if (!(W > 0)) W = max - min;                 // "Full span"
+    let end = state.year, start = end - W;
+    if (start < min) start = min;
+    if (end - start < 2) end = Math.min(max, start + 2);
+    const span = Math.max(1, end - start);
+
+    const pts = [];
+    for (const c of state.countries) {
+        const rs = rowFor(c.name, start), re = rowFor(c.name, end);
+        if (!rs || !re || !rs.determined || !re.determined) continue;
+        if (!(rs.perCap > 0) || !(re.perCap > 0)) continue;
+        const cagr = Math.pow(re.perCap / rs.perCap, 1 / span) - 1;
+        pts.push({ x: rs.perCap, y: cagr, name: c.name, color: colorOf(c.name) });
+    }
+
+    let line = [], slope = null;
+    if (pts.length >= 3) {
+        const xs = pts.map((p) => Math.log10(p.x)), ys = pts.map((p) => p.y);
+        const n = xs.length;
+        const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
+        let sxy = 0, sxx = 0;
+        for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; }
+        slope = sxx ? sxy / sxx : 0;
+        const b = my - slope * mx;
+        const xmin = Math.min(...pts.map((p) => p.x)), xmax = Math.max(...pts.map((p) => p.x));
+        line = [{ x: xmin, y: slope * Math.log10(xmin) + b }, { x: xmax, y: slope * Math.log10(xmax) + b }];
+    }
+
+    const t = $('conv-title');
+    if (t) t.textContent = `Do poor nations catch up? — per-capita growth ${start}→${end}`;
+    const sub = $('conv-sub');
+    if (sub) sub.textContent = slope == null ? 'Not enough determined data in this window yet.'
+        : slope < 0 ? '↓ Downward trend = convergence: poorer countries grew faster.'
+        : '↑ Upward trend = divergence: richer countries grew faster.';
+
+    state.charts.convergence = new Chart(canvas, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                { label: 'Countries', data: pts.map((p) => ({ x: p.x, y: p.y, _n: p.name })), pointBackgroundColor: pts.map((p) => p.color), pointBorderColor: 'rgba(0,0,0,0.35)', pointRadius: 4, pointHoverRadius: 6 },
+                { label: 'Trend', type: 'line', data: line, borderColor: tc.text, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false },
+            ],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    filter: (item) => item.dataset.label !== 'Trend',
+                    callbacks: { label: (ctx) => { const d = ctx.raw; return ` ${d._n}: per cap ${fmtMoney(d.x)}, growth ${fmtPct(d.y)}`; } },
+                },
+            },
+            scales: {
+                x: {
+                    type: 'logarithmic', lahn: true,
+                    title: { display: true, text: `GDP per capita in ${start}`, color: tc.muted },
+                    // declutter the log axis: only label 1/2/5 × 10ⁿ (also limits the lahn glyphs)
+                    ticks: { color: tc.muted, autoSkip: false, maxRotation: 0, callback: (v) => { const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; return (Math.abs(m - 1) < 0.05 || Math.abs(m - 2) < 0.05 || Math.abs(m - 5) < 0.05) ? fmtMoney(v) : ''; } },
+                    grid: { color: tc.grid },
+                },
+                y: { title: { display: true, text: 'Avg yearly per-capita growth', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtPct(v) }, grid: { color: tc.grid } },
+            },
+        },
+        plugins: [lahnAxisPlugin],
+    });
+}
+
+// ========================================================================
+//  Global inequality over time (between-country Gini of GDP per capita)
+// ========================================================================
+function weightedGini(vals, wts) {
+    const n = vals.length;
+    if (n < 2) return null;
+    let W = 0, mean = 0;
+    for (let i = 0; i < n; i++) { W += wts[i]; mean += wts[i] * vals[i]; }
+    if (W <= 0) return null;
+    mean /= W;
+    if (mean <= 0) return null;
+    let sum = 0;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) sum += wts[i] * wts[j] * Math.abs(vals[i] - vals[j]);
+    return sum / (2 * W * W * mean);
+}
+function renderInequality() {
+    const canvas = $('chart-inequality');
+    if (!canvas) return;
+    destroyChart('inequality');
+    const tc = themeColors();
+    const { min, max } = yearRange();
+    const weighted = !$('ctl-ineq-mode') || $('ctl-ineq-mode').value === 'weighted';
+    const years = [], gini = [];
+    for (let y = min; y <= max; y++) {
+        const vals = [], wts = [];
+        for (const c of state.countries) {
+            const r = rowFor(c.name, y);
+            if (!r || !r.determined || !(r.perCap > 0)) continue;
+            if (weighted && !(r.pop > 0)) continue;
+            vals.push(r.perCap);
+            wts.push(weighted ? r.pop : 1);
+        }
+        years.push(y);
+        gini.push(weightedGini(vals, wts));
+    }
+    state.charts.inequality = new Chart(canvas, {
+        type: 'line',
+        data: { labels: years, datasets: [{ label: 'Gini of GDP per capita', data: gini, borderColor: PALETTE[5], backgroundColor: withAlpha(PALETTE[5], 0.15), fill: true, pointRadius: 0, borderWidth: 2, tension: 0.15, spanGaps: true }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: (ctx) => ` Gini: ${ctx.parsed.y == null ? '–' : ctx.parsed.y.toFixed(3)}` } },
+            },
+            scales: {
+                x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+                y: { min: 0, ticks: { color: tc.muted, callback: (v) => v.toFixed(2) }, grid: { color: tc.grid }, title: { display: true, text: '0 = equal · 1 = unequal', color: tc.muted } },
+            },
+        },
+        plugins: [yearMarkerPlugin],
+    });
+}
+
+// ========================================================================
+//  Share of Andah living above income thresholds (development S-curves)
+// ========================================================================
+const SABOVE_THRESHOLDS = [1000, 2000, 5000, 10000, 20000];
+function renderSabove() {
+    const canvas = $('chart-sabove');
+    if (!canvas) return;
+    destroyChart('sabove');
+    const tc = themeColors();
+    const { min, max } = yearRange();
+    const years = [];
+    const series = SABOVE_THRESHOLDS.map(() => []);
+    for (let y = min; y <= max; y++) {
+        years.push(y);
+        let total = 0;
+        const above = SABOVE_THRESHOLDS.map(() => 0);
+        for (const c of state.countries) {
+            const r = rowFor(c.name, y);
+            if (!r || !r.determined || !(r.pop > 0) || !(r.perCap > 0)) continue;
+            total += r.pop;
+            for (let i = 0; i < SABOVE_THRESHOLDS.length; i++) if (r.perCap >= SABOVE_THRESHOLDS[i]) above[i] += r.pop;
+        }
+        for (let i = 0; i < SABOVE_THRESHOLDS.length; i++) series[i].push(total ? above[i] / total * 100 : null);
+    }
+    const datasets = SABOVE_THRESHOLDS.map((th, i) => {
+        const col = seqColor(0.12 + 0.88 * (i / Math.max(1, SABOVE_THRESHOLDS.length - 1)));
+        return { label: `≥ ${fmtMoney(th)}`, data: series[i], borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 2, tension: 0.15, spanGaps: true };
+    });
+    state.charts.sabove = new Chart(canvas, {
+        type: 'line',
+        data: { labels: years, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: tc.text, boxWidth: 12, font: { size: 10 } } },
+                tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y == null ? '–' : ctx.parsed.y.toFixed(1) + '%'}` } },
+            },
+            scales: {
+                x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+                y: { min: 0, max: 100, ticks: { color: tc.muted, callback: (v) => v + '%' }, grid: { color: tc.grid } },
+            },
+        },
+        plugins: [yearMarkerPlugin],
     });
 }
 
@@ -1233,6 +1549,36 @@ function bindEvents() {
         if (state.playTimer) { stopPlay(); startPlay(); } // restart at the new cadence
     });
     $('ctl-area-mode').addEventListener('change', renderContinentArea);
+    // new-visualization controls
+    if ($('ctl-map-metric')) $('ctl-map-metric').addEventListener('change', renderGdpMap);
+    if ($('ctl-conv-window')) $('ctl-conv-window').addEventListener('change', renderConvergence);
+    if ($('ctl-ineq-mode')) $('ctl-ineq-mode').addEventListener('change', renderInequality);
+    // GDP map hover tooltip + click-to-open-country
+    const mapCanvas = $('chart-gdp-map');
+    if (mapCanvas) {
+        const tip = $('gdp-map-tip');
+        mapCanvas.addEventListener('mousemove', (e) => {
+            const rect = mapCanvas.getBoundingClientRect();
+            const px = e.clientX - rect.left, py = e.clientY - rect.top;
+            const hit = findMapHit(mapCanvas, px, py);
+            if (hit && tip) {
+                const metric = mapCanvas._metric;
+                const glyph = metric === 'growth' ? '' : '<span class="lahn-sym"></span>';
+                const val = hit.v == null ? '–' : (metric === 'growth' ? fmtPct(hit.v) : `${glyph}${fmtMoney(hit.v)}`);
+                tip.hidden = false;
+                tip.style.left = Math.min(px + 12, rect.width - 8) + 'px';
+                tip.style.top = (py + 12) + 'px';
+                tip.innerHTML = `<strong>${hit.name}</strong><br>${metric === 'growth' ? 'GDP growth' : 'Per capita'}: ${val}`;
+                mapCanvas.style.cursor = 'pointer';
+            } else if (tip) { tip.hidden = true; mapCanvas.style.cursor = 'default'; }
+        });
+        mapCanvas.addEventListener('mouseleave', () => { if (tip) tip.hidden = true; });
+        mapCanvas.addEventListener('click', (e) => {
+            const rect = mapCanvas.getBoundingClientRect();
+            const hit = findMapHit(mapCanvas, e.clientX - rect.left, e.clientY - rect.top);
+            if (hit) { $('ctl-country').value = hit.name; switchTab('country'); }
+        });
+    }
     $('ctl-country').addEventListener('change', renderCountryView);
     $('ctl-compare').addEventListener('change', renderCompare);
     $('ctl-compare-metric').addEventListener('change', renderCompare);
@@ -1266,6 +1612,15 @@ function bindEvents() {
         state.edits = {};
         localStorage.removeItem(DRAFT_KEY);
         computeAll(); rerenderAll(); updateDirty();
+    });
+
+    // the GDP map is a hand-drawn canvas (not a responsive Chart.js chart), so
+    // redraw it on resize while its tab is visible.
+    let mapResizeRaf = null;
+    window.addEventListener('resize', () => {
+        if ($('view-year').classList.contains('gdp-hidden')) return;
+        if (mapResizeRaf) cancelAnimationFrame(mapResizeRaf);
+        mapResizeRaf = requestAnimationFrame(renderGdpMap);
     });
 
     new MutationObserver(rerenderAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -1324,6 +1679,10 @@ async function boot() {
     const hist = await histRes.json();
     state.history = hist.countries || [];
     for (const c of state.history) state.anchors.set(c.name, c.anchor);
+
+    // map centroids (bridged onto window by gdp-explorer.html)
+    state.mapCoords = Array.isArray(window.andahMapCoords) ? window.andahMapCoords : [];
+    state.mapCoordByName = new Map(state.mapCoords.map((c) => [c.name, c]));
 
     try {
         const gRes = await fetch(GROWTH_URL);

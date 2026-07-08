@@ -141,9 +141,26 @@
         .gdp-treemap-box .gdp-tm-val { opacity: 0.85; }
         .gdp-treemap-cont { position: absolute; pointer-events: none; font-size: 0.7rem; font-weight: 700; color: var(--text); opacity: 0.5; padding: 1px 3px; }
         .gdp-treemap-legend { align-items: center; }
-        .gdp-treemap-legend .gdp-grad {
+        .gdp-legend .gdp-grad {
             width: 130px; height: 10px; border-radius: 2px; display: inline-block;
             background: linear-gradient(to right, rgb(192, 57, 43), rgb(122, 127, 135), rgb(46, 139, 87));
+        }
+        /* animated GDP map */
+        .gdp-map-wrap { position: relative; }
+        .gdp-map-wrap canvas {
+            width: 100%; display: block; border: 1px solid var(--border-soft);
+            border-radius: 6px; background: var(--bg-sunken);
+        }
+        .gdp-map-legend { align-items: center; }
+        .gdp-map-legend .gdp-map-ramp {
+            width: 130px; height: 10px; border-radius: 2px; display: inline-block;
+            background: linear-gradient(to right, rgb(245, 235, 190), rgb(26, 76, 145));
+        }
+        .gdp-map-tip {
+            position: absolute; pointer-events: none; z-index: 3; white-space: nowrap;
+            background: var(--bg); color: var(--text); border: 1px solid var(--border);
+            border-radius: 5px; padding: 0.3rem 0.5rem; font-size: 0.8rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28); transform: translate(0, 0);
         }
     </style>
 </head>
@@ -260,6 +277,65 @@
                     <h3 id="cagr-title">Long-run growth champions (per-capita CAGR)</h3>
                     <div class="gdp-bar-wrap"><canvas id="chart-cagr"></canvas></div>
                 </div>
+
+                <!-- Animated GDP world map (graduated coloured dots) -->
+                <div class="gdp-chart-card">
+                    <div class="gdp-card-head">
+                        <h3 id="gdp-map-title">GDP map</h3>
+                        <label class="gdp-inline-ctl">Colour by
+                            <select id="ctl-map-metric">
+                                <option value="perCap" selected>GDP per capita</option>
+                                <option value="growth">GDP growth</option>
+                            </select>
+                        </label>
+                    </div>
+                    <p class="gdp-note">Each dot is a country at its map position, coloured by the metric for the selected year — drag the slider or press Play to watch wealth spread across Andah. Click a dot to open that country. (Dots rather than filled borders: the base map is a raster with only centre points.)</p>
+                    <div class="gdp-map-wrap">
+                        <canvas id="chart-gdp-map"></canvas>
+                        <div class="gdp-map-tip" id="gdp-map-tip" hidden></div>
+                    </div>
+                    <div class="gdp-legend gdp-map-legend" id="gdp-map-legend"></div>
+                    <p class="gdp-note" id="gdp-map-note"></p>
+                </div>
+
+                <!-- β-convergence: do poor nations catch up? -->
+                <div class="gdp-chart-card">
+                    <div class="gdp-card-head">
+                        <h3 id="conv-title">Do poor nations catch up?</h3>
+                        <label class="gdp-inline-ctl">Window
+                            <select id="ctl-conv-window">
+                                <option value="10">10 years</option>
+                                <option value="20" selected>20 years</option>
+                                <option value="0">Full span</option>
+                            </select>
+                        </label>
+                    </div>
+                    <p class="gdp-note" id="conv-sub"></p>
+                    <p class="gdp-note">x = how rich a country was at the window's start (log scale); y = its average yearly per-capita growth since. A downward trend means poorer nations grew faster (β-convergence). The window ends at the selected year — scrub it to animate.</p>
+                    <div class="gdp-tall-wrap"><canvas id="chart-convergence"></canvas></div>
+                </div>
+
+                <!-- Global inequality over time -->
+                <div class="gdp-chart-card">
+                    <div class="gdp-card-head">
+                        <h3>Global inequality over time</h3>
+                        <label class="gdp-inline-ctl">Weighting
+                            <select id="ctl-ineq-mode">
+                                <option value="weighted" selected>by population</option>
+                                <option value="unweighted">per country</option>
+                            </select>
+                        </label>
+                    </div>
+                    <p class="gdp-note">Between-country Gini of GDP per capita each year (0 = every country equal, 1 = maximally unequal). Population weighting counts populous countries more. Rising = divergence, falling = convergence.</p>
+                    <div class="gdp-tall-wrap"><canvas id="chart-inequality"></canvas></div>
+                </div>
+
+                <!-- Share of Andah above an income line -->
+                <div class="gdp-chart-card">
+                    <h3>Share of Andah above an income line</h3>
+                    <p class="gdp-note">Percentage of world population living in countries whose GDP per capita is at least each threshold (per-capita lahn). Rising lines = development lifting people over each line.</p>
+                    <div class="gdp-tall-wrap"><canvas id="chart-sabove"></canvas></div>
+                </div>
             </div>
         </section>
 
@@ -345,6 +421,10 @@
 <script src="js/vendor/chart.umd.min.js"></script>
 <script src="js/vendor/chartjs-plugin-dragdata.min.js"></script>
 <script src="js/script.js"></script>
+<!-- Country map centroids for the animated GDP map. Classic script declares a
+     top-level const (invisible to modules), so bridge it onto window. -->
+<script src="js/andah-map-coords.js"></script>
+<script>try { window.andahMapCoords = andahMapCoords; } catch (e) { window.andahMapCoords = []; }</script>
 <script type="module" src="js/gdp-explorer.js"></script>
 </body>
 </html>

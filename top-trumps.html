@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .lahn-sym {
+            display: inline-block; width: 0.82em; height: 0.69em;
+            background: url("Lahn.png") no-repeat center / contain;
+            vertical-align: -0.02em; margin-right: 0.14em;
+        }
+        [data-theme="dark"] .lahn-sym { background-image: url("Lahn-white.png"); }
+        .tt-status { text-align: center; font-size: 1rem; margin: 0.5rem 0 1rem; min-height: 1.4em; color: var(--text); }
+        .tt-status strong { color: var(--correct-text); }
+        .tt-arena { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: start; }
+        @media (max-width: 720px) { .tt-arena { grid-template-columns: 1fr; } .tt-vs { order: -1; } }
+        .tt-card {
+            background: var(--bg-soft); border: 1px solid var(--border-soft); border-radius: 10px;
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+        .tt-card-head { padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--border-soft); display: flex; align-items: center; gap: 0.6rem; }
+        .tt-card-head img { width: 44px; height: 29px; object-fit: cover; border: 1px solid var(--border-soft); border-radius: 3px; flex: 0 0 auto; }
+        .tt-card-head h3 { margin: 0; font-family: var(--serif); font-size: 1.15rem; }
+        .tt-owner { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+        .tt-stats { list-style: none; margin: 0; padding: 0.4rem; display: grid; gap: 0.3rem; }
+        .tt-stat {
+            display: flex; justify-content: space-between; align-items: center; gap: 0.6rem;
+            width: 100%; text-align: left; font: inherit; font-size: 0.92rem;
+            background: var(--bg); color: var(--text); border: 1px solid var(--border-soft);
+            border-radius: 6px; padding: 0.5rem 0.7rem;
+        }
+        button.tt-stat { cursor: pointer; }
+        button.tt-stat:not(:disabled):hover { background: var(--bg-sunken); border-color: var(--border); }
+        button.tt-stat:disabled { cursor: default; }
+        .tt-stat .tt-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .tt-stat.chosen { background: var(--correct-bg); border-color: var(--correct-border); color: var(--correct-text); }
+        .tt-stat.chosen .tt-val { color: var(--correct-text); }
+        .tt-stat.lost { background: var(--wrong-bg); border-color: var(--wrong-border); color: var(--wrong-text); }
+        .tt-stat.lost .tt-val { color: var(--wrong-text); }
+        .tt-facedown { align-items: center; justify-content: center; min-height: 220px; color: var(--muted); font-family: var(--serif); font-size: 1.1rem; padding: 2rem 1rem; text-align: center; }
+        .tt-vs { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; padding-top: 2.4rem; }
+        .tt-vs-badge { font-family: var(--serif); font-weight: 700; font-size: 1.2rem; color: var(--muted); }
+        .tt-round-result { font-weight: 700; text-align: center; min-height: 1.4em; }
+        .tt-piles { display: flex; justify-content: center; gap: 1.5rem; margin: 1.1rem 0 0.3rem; }
+        .tt-pile { text-align: center; }
+        .tt-pile strong { display: block; font-size: 1.5rem; font-family: var(--serif); }
+        .tt-pile.lead strong { color: var(--correct-text); }
+        .tt-actions { display: flex; justify-content: center; margin: 0.8rem 0; }
+        .tt-actions button { border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; padding: 0.5rem 1.2rem; border-radius: 6px; cursor: pointer; }
+        .tt-actions button:hover { background: var(--bg-sunken); }
+    </style>
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah Economy Games collection</p>
+            <h1 class="huge-title">Economic Top Trumps</h1>
+            <p class="subtitle">Pick a stat on your card. Beat the opponent's hidden card and win both — clear the deck to win.</p>
+        </div>
+
+        <p class="tt-status" id="status">Loading…</p>
+
+        <div class="tt-arena">
+            <div class="tt-card" id="card-you"></div>
+            <div class="tt-vs">
+                <span class="tt-vs-badge">VS</span>
+                <span class="tt-round-result" id="round-result"></span>
+            </div>
+            <div class="tt-card" id="card-cpu"></div>
+        </div>
+
+        <div class="tt-piles">
+            <div class="tt-pile" id="pile-you"><label>Your cards</label><strong>0</strong></div>
+            <div class="tt-pile" id="pile-cpu"><label>Opponent</label><strong>0</strong></div>
+        </div>
+
+        <div class="tt-actions">
+            <button type="button" id="btn-new">New game</button>
+        </div>
+
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="js/script.js"></script>
+<script src="js/andah-stats.js"></script>
+<script>
+    const $ = (id) => document.getElementById(id);
+    const flagUrl = (name) => `flags/${encodeURIComponent(name)}.png`;
+
+    function compact(v) {
+        const a = Math.abs(v);
+        if (a >= 1e12) return (v / 1e12).toFixed(2) + 'T';
+        if (a >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+        if (a >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+        if (a >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+        return Math.round(v).toLocaleString('en-US');
+    }
+    const lahnC = (v) => `<span class="lahn-sym"></span>${compact(v)}`;
+    const lahnFull = (v) => `<span class="lahn-sym"></span>${Math.round(v).toLocaleString('en-US')}`;
+
+    const STATS = [
+        { key: 'population', label: 'Population', fmt: (v) => compact(v) },
+        { key: 'gdpNominal', label: 'GDP', fmt: lahnC },
+        { key: 'gdpPerNominal', label: 'GDP per capita', fmt: lahnFull },
+        { key: 'gdpPpp', label: 'GDP (PPP)', fmt: lahnC },
+        { key: 'areaKm', label: 'Area', fmt: (v) => compact(v) + ' km²' },
+        { key: 'density', label: 'Pop density', fmt: (v) => v.toFixed(1) + ' /km²', derive: (c) => c.areaKm ? c.population / c.areaKm : 0 },
+    ];
+    const valOf = (c, s) => s.derive ? s.derive(c) : (c[s.key] || 0);
+
+    let deck = [];         // full pool of usable countries
+    let norm = {};         // stat.key -> {min,max} for CPU strategy
+    let you = [], cpu = [], spoils = [];
+    let leader = 'you';    // who chooses this round
+    let locked = false, rounds = 0;
+    const MAX_ROUNDS = 90;
+
+    function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+    function setup() {
+        // andah-stats.js declares a top-level `const andahStats` — visible to
+        // sibling classic scripts by bare name, but NOT as window.andahStats.
+        deck = (typeof andahStats !== 'undefined' ? andahStats : []).filter((c) => c.population > 0 && c.areaKm > 0 && c.gdpNominal > 0);
+        for (const s of STATS) {
+            let mn = Infinity, mx = -Infinity;
+            for (const c of deck) { const v = valOf(c, s); if (v < mn) mn = v; if (v > mx) mx = v; }
+            norm[s.key] = { min: mn, max: mx };
+        }
+    }
+
+    function newGame() {
+        const pool = shuffle([...deck]);
+        const half = Math.floor(pool.length / 2);
+        you = pool.slice(0, half);
+        cpu = pool.slice(half, half * 2);
+        spoils = [];
+        leader = 'you';
+        rounds = 0;
+        locked = false;
+        $('round-result').innerText = '';
+        startRound();
+    }
+
+    function updatePiles() {
+        $('pile-you').querySelector('strong').innerText = you.length;
+        $('pile-cpu').querySelector('strong').innerText = cpu.length;
+        $('pile-you').classList.toggle('lead', you.length >= cpu.length);
+        $('pile-cpu').classList.toggle('lead', cpu.length > you.length);
+    }
+
+    function statRow(country, stat, opts) {
+        opts = opts || {};
+        const v = valOf(country, stat);
+        const tag = opts.clickable ? 'button' : 'div';
+        const cls = ['tt-stat', opts.state || ''].join(' ').trim();
+        const attr = opts.clickable ? ` type="button" data-stat="${stat.key}"` : '';
+        const valHtml = opts.hideVal ? '<span class="tt-val">?</span>' : `<span class="tt-val">${stat.fmt(v)}</span>`;
+        return `<li><${tag} class="${cls}"${attr}><span>${stat.label}</span>${valHtml}</${tag}></li>`;
+    }
+
+    function renderCard(el, country, owner, opts) {
+        opts = opts || {};
+        el.classList.remove('tt-facedown');
+        el.innerHTML = `
+            <div class="tt-card-head">
+                <img src="${flagUrl(country.name)}" alt="" onerror="this.style.visibility='hidden'">
+                <div><div class="tt-owner">${owner}</div><h3>${country.name}</h3></div>
+            </div>
+            <ul class="tt-stats">${STATS.map((s) => statRow(country, s, opts)).join('')}</ul>`;
+    }
+
+    function renderFacedown(el, owner) {
+        el.classList.add('tt-facedown');
+        el.innerHTML = `<div class="tt-owner">${owner}</div><div>Hidden card</div>`;
+    }
+
+    function startRound() {
+        if (!you.length || !cpu.length || rounds >= MAX_ROUNDS) return endGame();
+        locked = false;
+        rounds++;
+        $('round-result').innerText = '';
+        updatePiles();
+        const pCard = you[0], cCard = cpu[0];
+        const yourTurn = leader === 'you';
+        renderCard($('card-you'), pCard, 'Your card', { clickable: yourTurn });
+        renderFacedown($('card-cpu'), 'Opponent');
+        if (yourTurn) {
+            $('status').innerHTML = 'Your turn — <strong>pick a stat</strong> you think wins.';
+            $('card-you').querySelectorAll('button.tt-stat').forEach((b) => b.addEventListener('click', () => choose(b.dataset.stat)));
+        } else {
+            $('status').innerText = 'Opponent is choosing a stat…';
+            setTimeout(() => choose(cpuChoose(cCard)), 900);
+        }
+    }
+
+    // CPU leads with its relatively strongest stat (highest normalised value).
+    function cpuChoose(card) {
+        let best = STATS[0], bestN = -1;
+        for (const s of STATS) {
+            const n = norm[s.key];
+            const t = n.max > n.min ? (valOf(card, s) - n.min) / (n.max - n.min) : 0;
+            if (t > bestN) { bestN = t; best = s; }
+        }
+        return best.key;
+    }
+
+    function choose(statKey) {
+        if (locked) return;
+        locked = true;
+        const stat = STATS.find((s) => s.key === statKey);
+        const pCard = you[0], cCard = cpu[0];
+        // reveal both, with the chosen stat highlighted
+        renderCard($('card-you'), pCard, 'Your card', { clickable: false });
+        renderCard($('card-cpu'), cCard, 'Opponent', { clickable: false });
+        const pv = valOf(pCard, stat), cv = valOf(cCard, stat);
+        const mark = (el, win) => { const row = [...el.querySelectorAll('.tt-stat')].find((r) => r.querySelector('span').innerText === stat.label); if (row) row.classList.add(win ? 'chosen' : 'lost'); };
+
+        let msg;
+        if (pv === cv) {
+            spoils.push(you.shift(), cpu.shift());
+            msg = `Tie on ${stat.label}! Both cards go to the pot (${spoils.length}).`;
+            mark($('card-you'), true); mark($('card-cpu'), true);
+        } else {
+            const youWin = pv > cv;
+            mark($('card-you'), youWin); mark($('card-cpu'), !youWin);
+            const p = you.shift(), c = cpu.shift();
+            const pot = spoils.splice(0, spoils.length);
+            if (youWin) { you.push(p, c, ...pot); leader = 'you'; msg = `You win with ${stat.fmt(pv)} vs ${stat.fmt(cv)}.`; }
+            else { cpu.push(c, p, ...pot); leader = 'cpu'; msg = `Opponent wins with ${stat.fmt(cv)} vs ${stat.fmt(pv)}.`; }
+        }
+        $('round-result').innerHTML = msg;
+        $('status').innerHTML = '';
+        updatePiles();
+        setTimeout(startRound, 1900);
+    }
+
+    function endGame() {
+        locked = true;
+        let msg;
+        if (you.length && !cpu.length) msg = '🏆 You cleared the deck — you win!';
+        else if (cpu.length && !you.length) msg = 'The opponent took every card. Try again!';
+        else msg = you.length > cpu.length ? `Time! You win on cards, ${you.length} to ${cpu.length}.`
+            : you.length < cpu.length ? `Time! Opponent wins on cards, ${cpu.length} to ${you.length}.`
+            : `Time! It's a dead heat, ${you.length} each.`;
+        $('status').innerHTML = `<strong>${msg}</strong>`;
+        $('round-result').innerText = '';
+    }
+
+    $('btn-new').addEventListener('click', newGame);
+
+    if (typeof andahStats !== 'undefined' && Array.isArray(andahStats) && andahStats.length) {
+        setup(); newGame();
+    } else {
+        $('status').innerText = 'Could not load country stats (js/andah-stats.js).';
+    }
+</script>
+</body>
+</html>

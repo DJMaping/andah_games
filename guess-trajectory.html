@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .lahn-sym {
+            display: inline-block; width: 0.82em; height: 0.69em;
+            background: url("Lahn.png") no-repeat center / contain;
+            vertical-align: -0.02em; margin-right: 0.14em;
+        }
+        [data-theme="dark"] .lahn-sym { background-image: url("Lahn-white.png"); }
+        .traj-head { display: flex; align-items: center; gap: 0.6rem; justify-content: center; margin: 0.25rem 0 0.75rem; }
+        .traj-head img { width: 34px; height: 22px; object-fit: cover; border: 1px solid var(--border-soft); border-radius: 2px; }
+        .traj-title { font-family: var(--serif); font-size: 1.35rem; font-weight: 700; }
+        .traj-wrap { position: relative; height: 380px; background: var(--bg-soft); border: 1px solid var(--border-soft); border-radius: 8px; padding: 0.75rem; }
+        .traj-readout { text-align: center; font-size: 1rem; margin: 0.85rem 0 0.3rem; color: var(--text); }
+        .traj-readout strong { font-size: 1.15rem; }
+        .traj-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin: 0.9rem 0; }
+        .traj-actions button {
+            border: 1px solid var(--border); background: var(--bg); color: var(--text);
+            font: inherit; font-size: 0.95rem; padding: 0.5rem 1.1rem; border-radius: 6px; cursor: pointer;
+        }
+        .traj-actions button:hover { background: var(--bg-sunken); }
+        .traj-actions button.primary { background: var(--correct-bg); color: var(--correct-text); border-color: var(--correct-border); font-weight: 700; }
+        .traj-hint { text-align: center; }
+    </style>
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah Economy Games collection</p>
+            <h1 class="huge-title">Guess the Trajectory</h1>
+            <p class="subtitle">You see the first stretch of a mystery country's GDP per capita. Drag the purple endpoint to predict where it ends, then reveal.</p>
+        </div>
+
+        <div class="traj-head">
+            <img id="traj-flag" alt="" hidden>
+            <span class="traj-title" id="traj-title">Mystery country</span>
+        </div>
+
+        <div class="traj-wrap"><canvas id="traj-chart"></canvas></div>
+
+        <p class="traj-readout" id="traj-readout"></p>
+        <p class="gdp-hint traj-hint" id="traj-result" aria-live="polite"></p>
+
+        <div class="traj-actions">
+            <button type="button" id="btn-reveal" class="primary">Reveal answer</button>
+            <button type="button" id="btn-next">New country</button>
+        </div>
+
+        <div class="score-panel">
+            <div class="score-block"><label>Total score</label><strong id="score">0</strong></div>
+            <div class="score-block"><label>Best round</label><strong id="highscore">0%</strong></div>
+        </div>
+
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<script src="js/vendor/chart.umd.min.js"></script>
+<script src="js/vendor/chartjs-plugin-dragdata.min.js"></script>
+<script src="js/script.js"></script>
+<script src="js/gdp-series.js"></script>
+<script>
+    const HS_KEY = 'guessTrajectoryBestPct';
+    const $ = (id) => document.getElementById(id);
+    const rint = (n) => Math.floor(Math.random() * n);
+    const lahnStr = (v) => `<span class="lahn-sym" role="img" aria-label="lahn"></span>${Math.round(v).toLocaleString('en-US')}`;
+
+    let series = null, chart = null, round = null;
+    let totalScore = 0, bestPct = 0;
+
+    function themeColors() {
+        const cs = getComputedStyle(document.documentElement);
+        return {
+            text: cs.getPropertyValue('--text').trim() || '#202122',
+            muted: cs.getPropertyValue('--muted').trim() || '#54595d',
+            grid: cs.getPropertyValue('--border-soft').trim() || '#c8ccd1',
+        };
+    }
+
+    function eligibleCountries() {
+        // fully-determined curves make the cleanest puzzles
+        const full = series.countries.filter((c) => c.rows.every((r) => r.determined && r.perCap > 0));
+        if (full.length >= 10) return full;
+        return series.countries.filter((c) => c.rows.filter((r) => r.determined && r.perCap > 0).length >= (c.rows.length * 0.8));
+    }
+
+    function newRound() {
+        const pool = eligibleCountries();
+        if (!pool.length) { $('traj-result').innerText = 'Not enough determined GDP history yet.'; return; }
+        const country = pool[rint(pool.length)];
+        const asc = [...country.rows].reverse(); // oldest -> newest
+        const minY = asc[0].earthYear, maxY = asc[asc.length - 1].earthYear;
+        const splitY = minY + Math.round((maxY - minY) * 0.6);
+        const splitIdx = asc.findIndex((r) => r.earthYear === splitY);
+        const lastKnown = asc[splitIdx].perCap;
+        const actualEnd = asc[asc.length - 1].perCap;
+
+        round = { country, asc, minY, maxY, splitY, splitIdx, lastKnown, actualEnd, guess: lastKnown, revealed: false };
+
+        // reset UI
+        $('traj-flag').hidden = true;
+        $('traj-title').innerText = 'Mystery country';
+        $('traj-result').innerText = '';
+        $('btn-reveal').disabled = false;
+        renderChart();
+        updateReadout();
+    }
+
+    function renderChart() {
+        const tc = themeColors();
+        const { asc, splitIdx, lastKnown, guess, maxY, revealed, actualEnd } = round;
+        const labels = asc.map((r) => r.earthYear);
+        const known = asc.map((r, i) => i <= splitIdx ? r.perCap : null);
+        // guess line: anchor at split, draggable point at the final year
+        const guessData = asc.map((r, i) => i === splitIdx ? lastKnown : (i === asc.length - 1 ? guess : null));
+        const actual = revealed ? asc.map((r, i) => i >= splitIdx ? r.perCap : null) : asc.map(() => null);
+
+        let axisMax = Math.max(lastKnown * 3.2, guess * 1.1);
+        if (revealed) axisMax = Math.max(axisMax, actualEnd * 1.15);
+
+        const datasets = [
+            { label: 'Known so far', data: known, borderColor: '#4269d0', backgroundColor: '#4269d0', pointRadius: 0, borderWidth: 2.5, dragData: false, tension: 0.1 },
+            { label: 'Your guess', data: guessData, borderColor: '#a463f2', backgroundColor: '#a463f2', pointRadius: (ctx) => ctx.dataIndex === asc.length - 1 ? 7 : (ctx.dataIndex === splitIdx ? 3 : 0), pointHoverRadius: (ctx) => ctx.dataIndex === asc.length - 1 ? 9 : 0, borderWidth: 2, borderDash: [6, 4], dragData: true, spanGaps: true, tension: 0 },
+        ];
+        if (revealed) datasets.push({ label: 'Actual', data: actual, borderColor: '#3ca951', backgroundColor: '#3ca951', pointRadius: 0, borderWidth: 2.5, dragData: false, tension: 0.1 });
+
+        const endIdx = asc.length - 1;
+        const cfg = {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { labels: { color: tc.text, filter: (it) => it.text !== 'Your guess' || true } },
+                    tooltip: { enabled: revealed, callbacks: { label: (c) => c.parsed.y == null ? null : ` ${c.dataset.label}: ${Math.round(c.parsed.y).toLocaleString('en-US')}` } },
+                    dragData: round.revealed ? false : {
+                        round: 0, dragX: false,
+                        onDragStart: (e, di, idx) => { if (!(di === 1 && idx === endIdx)) return false; },
+                        onDrag: (e, di, idx, value) => {
+                            if (di !== 1 || idx !== endIdx) return false;
+                            round.guess = Math.max(0, value);
+                            updateReadout();
+                        },
+                        onDragEnd: (e, di, idx, value) => { if (di === 1 && idx === endIdx) { round.guess = Math.max(0, value); updateReadout(); } },
+                    },
+                },
+                scales: {
+                    x: { ticks: { color: tc.muted, maxTicksLimit: 12 }, grid: { display: false } },
+                    y: { min: 0, max: axisMax, title: { display: true, text: 'GDP per capita', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => Math.round(v).toLocaleString('en-US') }, grid: { color: tc.grid } },
+                },
+            },
+        };
+        if (chart) chart.destroy();
+        chart = new Chart($('traj-chart'), cfg);
+    }
+
+    function updateReadout() {
+        if (!round) return;
+        $('traj-readout').innerHTML = round.revealed
+            ? `Actual: <strong>${lahnStr(round.actualEnd)}</strong> · your guess: ${lahnStr(round.guess)} (${round.maxY})`
+            : `Your guess for <strong>${round.maxY}</strong>: <strong>${lahnStr(round.guess)}</strong> per capita — drag the purple dot`;
+    }
+
+    function reveal() {
+        if (!round || round.revealed) return;
+        round.revealed = true;
+        $('btn-reveal').disabled = true;
+        const err = Math.abs(round.guess - round.actualEnd) / round.actualEnd;
+        const pct = Math.max(0, Math.round(100 * (1 - err)));
+        const pts = Math.max(0, Math.round(100 - err * 167));
+        totalScore += pts;
+        if (pct > bestPct) { bestPct = pct; localStorage.setItem(HS_KEY, String(bestPct)); }
+        $('score').innerText = totalScore;
+        $('highscore').innerText = bestPct + '%';
+
+        const flag = $('traj-flag');
+        flag.src = `flags/${encodeURIComponent(round.country.name)}.png`;
+        flag.onerror = () => { flag.hidden = true; };
+        flag.hidden = false;
+        $('traj-title').innerText = round.country.name;
+        $('traj-result').innerHTML = `${pct}% accurate — <strong>+${pts}</strong> points. You guessed ${lahnStr(round.guess)}; ${round.country.name} actually reached ${lahnStr(round.actualEnd)}.`;
+        renderChart();
+        updateReadout();
+    }
+
+    $('btn-reveal').addEventListener('click', reveal);
+    $('btn-next').addEventListener('click', newRound);
+    new MutationObserver(() => { if (round) renderChart(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    bestPct = Number(localStorage.getItem(HS_KEY)) || 0;
+    $('highscore').innerText = bestPct + '%';
+    $('traj-title').innerText = 'Loading…';
+    loadGdpSeries().then((s) => { series = s; newRound(); })
+        .catch(() => { $('traj-title').innerText = 'Could not load GDP history'; });
+</script>
+</body>
+</html>
