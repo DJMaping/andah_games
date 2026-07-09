@@ -56,6 +56,22 @@
         }
         .gdp-chart-card h3 { margin: 0 0 0.5rem; font-size: 1rem; }
         .gdp-bar-wrap { position: relative; }
+        /* ranked horizontal bars rendered as real HTML (searchable names + <img> flags) */
+        .gdp-hbars { display: flex; flex-direction: column; gap: 3px; }
+        .gdp-hbar-row {
+            display: grid; grid-template-columns: 20px minmax(4.5rem, 9rem) 1fr max-content;
+            align-items: center; gap: 0.55rem; width: 100%; text-align: left;
+            background: none; border: none; color: var(--text); font: inherit;
+            padding: 2px 4px; border-radius: 4px;
+        }
+        button.gdp-hbar-row { cursor: pointer; }
+        button.gdp-hbar-row:hover { background: var(--bg-sunken); }
+        .gdp-hbar-flag { width: 20px; height: 13px; object-fit: cover; border: 1px solid var(--border-soft); border-radius: 2px; display: block; }
+        .gdp-hbar-name { font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gdp-hbar-track { position: relative; height: 14px; background: var(--bg-sunken); border-radius: 3px; overflow: hidden; min-width: 30px; }
+        .gdp-hbar-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 3px; }
+        .gdp-hbar-value { font-size: 0.82rem; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+        .gdp-hbar-row.is-other .gdp-hbar-name { color: var(--muted); font-style: italic; }
         .gdp-pie-wrap { position: relative; max-width: 420px; margin: 0 auto; }
         .gdp-table-wrap { overflow-x: auto; margin-top: 1.25rem; }
         table.gdp-table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
@@ -145,23 +161,6 @@
             width: 130px; height: 10px; border-radius: 2px; display: inline-block;
             background: linear-gradient(to right, rgb(192, 57, 43), rgb(122, 127, 135), rgb(46, 139, 87));
         }
-        /* animated GDP map */
-        .gdp-map-wrap { position: relative; }
-        .gdp-map-wrap canvas {
-            width: 100%; display: block; border: 1px solid var(--border-soft);
-            border-radius: 6px; background: var(--bg-sunken);
-        }
-        .gdp-map-legend { align-items: center; }
-        .gdp-map-legend .gdp-map-ramp {
-            width: 130px; height: 10px; border-radius: 2px; display: inline-block;
-            background: linear-gradient(to right, rgb(245, 235, 190), rgb(26, 76, 145));
-        }
-        .gdp-map-tip {
-            position: absolute; pointer-events: none; z-index: 3; white-space: nowrap;
-            background: var(--bg); color: var(--text); border: 1px solid var(--border);
-            border-radius: 5px; padding: 0.3rem 0.5rem; font-size: 0.8rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28); transform: translate(0, 0);
-        }
     </style>
 </head>
 <body>
@@ -218,6 +217,11 @@
                         <option value="growth">GDP growth (total)</option>
                     </select>
                 </label>
+                <label>Continent
+                    <select id="ctl-continent">
+                        <option value="all" selected>All continents</option>
+                    </select>
+                </label>
                 <label>Top
                     <input type="number" id="ctl-topn" min="3" max="172" step="1" value="18" style="width:4.2rem">
                     <span>countries + Others</span>
@@ -234,7 +238,7 @@
             <div class="gdp-charts">
                 <div class="gdp-chart-card">
                     <h3 id="bar-title">Total GDP</h3>
-                    <div class="gdp-bar-wrap"><canvas id="chart-bar"></canvas></div>
+                    <div class="gdp-bar-wrap"><div class="gdp-hbars" id="bar-list"></div></div>
                     <div class="gdp-legend" id="bar-legend"></div>
                 </div>
                 <div class="gdp-chart-card">
@@ -275,27 +279,7 @@
                 </div>
                 <div class="gdp-chart-card">
                     <h3 id="cagr-title">Long-run growth champions (per-capita CAGR)</h3>
-                    <div class="gdp-bar-wrap"><canvas id="chart-cagr"></canvas></div>
-                </div>
-
-                <!-- Animated GDP world map (graduated coloured dots) -->
-                <div class="gdp-chart-card">
-                    <div class="gdp-card-head">
-                        <h3 id="gdp-map-title">GDP map</h3>
-                        <label class="gdp-inline-ctl">Colour by
-                            <select id="ctl-map-metric">
-                                <option value="perCap" selected>GDP per capita</option>
-                                <option value="growth">GDP growth</option>
-                            </select>
-                        </label>
-                    </div>
-                    <p class="gdp-note">Each dot is a country at its map position, coloured by the metric for the selected year — drag the slider or press Play to watch wealth spread across Andah. Click a dot to open that country. (Dots rather than filled borders: the base map is a raster with only centre points.)</p>
-                    <div class="gdp-map-wrap">
-                        <canvas id="chart-gdp-map"></canvas>
-                        <div class="gdp-map-tip" id="gdp-map-tip" hidden></div>
-                    </div>
-                    <div class="gdp-legend gdp-map-legend" id="gdp-map-legend"></div>
-                    <p class="gdp-note" id="gdp-map-note"></p>
+                    <div class="gdp-bar-wrap"><div class="gdp-hbars" id="cagr-list"></div></div>
                 </div>
 
                 <!-- β-convergence: do poor nations catch up? -->
@@ -421,10 +405,6 @@
 <script src="js/vendor/chart.umd.min.js"></script>
 <script src="js/vendor/chartjs-plugin-dragdata.min.js"></script>
 <script src="js/script.js"></script>
-<!-- Country map centroids for the animated GDP map. Classic script declares a
-     top-level const (invisible to modules), so bridge it onto window. -->
-<script src="js/andah-map-coords.js"></script>
-<script>try { window.andahMapCoords = andahMapCoords; } catch (e) { window.andahMapCoords = []; }</script>
 <script type="module" src="js/gdp-explorer.js"></script>
 </body>
 </html>

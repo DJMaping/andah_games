@@ -58,7 +58,7 @@ function renderSelected(container, ctx) {
         <button type="button" class="flight-back" data-action="clear">← Network overview</button>
         <div class="flight-card">
             <div class="flight-card-head">
-                <img class="flight-flag" src="flags/${encodeURIComponent(a.country)}.png" alt="" onerror="this.style.display='none'">
+                <img class="flight-flag" src="flags/${encodeURIComponent(a.country)}.png" alt="" decoding="async" onerror="this.style.display='none'">
                 <div>
                     <h2 class="flight-city">${esc(a.city)} ${a.isHub ? '<span class="flight-tag">hub</span>' : ''}</h2>
                     <p class="flight-sub">${esc(a.country)}</p>

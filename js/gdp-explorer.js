@@ -45,9 +45,8 @@ const state = {
     continents: new Map(),
     continentColors: new Map(),
     anchors: new Map(),
-    mapCoords: [],           // [{name, x, y}] centroids in maps/map.png pixel space
-    mapCoordByName: new Map(),
     year: 2015,
+    continentFilter: 'all', // View 1 scope: 'all' or a continent name
     mode: 'view',         // 'view' | 'edit'
     charts: {},
     playTimer: null,      // setInterval handle for the racing-bar animation
@@ -108,63 +107,13 @@ function continentOf(name) { return state.continents.get(name) || 'Unknown'; }
 function colorOf(name) {
     return state.continentColors.get(continentOf(name)) || CONTINENT_COLORS.Unknown;
 }
-
-// ---------- flag images for horizontal bar-chart labels ----------
-// Chart.js can't embed images in tick labels, so the two country bar charts
-// (top-N metric + CAGR) draw a small flag just left of each country's y-axis
-// name via flagLabelsPlugin. Flags live at flags/<Name>.png (same convention
-// the games use). Images are cached module-wide so switching years is instant.
-const FLAG_H = 13;    // flag height in px (~ the tick font size)
-const FLAG_GAP = 5;   // gap between flag and the name
-const FLAG_PAD = 36;  // left padding reserved on the chart for the flag column
-const flagImages = new Map(); // name -> HTMLImageElement (may still be loading)
-
-function flagImage(name, onReady) {
-    let img = flagImages.get(name);
-    if (img) return img;
-    img = new Image();
-    img.onload = () => { onReady && onReady(); };
-    img.onerror = () => { img.broken = true; };
-    img.src = `flags/${encodeURIComponent(name)}.png`;
-    flagImages.set(name, img);
-    return img;
+// View 1 scope filter: true when the country is in the chosen continent (or "all").
+function inContinentFilter(name) {
+    return state.continentFilter === 'all' || continentOf(name) === state.continentFilter;
 }
 
-const flagLabelsPlugin = {
-    id: 'flagLabels',
-    afterDraw(chart) {
-        const yScale = chart.scales.y;
-        if (!yScale || !chart.ctx) return;
-        const labels = chart.data.labels || [];
-        const ctx = chart.ctx;
-        const yTicks = chart.options.scales.y.ticks || {};
-        const yGrid = chart.options.scales.y.grid || {};
-        const tickFont = yTicks.font || {};
-        const size = tickFont.size || Chart.defaults.font.size || 12;
-        const family = tickFont.family || Chart.defaults.font.family;
-        const padRight = yTicks.padding ?? 3;
-        // Chart.js pushes the labels left by the tick-mark length (drawn even when
-        // gridlines are hidden), so subtract it or the flag overlaps the name.
-        const tickLen = yGrid.tickLength != null ? yGrid.tickLength : 8;
-        const off = yGrid.drawTicks !== false ? tickLen : 0;
-        ctx.save();
-        ctx.font = `${size}px ${family}`;
-        for (const tick of yScale.ticks) {
-            const name = labels[tick.value];
-            // skip synthetic rows like "Others (12)" — only real countries have flags
-            if (typeof name !== 'string' || !state.anchors.has(name)) continue;
-            const img = flagImage(name, () => { try { chart.draw(); } catch (e) { /* chart gone */ } });
-            if (!img.complete || img.broken || !img.naturalWidth) continue;
-            const w = Math.min(Math.round(FLAG_H * img.naturalWidth / img.naturalHeight), 26);
-            const textW = ctx.measureText(name).width;
-            const labelLeft = chart.chartArea.left - off - padRight - textW;
-            const fx = labelLeft - FLAG_GAP - w;
-            const fy = yScale.getPixelForTick(yScale.ticks.indexOf(tick)) - FLAG_H / 2;
-            try { ctx.drawImage(img, fx, fy, w, FLAG_H); } catch (e) { /* decode race */ }
-        }
-        ctx.restore();
-    },
-};
+// (The country bar charts now render as real HTML — see renderHBars — so the
+// old canvas flag-label plugin is gone; flags there are real <img> elements.)
 
 // ---------- lahn currency symbol (replaces "$") ----------
 // The Andah currency is the lahn; its glyph lives at Lahn.png (black, for light
@@ -366,11 +315,13 @@ function renderYearView(opts = {}) {
     const metric = $('ctl-metric').value;
     const showAll = $('ctl-all').checked;
     const topN = Math.max(3, Math.min(172, Number($('ctl-topn').value) || 18));
+    state.continentFilter = ($('ctl-continent') && $('ctl-continent').value) || 'all';
 
     const entries = [];
     let hidden = 0;
     let fictionalYear = null;
     for (const c of state.countries) {
+        if (!inContinentFilter(c.name)) continue; // out-of-scope continent — not "hidden", just excluded
         const r = rowFor(c.name, year);
         if (!r) { hidden++; continue; }
         if (fictionalYear == null) fictionalYear = r.year;
@@ -387,56 +338,30 @@ function renderYearView(opts = {}) {
 
     const worldGdp = entries.reduce((s, e) => s + (e.row.gdp || 0), 0);
     const worldPop = entries.reduce((s, e) => s + (e.row.pop || 0), 0);
+    const scope = state.continentFilter === 'all' ? 'World' : state.continentFilter;
     $('year-summary').innerHTML = entries.length
-        ? `World (of ${entries.length} countries with data): total GDP ${lahnMoney(worldGdp)} · GDP per capita ${lahnMoney(worldPop ? worldGdp / worldPop : null)}`
-        : 'No countries have GDP data for this year yet — switch to Edit and author some growth curves.';
+        ? `${scope} (of ${entries.length} countries with data): total GDP ${lahnMoney(worldGdp)} · GDP per capita ${lahnMoney(worldPop ? worldGdp / worldPop : null)}`
+        : `No countries have GDP data for this year yet${state.continentFilter === 'all' ? '' : ` in ${state.continentFilter}`} — switch to Edit and author some growth curves.`;
     $('year-hidden').textContent = hidden ? `(${hidden} countries hidden — GDP not yet determined for ${year}. Blank growth years compound as 0%; a year counts as determined only when every year back from 2015 has a growth rate or an override pin.)` : '';
 
-    // ----- bar -----
+    // ----- bar (real HTML list: selectable/searchable names + <img> flags) -----
     const shown = showAll ? entries : entries.slice(0, topN);
     const rest = showAll ? [] : entries.slice(topN);
-    const labels = shown.map((e) => e.name);
-    const values = shown.map((e) => valueOf(e));
-    const colors = shown.map((e) => colorOf(e.name));
+    const items = shown.map((e) => ({ name: e.name, value: valueOf(e), color: colorOf(e.name) }));
     if (rest.length && metric !== 'growth') {
         if (metric === 'gdp') {
-            labels.push(`Others (${rest.length})`);
-            values.push(rest.reduce((s, e) => s + (e.row.gdp || 0), 0));
+            items.push({ name: `Others (${rest.length})`, value: rest.reduce((s, e) => s + (e.row.gdp || 0), 0), color: '#9498a0', isOther: true });
         } else {
             const rg = rest.reduce((s, e) => s + (e.row.gdp || 0), 0);
             const rp = rest.reduce((s, e) => s + (e.row.pop || 0), 0);
-            labels.push(`Others avg (${rest.length})`);
-            values.push(rp ? rg / rp : 0);
+            items.push({ name: `Others avg (${rest.length})`, value: rp ? rg / rp : 0, color: '#9498a0', isOther: true });
         }
-        colors.push('#9498a0');
     }
 
     const metricLabel = metric === 'gdp' ? 'Total GDP' : metric === 'perCap' ? 'GDP per capita' : 'GDP growth (total)';
     $('bar-title').textContent = `${metricLabel} — ${titleYear}`;
     const tc = themeColors();
-    const fmtVal = metric === 'growth' ? fmtPct : fmtMoney;
-
-    destroyChart('bar');
-    const barCanvas = $('chart-bar');
-    barCanvas.parentElement.style.height = Math.max(220, labels.length * 26 + 60) + 'px';
-    state.charts.bar = new Chart(barCanvas, {
-        type: 'bar',
-        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
-        options: {
-            indexAxis: 'y',
-            responsive: true, maintainAspectRatio: false,
-            layout: { padding: { left: FLAG_PAD } }, // room for the flag column
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: (ctx) => ' ' + fmtVal(ctx.parsed.x) } },
-            },
-            scales: {
-                x: { lahn: metric !== 'growth', ticks: { color: tc.muted, callback: (v) => fmtVal(v) }, grid: { color: tc.grid } },
-                y: { ticks: { color: tc.text, autoSkip: false }, grid: { display: false } },
-            },
-        },
-        plugins: [flagLabelsPlugin, lahnAxisPlugin],
-    });
+    renderHBars($('bar-list'), items, metric === 'growth');
 
     const legend = $('bar-legend');
     legend.innerHTML = '';
@@ -503,8 +428,7 @@ function renderYearView(opts = {}) {
     // ----- new snapshot + trend charts -----
     renderBubble();
     renderTreemap();
-    renderGdpMap();       // year-dependent (colours redraw each year)
-    renderConvergence();  // year-dependent (window ends at the selected year)
+    renderConvergence(opts.snapshot);  // year-dependent (window ends at the selected year)
     if (opts.snapshot) {
         // year-independent trends don't change while the slider moves — just
         // nudge their year markers (cheap redraw, no rebuild).
@@ -901,6 +825,7 @@ function renderBubble() {
     const pts = [];
     let maxGdp = 0;
     for (const c of state.countries) {
+        if (!inContinentFilter(c.name)) continue;
         const r = rowFor(c.name, year);
         if (!r || !r.determined || !(r.perCap > 0) || !(r.pop > 0)) continue;
         maxGdp = Math.max(maxGdp, r.gdp || 0);
@@ -974,6 +899,7 @@ function renderTreemap() {
 
     const items = [];
     for (const c of state.countries) {
+        if (!inContinentFilter(c.name)) continue;
         const r = rowFor(c.name, year);
         if (!r || !r.determined || !(r.gdp > 0)) continue;
         items.push({ name: c.name, value: r.gdp, growth: r.growthDetermined ? r.gdpGrowth : null, cont: continentOf(c.name), perCap: r.perCap, pop: r.pop });
@@ -1054,7 +980,9 @@ function renderContinentArea() {
     }
     const mode = $('ctl-area-mode') ? $('ctl-area-mode').value : 'share';
     const datasets = [...byCont.entries()]
-        .filter(([, arr]) => arr.some((v) => v > 0))
+        // world[] stays full so "share of world %" is share of the true world; the
+        // continent filter only picks which band(s) to draw.
+        .filter(([cont, arr]) => arr.some((v) => v > 0) && (state.continentFilter === 'all' || cont === state.continentFilter))
         .sort((a, b) => b[1].reduce((s, v) => s + v, 0) - a[1].reduce((s, v) => s + v, 0))
         .map(([cont, arr]) => {
             const col = state.continentColors.get(cont) || '#9498a0';
@@ -1087,15 +1015,54 @@ function renderContinentArea() {
 }
 
 // --- long-run per-capita CAGR ranking ----------------------------------
+function escapeHtml(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function escapeAttr(s) {
+    return escapeHtml(s).replace(/"/g, '&quot;');
+}
+
+// Render a ranked horizontal-bar list as real HTML — the names and values are
+// selectable, copyable and Ctrl+F-searchable, and flags are real <img> (with a
+// graceful hide on 404). `signed` = values may be negative (growth %); otherwise
+// they're lahn money. Rows for real countries are buttons that open the country.
+function renderHBars(container, items, signed) {
+    if (!container) return;
+    let scaleMax = 0;
+    for (const it of items) scaleMax = Math.max(scaleMax, Math.abs(it.value) || 0);
+    if (!(scaleMax > 0)) scaleMax = 1;
+    container.innerHTML = items.map((it) => {
+        const w = Math.max(0, Math.min(100, Math.abs(it.value) / scaleMax * 100));
+        const valHtml = signed ? fmtPct(it.value) : lahnMoney(it.value);
+        const flag = it.isOther ? '' : `<img class="gdp-hbar-flag" src="flags/${encodeURIComponent(it.name)}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+        const tag = it.isOther ? 'div' : 'button';
+        const attr = it.isOther ? '' : ` type="button" data-name="${escapeAttr(it.name)}"`;
+        return `<${tag} class="gdp-hbar-row${it.isOther ? ' is-other' : ''}"${attr} title="${escapeAttr(it.name)}">`
+            + `<span class="gdp-hbar-flagcell">${flag}</span>`
+            + `<span class="gdp-hbar-name">${escapeHtml(it.name)}</span>`
+            + `<span class="gdp-hbar-track"><span class="gdp-hbar-fill" style="width:${w}%;background:${it.color}"></span></span>`
+            + `<span class="gdp-hbar-value">${valHtml}</span>`
+            + `</${tag}>`;
+    }).join('');
+    // Delegate once on the container (survives innerHTML swaps) so a scrub with
+    // "show all" (172 rows) doesn't re-bind a listener per row every frame.
+    if (!container._hbarBound) {
+        container._hbarBound = true;
+        container.addEventListener('click', (e) => {
+            const row = e.target.closest('.gdp-hbar-row[data-name]');
+            if (row) { $('ctl-country').value = row.dataset.name; switchTab('country'); }
+        });
+    }
+}
+
 function renderCagr() {
-    destroyChart('cagr');
-    const canvas = $('chart-cagr');
-    if (!canvas) return;
-    const tc = themeColors();
+    const container = $('cagr-list');
+    if (!container) return;
     const { min, max } = yearRange();
     const span = max - min || 1;
     const list = [];
     for (const c of state.countries) {
+        if (!inContinentFilter(c.name)) continue;
         const rows = state.computed.get(c.name);
         if (!rows) continue;
         const rMax = rows.find((r) => r.earthYear === max);
@@ -1108,21 +1075,7 @@ function renderCagr() {
     const shown = list.slice(0, topN);
     const t = $('cagr-title');
     if (t) t.textContent = `Long-run growth champions — per-capita CAGR ${min}→${max} (top ${shown.length})`;
-    canvas.parentElement.style.height = Math.max(220, shown.length * 24 + 50) + 'px';
-    state.charts.cagr = new Chart(canvas, {
-        type: 'bar',
-        data: { labels: shown.map((e) => e.name), datasets: [{ data: shown.map((e) => e.cagr), backgroundColor: shown.map((e) => colorOf(e.name)), borderWidth: 0 }] },
-        options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-            layout: { padding: { left: FLAG_PAD } }, // room for the flag column
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ' ' + fmtPct(ctx.parsed.x) } } },
-            scales: {
-                x: { ticks: { color: tc.muted, callback: (v) => fmtPct(v) }, grid: { color: tc.grid } },
-                y: { ticks: { color: tc.text, autoSkip: false }, grid: { display: false } },
-            },
-        },
-        plugins: [flagLabelsPlugin],
-    });
+    renderHBars(container, shown.map((e) => ({ name: e.name, value: e.cagr, color: colorOf(e.name) })), true);
 }
 
 // --- multi-country comparison overlay (Tab B, view-only) ---------------
@@ -1194,26 +1147,8 @@ function renderCompare() {
     });
 }
 
-// ========================================================================
-//  Animated GDP world map (graduated coloured dots)
-// ========================================================================
-// A true fill-choropleth needs per-country polygons; Andah's map is a raster
-// with only centroid coords (js/andah-map-coords.js, in maps/map.png's
-// 8966x3943 pixel space), so we colour one dot per country and scrub the year
-// slider to animate. Colour = per-capita wealth (log sequential) or growth
-// (diverging red↔green, reusing growthColor).
-const GDP_MAP_SRC = 'maps/map.png';
-const GDP_MAP_W = 8966, GDP_MAP_H = 3943;
-let gdpMapImg = null;
-function gdpMapImage(onReady) {
-    if (gdpMapImg) return gdpMapImg;
-    gdpMapImg = new Image();
-    gdpMapImg.onload = () => onReady && onReady();
-    gdpMapImg.onerror = () => { gdpMapImg.broken = true; };
-    gdpMapImg.src = GDP_MAP_SRC;
-    return gdpMapImg;
-}
-// sequential wealth ramp (pale wheat -> deep blue), t in [0,1]
+// Sequential wealth ramp (pale wheat -> deep blue), t in [0,1]. Used by the
+// "share above an income line" S-curves to shade thresholds low -> high.
 function seqColor(t) {
     if (t == null || !isFinite(t)) return 'rgba(150,150,150,0.4)';
     const c = Math.max(0, Math.min(1, t));
@@ -1222,102 +1157,12 @@ function seqColor(t) {
     return `rgb(${m(lo[0], hi[0])},${m(lo[1], hi[1])},${m(lo[2], hi[2])})`;
 }
 
-function renderGdpMap() {
-    const canvas = $('chart-gdp-map');
-    if (!canvas) return;
-    const note = $('gdp-map-note');
-    if (!state.mapCoords.length) {
-        if (note) note.textContent = 'Map coordinates unavailable (js/andah-map-coords.js not loaded).';
-        return;
-    }
-    const img = gdpMapImage(() => renderGdpMap());
-    if (!img.complete || img.broken || !img.naturalWidth) {
-        if (img.broken && note) note.textContent = 'Map image could not be loaded.';
-        return;
-    }
-    const metric = ($('ctl-map-metric') || {}).value || 'perCap';
-    const year = state.year;
-
-    const pts = [];
-    let lo = Infinity, hi = -Infinity;
-    for (const c of state.countries) {
-        const coord = state.mapCoordByName.get(c.name);
-        if (!coord) continue;
-        const r = rowFor(c.name, year);
-        let v = null;
-        if (r) {
-            if (metric === 'growth') { if (r.growthDetermined) v = r.gdpGrowth; }
-            else if (r.determined && r.perCap > 0) v = r.perCap;
-        }
-        if (v != null && isFinite(v) && metric === 'perCap') { if (v < lo) lo = v; if (v > hi) hi = v; }
-        pts.push({ coord, name: c.name, v });
-    }
-
-    let colorFor;
-    if (metric === 'growth') colorFor = (v) => v == null ? null : growthColor(v);
-    else {
-        const llo = Math.log10(Math.max(lo, 1)), lhi = Math.log10(Math.max(hi, 10));
-        colorFor = (v) => v == null ? null : seqColor((Math.log10(v) - llo) / Math.max(lhi - llo, 1e-9));
-    }
-
-    const cssW = (canvas.parentElement.clientWidth) || 700;
-    const cssH = Math.round(cssW * GDP_MAP_H / GDP_MAP_W);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(cssW * dpr);
-    canvas.height = Math.round(cssH * dpr);
-    canvas.style.height = cssH + 'px';
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssW, cssH);
-    ctx.drawImage(img, 0, 0, cssW, cssH);
-
-    const sx = cssW / GDP_MAP_W, sy = cssH / GDP_MAP_H;
-    const radius = Math.max(3, Math.min(11, cssW / 90));
-    const hits = [];
-    for (const p of pts) {
-        const x = p.coord.x * sx, y = p.coord.y * sy;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = colorFor(p.v) || 'rgba(150,150,150,0.4)';
-        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-        ctx.lineWidth = 1;
-        ctx.fill();
-        ctx.stroke();
-        hits.push({ name: p.name, v: p.v, x, y, r: radius });
-    }
-    canvas._hits = hits;
-    canvas._metric = metric;
-
-    const t = $('gdp-map-title');
-    if (t) t.textContent = `${metric === 'growth' ? 'GDP growth' : 'GDP per capita'} map — ${labelYear(year)}`;
-    const legend = $('gdp-map-legend');
-    if (legend) {
-        if (metric === 'growth') legend.innerHTML = '<span>Contraction</span><span class="gdp-grad"></span><span>Growth</span>';
-        else if (isFinite(lo) && isFinite(hi)) legend.innerHTML = `<span><span class="lahn-sym"></span>${fmtMoney(lo)}</span><span class="gdp-map-ramp"></span><span><span class="lahn-sym"></span>${fmtMoney(hi)}</span>`;
-        else legend.innerHTML = '';
-    }
-    if (note) {
-        const det = pts.filter((p) => p.v != null).length;
-        note.textContent = det ? '' : 'No determined data for this year yet — author some growth curves in Edit mode.';
-    }
-}
-function findMapHit(canvas, px, py) {
-    const hits = canvas._hits || [];
-    let best = null, bestD = Infinity;
-    for (const h of hits) {
-        const dx = px - h.x, dy = py - h.y, d = dx * dx + dy * dy;
-        if (d <= h.r * h.r * 1.8 && d < bestD) { best = h; bestD = d; }
-    }
-    return best;
-}
-
 // ========================================================================
 //  β-convergence scatter — do poor nations catch up?
 // ========================================================================
-function renderConvergence() {
+function renderConvergence(isSnapshot) {
     const canvas = $('chart-convergence');
     if (!canvas) return;
-    destroyChart('convergence');
     const tc = themeColors();
     const { min, max } = yearRange();
     const winSel = $('ctl-conv-window');
@@ -1330,6 +1175,7 @@ function renderConvergence() {
 
     const pts = [];
     for (const c of state.countries) {
+        if (!inContinentFilter(c.name)) continue;
         const rs = rowFor(c.name, start), re = rowFor(c.name, end);
         if (!rs || !re || !rs.determined || !re.determined) continue;
         if (!(rs.perCap > 0) || !(re.perCap > 0)) continue;
@@ -1357,16 +1203,33 @@ function renderConvergence() {
         : slope < 0 ? '↓ Downward trend = convergence: poorer countries grew faster.'
         : '↑ Upward trend = divergence: richer countries grew faster.';
 
+    const pointData = pts.map((p) => ({ x: p.x, y: p.y, _n: p.name }));
+    const pointColors = pts.map((p) => p.color);
+
+    // While scrubbing/playing, mutate the existing chart instead of tearing it
+    // down and rebuilding — rebuilds were a big part of the scrub lag.
+    const existing = state.charts.convergence;
+    if (isSnapshot && existing) {
+        existing.data.datasets[0].data = pointData;
+        existing.data.datasets[0].pointBackgroundColor = pointColors;
+        existing.data.datasets[1].data = line;
+        existing.options.scales.x.title.text = `GDP per capita in ${start}`;
+        existing.update('none');
+        return;
+    }
+
+    destroyChart('convergence');
     state.charts.convergence = new Chart(canvas, {
         type: 'scatter',
         data: {
             datasets: [
-                { label: 'Countries', data: pts.map((p) => ({ x: p.x, y: p.y, _n: p.name })), pointBackgroundColor: pts.map((p) => p.color), pointBorderColor: 'rgba(0,0,0,0.35)', pointRadius: 4, pointHoverRadius: 6 },
+                { label: 'Countries', data: pointData, pointBackgroundColor: pointColors, pointBorderColor: 'rgba(0,0,0,0.35)', pointRadius: 4, pointHoverRadius: 6 },
                 { label: 'Trend', type: 'line', data: line, borderColor: tc.text, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false },
             ],
         },
         options: {
             responsive: true, maintainAspectRatio: false,
+            animation: false,
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -1415,6 +1278,7 @@ function renderInequality() {
     for (let y = min; y <= max; y++) {
         const vals = [], wts = [];
         for (const c of state.countries) {
+            if (!inContinentFilter(c.name)) continue;
             const r = rowFor(c.name, y);
             if (!r || !r.determined || !(r.perCap > 0)) continue;
             if (weighted && !(r.pop > 0)) continue;
@@ -1460,6 +1324,7 @@ function renderSabove() {
         let total = 0;
         const above = SABOVE_THRESHOLDS.map(() => 0);
         for (const c of state.countries) {
+            if (!inContinentFilter(c.name)) continue;
             const r = rowFor(c.name, y);
             if (!r || !r.determined || !(r.pop > 0) || !(r.perCap > 0)) continue;
             total += r.pop;
@@ -1530,6 +1395,18 @@ function initControls() {
         cmp.innerHTML = state.countries.map((c) => `<option${picked.has(c.name) ? ' selected' : ''}>${c.name}</option>`).join('');
     }
 
+    const contSel = $('ctl-continent');
+    if (contSel && !contSel.dataset.filled) {
+        const names = [...state.continentColors.keys()].sort();
+        if (names.length) {
+            contSel.innerHTML = '<option value="all">All continents</option>' +
+                names.map((n) => `<option value="${escapeAttr(n)}">${escapeHtml(n)}</option>`).join('');
+            contSel.dataset.filled = '1';
+        } else if (contSel.closest('label')) {
+            contSel.closest('label').classList.add('gdp-hidden'); // no continent data — hide the filter
+        }
+    }
+
     const arch = $('ctl-archetype');
     if (arch && !arch.dataset.filled) {
         arch.innerHTML = '<option value="">Archetype…</option>' +
@@ -1539,8 +1416,16 @@ function initControls() {
 }
 
 function bindEvents() {
-    $('ctl-year').addEventListener('input', (e) => { stopPlay(); state.year = Number(e.target.value); renderYearView({ snapshot: true }); });
-    for (const id of ['ctl-metric', 'ctl-topn', 'ctl-all', 'ctl-pie']) {
+    // Dragging the slider fires 'input' many times per second; coalesce them
+    // into at most one snapshot render per animation frame to keep it smooth.
+    let scrubRaf = null;
+    $('ctl-year').addEventListener('input', (e) => {
+        stopPlay();
+        state.year = Number(e.target.value);
+        if (scrubRaf) return;
+        scrubRaf = requestAnimationFrame(() => { scrubRaf = null; renderYearView({ snapshot: true }); });
+    });
+    for (const id of ['ctl-metric', 'ctl-topn', 'ctl-all', 'ctl-pie', 'ctl-continent']) {
         $(id).addEventListener('change', () => renderYearView());
     }
     $('ctl-play').addEventListener('click', togglePlay);
@@ -1550,35 +1435,8 @@ function bindEvents() {
     });
     $('ctl-area-mode').addEventListener('change', renderContinentArea);
     // new-visualization controls
-    if ($('ctl-map-metric')) $('ctl-map-metric').addEventListener('change', renderGdpMap);
-    if ($('ctl-conv-window')) $('ctl-conv-window').addEventListener('change', renderConvergence);
+    if ($('ctl-conv-window')) $('ctl-conv-window').addEventListener('change', () => renderConvergence());
     if ($('ctl-ineq-mode')) $('ctl-ineq-mode').addEventListener('change', renderInequality);
-    // GDP map hover tooltip + click-to-open-country
-    const mapCanvas = $('chart-gdp-map');
-    if (mapCanvas) {
-        const tip = $('gdp-map-tip');
-        mapCanvas.addEventListener('mousemove', (e) => {
-            const rect = mapCanvas.getBoundingClientRect();
-            const px = e.clientX - rect.left, py = e.clientY - rect.top;
-            const hit = findMapHit(mapCanvas, px, py);
-            if (hit && tip) {
-                const metric = mapCanvas._metric;
-                const glyph = metric === 'growth' ? '' : '<span class="lahn-sym"></span>';
-                const val = hit.v == null ? '–' : (metric === 'growth' ? fmtPct(hit.v) : `${glyph}${fmtMoney(hit.v)}`);
-                tip.hidden = false;
-                tip.style.left = Math.min(px + 12, rect.width - 8) + 'px';
-                tip.style.top = (py + 12) + 'px';
-                tip.innerHTML = `<strong>${hit.name}</strong><br>${metric === 'growth' ? 'GDP growth' : 'Per capita'}: ${val}`;
-                mapCanvas.style.cursor = 'pointer';
-            } else if (tip) { tip.hidden = true; mapCanvas.style.cursor = 'default'; }
-        });
-        mapCanvas.addEventListener('mouseleave', () => { if (tip) tip.hidden = true; });
-        mapCanvas.addEventListener('click', (e) => {
-            const rect = mapCanvas.getBoundingClientRect();
-            const hit = findMapHit(mapCanvas, e.clientX - rect.left, e.clientY - rect.top);
-            if (hit) { $('ctl-country').value = hit.name; switchTab('country'); }
-        });
-    }
     $('ctl-country').addEventListener('change', renderCountryView);
     $('ctl-compare').addEventListener('change', renderCompare);
     $('ctl-compare-metric').addEventListener('change', renderCompare);
@@ -1612,15 +1470,6 @@ function bindEvents() {
         state.edits = {};
         localStorage.removeItem(DRAFT_KEY);
         computeAll(); rerenderAll(); updateDirty();
-    });
-
-    // the GDP map is a hand-drawn canvas (not a responsive Chart.js chart), so
-    // redraw it on resize while its tab is visible.
-    let mapResizeRaf = null;
-    window.addEventListener('resize', () => {
-        if ($('view-year').classList.contains('gdp-hidden')) return;
-        if (mapResizeRaf) cancelAnimationFrame(mapResizeRaf);
-        mapResizeRaf = requestAnimationFrame(renderGdpMap);
     });
 
     new MutationObserver(rerenderAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -1679,10 +1528,6 @@ async function boot() {
     const hist = await histRes.json();
     state.history = hist.countries || [];
     for (const c of state.history) state.anchors.set(c.name, c.anchor);
-
-    // map centroids (bridged onto window by gdp-explorer.html)
-    state.mapCoords = Array.isArray(window.andahMapCoords) ? window.andahMapCoords : [];
-    state.mapCoordByName = new Map(state.mapCoords.map((c) => [c.name, c]));
 
     try {
         const gRes = await fetch(GROWTH_URL);

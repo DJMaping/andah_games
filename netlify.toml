@@ -22,3 +22,28 @@
 # Functions bundling: keep the scheduled function light.
 [functions]
   node_bundler = "esbuild"
+
+# ---- Caching for static assets ----------------------------------------------
+# Filenames are stable (not content-hashed) and the art/libs rarely change, so
+# cache them a while but keep stale-while-revalidate so edits still propagate.
+# HTML and data/*.json are intentionally NOT long-cached (they change on rebuild;
+# Netlify's default ETag revalidation keeps them fresh).
+[[headers]]
+  for = "/flags/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+  for = "/maps/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+  for = "/js/vendor/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000, stale-while-revalidate=604800"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, stale-while-revalidate=86400"

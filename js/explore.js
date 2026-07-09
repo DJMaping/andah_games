@@ -81,7 +81,7 @@ function drawList() {
     ul.innerHTML = sorted.map(c => `
         <li>
             <a class="country-row" href="#country=${encodeURIComponent(c.slug)}" data-slug="${escapeAttr(c.slug)}">
-                <img class="country-row-flag" src="flags/${encodeURIComponent(c.name)}.png" alt="" onerror="this.style.visibility='hidden'">
+                <img class="country-row-flag" src="flags/${encodeURIComponent(c.name)}.png" alt="" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">
                 <span class="country-row-name">${escapeHtml(c.name)}</span>
             </a>
         </li>
