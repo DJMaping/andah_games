@@ -195,6 +195,18 @@
             <button type="button" class="gdp-tab" id="tab-country" role="tab" aria-selected="false">Country over time</button>
         </div>
 
+        <!-- global controls (apply across both views) -->
+        <div class="gdp-controls" id="gdp-global-controls">
+            <label>Currency
+                <select id="ctl-currency" title="Both use the lahn symbol; 1 lahn = 8 new lahn">
+                    <option value="lahn" selected>Lahn</option>
+                    <option value="newlahn">New lahn (×8)</option>
+                    <option value="grandlahn">Grand lahn (×0.25)</option>
+                    <option value="dollar">$ Dollar (×1.75)</option>
+                </select>
+            </label>
+        </div>
+
         <!-- ============ View 1: all countries, one year ============ -->
         <section id="view-year">
             <div class="gdp-controls">

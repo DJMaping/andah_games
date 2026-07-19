@@ -46,6 +46,7 @@ const state = {
     continentColors: new Map(),
     anchors: new Map(),
     year: 2015,
+    currency: 'lahn',     // display currency (see CURRENCIES); data stays in base lahn
     continentFilter: 'all', // View 1 scope: 'all' or a continent name
     mode: 'view',         // 'view' | 'edit'
     charts: {},
@@ -53,21 +54,44 @@ const state = {
     playSpeed: 350,       // ms per year
 };
 
+// ---------- display currency ----------
+// All data is stored in base LAHN. The currency picker only rescales what's
+// SHOWN — money display = base × factor — so switching never touches stored
+// values or authored edits (which stay in lahn). Both currencies share the
+// same lahn glyph; only the unit size differs.
+const CURRENCIES = {
+    lahn:      { label: 'Lahn',       factor: 1,    symbol: 'lahn' },
+    newlahn:   { label: 'New lahn',   factor: 8,    symbol: 'lahn' },  // 1 lahn = 8 new lahn
+    grandlahn: { label: 'Grand lahn', factor: 0.25, symbol: 'lahn' },  // 1 grand lahn = 4 lahn
+    dollar:    { label: 'Dollar',     factor: 1.75, symbol: '$'    },  // 1 lahn = $1.75; shows "$", not the lahn glyph
+};
+function currentCurrency() { return CURRENCIES[state.currency] || CURRENCIES.lahn; }
+function moneyFactor() { return currentCurrency().factor; }
+// symbol 'lahn' => draw the lahn image glyph; any other value is a literal text
+// symbol (e.g. "$") shown in its place, so the dollar reads as $ everywhere.
+function moneySymbol() { return currentCurrency().symbol; }
+function usesLahnGlyph() { return moneySymbol() === 'lahn'; }
+
 // ---------- formatting ----------
 // Symbol-free: the lahn glyph is added by lahnMoney() (HTML) or lahnAxisPlugin
 // (chart axes). Tooltips call fmtMoney directly and stay plain, as chosen.
+// fmtMoney is the single place money is scaled into the chosen currency, so
+// every axis/tooltip/table/stat that formats money via it converts together.
 function fmtMoney(v) {
     if (v == null || !isFinite(v)) return '–';
+    v *= moneyFactor();
     const abs = Math.abs(v);
     if (abs >= 1e12) return (v / 1e12).toFixed(2) + 'T';
     if (abs >= 1e9) return (v / 1e9).toFixed(2) + 'B';
     if (abs >= 1e6) return (v / 1e6).toFixed(1) + 'M';
     return Math.round(v).toLocaleString('en-US');
 }
-// HTML money with a leading lahn glyph (theme-aware via CSS). Use in innerHTML.
+// HTML money with a leading currency symbol. Lahn-family uses the theme-aware
+// glyph span; a text-symbol currency (e.g. "$") prefixes that character instead.
 function lahnMoney(v) {
     if (v == null || !isFinite(v)) return fmtMoney(v);
-    return `<span class="lahn-sym" role="img" aria-label="lahn"></span>${fmtMoney(v)}`;
+    if (usesLahnGlyph()) return `<span class="lahn-sym" role="img" aria-label="lahn"></span>${fmtMoney(v)}`;
+    return `${escapeHtml(moneySymbol())}${fmtMoney(v)}`;
 }
 function fmtPct(v) {
     if (v == null || !isFinite(v)) return '–';
@@ -136,8 +160,14 @@ function currentLahnImage() {
 const lahnAxisPlugin = {
     id: 'lahnAxis',
     afterDraw(chart) {
-        const img = currentLahnImage();
-        if (!img || !img.complete || !img.naturalWidth || !chart.ctx) return;
+        if (!chart.ctx) return;
+        // Lahn-family currencies draw an image glyph; others (e.g. "$") draw a
+        // text character in the same spot. Bail early only when the image we need
+        // isn't ready yet — text symbols are always available.
+        const useImg = usesLahnGlyph();
+        const img = useImg ? currentLahnImage() : null;
+        if (useImg && (!img || !img.complete || !img.naturalWidth)) return;
+        const sym = useImg ? '' : moneySymbol();
         const ctx = chart.ctx;
         for (const id in chart.scales) {
             const scale = chart.scales[id];
@@ -147,8 +177,8 @@ const lahnAxisPlugin = {
             const family = f.family || Chart.defaults.font.family;
             const pad = (scale.options.ticks || {}).padding ?? 3;
             const h = Math.round(size * 0.98);
-            const w = Math.max(1, Math.round(h * img.naturalWidth / img.naturalHeight));
             const gap = 3;
+            const tickColor = (scale.options.ticks || {}).color || '#666';
             // When gridlines are on, Chart.js offsets tick labels by the tick-mark
             // length; account for that so the glyph doesn't overlap the number.
             const tickLen = (scale.options.grid && scale.options.grid.tickLength != null) ? scale.options.grid.tickLength : 8;
@@ -157,6 +187,8 @@ const lahnAxisPlugin = {
             const cb = (scale.options.ticks || {}).callback;
             ctx.save();
             ctx.font = `${size}px ${family}`;
+            // glyph width: image keeps aspect ratio; text symbol measured in the axis font
+            const w = useImg ? Math.max(1, Math.round(h * img.naturalWidth / img.naturalHeight)) : ctx.measureText(sym).width;
             for (let i = 0; i < scale.ticks.length; i++) {
                 const t = scale.ticks[i];
                 let label = cb ? cb.call(scale, t.value, i, scale.ticks) : `${t.value}`;
@@ -164,17 +196,24 @@ const lahnAxisPlugin = {
                 label = String(label ?? '');
                 if (!label || label === '–') continue;
                 const textW = ctx.measureText(label).width;
-                let gx, gy;
+                let gx, gyc; // gyc = vertical centre of the tick label
                 if (horizontal) {
                     const cx = scale.getPixelForTick(i);
                     gx = cx - textW / 2 - gap - w;
-                    gy = scale.top + off + pad + size / 2 - h / 2; // below the axis line + tick marks
+                    gyc = scale.top + off + pad + size / 2; // below the axis line + tick marks
                 } else {
                     const numLeft = scale.position === 'right' ? scale.left + off + pad : scale.right - off - pad - textW;
                     gx = numLeft - gap - w;
-                    gy = scale.getPixelForTick(i) - h / 2;
+                    gyc = scale.getPixelForTick(i);
                 }
-                try { ctx.drawImage(img, gx, gy, w, h); } catch (e) { /* decode race */ }
+                if (useImg) {
+                    try { ctx.drawImage(img, gx, gyc - h / 2, w, h); } catch (e) { /* decode race */ }
+                } else {
+                    ctx.fillStyle = tickColor;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(sym, gx, gyc);
+                }
             }
             ctx.restore();
         }
@@ -1440,6 +1479,11 @@ function bindEvents() {
     $('ctl-country').addEventListener('change', renderCountryView);
     $('ctl-compare').addEventListener('change', renderCompare);
     $('ctl-compare-metric').addEventListener('change', renderCompare);
+
+    if ($('ctl-currency')) $('ctl-currency').addEventListener('change', (e) => {
+        state.currency = CURRENCIES[e.target.value] ? e.target.value : 'lahn';
+        rerenderAll();
+    });
 
     $('tab-year').addEventListener('click', () => switchTab('year'));
     $('tab-country').addEventListener('click', () => switchTab('country'));
