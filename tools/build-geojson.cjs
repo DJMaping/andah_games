@@ -145,6 +145,41 @@ for (let p = 0; p < deg.length; p++) {
 }
 log(`arcs: ${arcs.length.toLocaleString()}, ${arcs.reduce((s, a) => s + a.pts.length, 0).toLocaleString()} points before simplifying`);
 
+// ------------------------------------------------------- who borders whom
+
+// Each arc already knows the two countries either side of it, so the land
+// frontiers of the whole world fall out of the trace for nothing. Measured
+// before simplification, while the arcs still follow every pixel.
+const frontier = new Map();
+{
+  const rad = Math.PI / 180;
+  const lonAt = (p) => ((p % LW) / W) * 360 - 180;
+  const latAt = (p) => 90 - (((p / LW) | 0) / H) * 180;
+  const hav = (p, q) => {
+    const la1 = latAt(p) * rad, la2 = latAt(q) * rad;
+    const dLa = la2 - la1, dLo = (lonAt(q) - lonAt(p)) * rad;
+    const s = Math.sin(dLa / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLo / 2) ** 2;
+    return 2 * R_KM * Math.asin(Math.min(1, Math.sqrt(s)));
+  };
+  for (const a of arcs) {
+    if (!a.left || !a.right || a.left === a.right) continue;   // coastline, not a frontier
+    let km = 0;
+    for (let i = 1; i < a.pts.length; i++) km += hav(a.pts[i - 1], a.pts[i]);
+    const key = a.left < a.right ? `${a.left}|${a.right}` : `${a.right}|${a.left}`;
+    frontier.set(key, (frontier.get(key) || 0) + km);
+  }
+}
+const neighboursOf = new Map();
+for (const [key, km] of frontier) {
+  const [a, b] = key.split('|').map(Number);
+  if (!neighboursOf.has(a)) neighboursOf.set(a, []);
+  if (!neighboursOf.has(b)) neighboursOf.set(b, []);
+  neighboursOf.get(a).push({ name: names[b], km: Math.round(km) });
+  neighboursOf.get(b).push({ name: names[a], km: Math.round(km) });
+}
+for (const list of neighboursOf.values()) list.sort((x, y) => y.km - x.km);
+log(`land frontiers: ${frontier.size} between ${neighboursOf.size} countries`);
+
 // ------------------------------------------------------------- simplify arcs
 
 /** Visvalingam-Whyatt: drop the point that changes the shape least, repeatedly. */
@@ -376,7 +411,12 @@ for (const [c, refs] of byCountry) {
   features.push({
     type: 'Feature',
     id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    properties: { name, areaKm2: Math.round(areaKm2), polygons: coordinates.length },
+    properties: {
+      name,
+      areaKm2: Math.round(areaKm2),
+      polygons: coordinates.length,
+      neighbours: neighboursOf.get(c) || [],
+    },
     geometry: { type: 'MultiPolygon', coordinates },
   });
   areaCheck.push({ name, vector: areaKm2, polygons: coordinates.length, holes: polys.reduce((s, p) => s + p.holes.length, 0) });

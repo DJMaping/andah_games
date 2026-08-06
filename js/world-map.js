@@ -290,6 +290,8 @@
     };
     const row = (label, value) => (value ? `<dt>${label}</dt><dd>${value}</dd>` : '');
     const i = c.info || {};
+    const feature = byName.get(name);
+    const nb = (feature && feature.properties.neighbours) || [];
 
     card.innerHTML = `
       <div class="head">
@@ -323,6 +325,13 @@
           ${row('Time zone', i.timeZone)}
         </div>
       </details>
+      <details${nb.length ? '' : ' hidden'}>
+        <summary>Borders ${nb.length ? `(${nb.length})` : ''}</summary>
+        <div class="chips">
+          ${nb.map((n) => `<button class="chip" data-go="${n.name}">${n.name}<span>${n.km.toLocaleString()} km</span></button>`).join('')}
+        </div>
+      </details>
+      ${nb.length ? '' : '<div class="lone">No land borders — an island nation.</div>'}
       <details>
         <summary>Economy and people</summary>
         <div class="stats">
@@ -346,6 +355,9 @@
         </div>
       </details>`;
 
+    card.querySelectorAll('[data-go]').forEach((el) => {
+      el.onclick = () => { show(el.dataset.go); flyTo(el.dataset.go); };
+    });
     const pin = $('pin');
     if (pin) pin.onclick = () => {
       const at = state.pinned.indexOf(name);
