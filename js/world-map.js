@@ -28,11 +28,18 @@
   const RAMP = ['#e8f1fb', '#c3dcf1', '#96c3e4', '#6aa8d6', '#4189c4', '#2668aa', '#134a83'];
 
   let geo = null, data = null, cities = [], features = [], byName = new Map(), bounds = new Map();
+  // Largest first, so the countries that matter most claim their space before
+  // the small ones try to fit into what is left.
+  let labelOrder = [];
+  // A coarser copy of the same geometry, used only while the map is moving.
+  // Projecting 142,000 points every frame costs ~50 ms; this one costs a third
+  // of that, and the difference is invisible on something that is turning.
+  let featuresLow = null;
 
   const state = {
     alpha: 0, rotation: [-40, -12], zoom: 1, panX: 0, panY: 0,
     flat: 'equirectangular', metric: '', selected: null, pinned: [],
-    showCities: false, spinning: true,
+    showCities: false, showLabels: true, spinning: true,
   };
 
   // ------------------------------------------------------------- projection
@@ -120,6 +127,9 @@
 
   // ----------------------------------------------------------------- render
 
+  // Moving: anything that will be redrawn again immediately.
+  const inMotion = () => !!(morph || drag || touch || (state.spinning && state.alpha === 0));
+
   function render() {
     const w = cvs.width, h = cvs.height;
     frame();
@@ -134,7 +144,8 @@
     const stroke = css('--border');
     ctx.lineWidth = state.zoom > 3 ? 0.8 : 0.5;
     ctx.strokeStyle = stroke;
-    for (const f of features) {
+    const drawSet = (inMotion() && featuresLow) ? featuresLow : features;
+    for (const f of drawSet) {
       ctx.beginPath(); path(f);
       ctx.fillStyle = colourOf(f);
       ctx.fill();
@@ -152,6 +163,10 @@
       ctx.strokeStyle = css('--accent'); ctx.lineWidth = 2.2; ctx.stroke();
     }
 
+    // Labels are skipped while moving: they cannot be read anyway, and placing
+    // them costs a full pass of collision tests.
+    if (state.showLabels && !inMotion()) drawLabels();
+
     if (state.showCities && cities.length) {
       ctx.fillStyle = css('--ink');
       for (const c of cities) {
@@ -165,6 +180,70 @@
   }
 
   const centre = () => [-state.rotation[0], -state.rotation[1]];
+
+  /**
+   * Country names, largest country first, dropped whenever they will not fit.
+   *
+   * A label is only drawn if it fits inside the country's own projected extent
+   * and does not collide with one already placed, so zooming in reveals more
+   * names rather than the map showing a hundred overlapping words at once.
+   */
+  function drawLabels() {
+    const placed = [];
+    const dark = document.documentElement.dataset.theme !== 'light';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    const onGlobe = state.alpha < 0.5;
+    const eye = centre();
+
+    for (const f of labelOrder) {
+      const anchor = f.properties.label;
+      if (!anchor) continue;
+      if (onGlobe && d3.geoDistance(anchor, eye) > Math.PI / 2) continue;
+      const p = projection(anchor);
+      if (!p || !Number.isFinite(p[0])) continue;
+      if (p[0] < -40 || p[1] < -20 || p[0] > cvs.width + 40 || p[1] > cvs.height + 20) continue;
+
+      // How big is this country on screen? Projecting the corners of its
+      // longitude/latitude bounds is four operations, against streaming the
+      // whole outline again for an exact box.
+      const b = bounds.get(f.properties.name);
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const c of [[b[0][0], b[0][1]], [b[1][0], b[0][1]], [b[0][0], b[1][1]], [b[1][0], b[1][1]]]) {
+        const q = projection(c);
+        if (!q || !Number.isFinite(q[0])) continue;
+        if (q[0] < minX) minX = q[0]; if (q[0] > maxX) maxX = q[0];
+        if (q[1] < minY) minY = q[1]; if (q[1] > maxY) maxY = q[1];
+      }
+      const boxW = maxX - minX, boxH = maxY - minY;
+      if (!Number.isFinite(boxW) || boxH < 11) continue;
+
+      const size = Math.max(10, Math.min(15, 9 + Math.sqrt(boxW) * 0.28));
+      ctx.font = `500 ${size.toFixed(1)}px ui-sans-serif, system-ui, "Segoe UI", sans-serif`;
+      const text = f.properties.name;
+      const tw = ctx.measureText(text).width;
+      if (tw > boxW * 0.92) continue;                       // no room inside the country
+
+      const rect = [p[0] - tw / 2 - 3, p[1] - size * 0.7, tw + 6, size * 1.4];
+      let clash = false;
+      for (const r of placed) {
+        if (rect[0] < r[0] + r[2] && rect[0] + rect[2] > r[0] && rect[1] < r[1] + r[3] && rect[1] + rect[3] > r[1]) { clash = true; break; }
+      }
+      if (clash) continue;
+      placed.push(rect);
+
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = dark ? 'rgba(6,12,20,.85)' : 'rgba(255,255,255,.9)';
+      ctx.strokeText(text, p[0], p[1]);
+      ctx.fillStyle = dark ? '#eef5fb' : '#16222e';
+      ctx.fillText(text, p[0], p[1]);
+    }
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
+    lastLabelCount = placed.length;
+  }
+  let lastLabelCount = 0;
 
   let raf = null, needed = false;
   function draw() { if (!needed) { needed = true; requestAnimationFrame(() => { needed = false; render(); }); } }
@@ -661,7 +740,8 @@
     fetch('data/andah-countries.geojson').then((r) => r.json()),
     fetch('data/andah-map-data.json').then((r) => r.json()),
     fetch('data/flight-cities.json').then((r) => r.json()).catch(() => null),
-  ]).then(([g, d, city]) => {
+    fetch('data/andah-countries.min.geojson').then((r) => r.json()).catch(() => null),
+  ]).then(([g, d, city, low]) => {
     geo = g; data = d;
     features = geo.features;
 
@@ -680,6 +760,15 @@
     if (flipped) console.info(`world-map: reversed winding on ${flipped} of ${features.length} features for d3`);
 
     for (const f of features) { byName.set(f.properties.name, f); bounds.set(f.properties.name, d3.geoBounds(f)); }
+    labelOrder = features.slice().sort((a, b) => b.properties.areaKm2 - a.properties.areaKm2);
+    if (low && low.features) {
+      for (const f of low.features) {
+        if (d3.geoArea(f) > 2 * Math.PI) for (const poly of f.geometry.coordinates) for (const ring of poly) ring.reverse();
+      }
+      // Draw in the same order, so colours and overlaps match the full mesh.
+      const order = new Map(features.map((f, k) => [f.properties.name, k]));
+      featuresLow = low.features.slice().sort((a, b) => order.get(a.properties.name) - order.get(b.properties.name));
+    }
     if (city && city.map) {
       cities = city.cities.map((c) => ({
         population: c.population || 0,
@@ -713,7 +802,7 @@
     const settle = () => {
       if (!resize()) return false;
       render();
-      window.__map = { canvas: [cvs.width, cvs.height], alpha: state.alpha, rotation: state.rotation.slice() };
+      window.__map = { canvas: [cvs.width, cvs.height], alpha: state.alpha, rotation: state.rotation.slice(), zoom: state.zoom, labels: lastLabelCount };
       return true;
     };
     // Retry on a timer as well as on animation frames: a browser throttles rAF
@@ -746,6 +835,7 @@
   $('proj').onchange = (e) => { state.flat = e.target.value; draw(); syncUrl(); };
   $('metric').onchange = (e) => { state.metric = e.target.value; buildBins(); drawLegend(); draw(); syncUrl(); };
   $('cities').onclick = () => { state.showCities = !state.showCities; $('cities').classList.toggle('on', state.showCities); draw(); };
+  $('labels').onclick = () => { state.showLabels = !state.showLabels; $('labels').classList.toggle('on', state.showLabels); draw(); };
   $('theme').onclick = () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
   $('search').onchange = (e) => {
     const name = e.target.value.trim();

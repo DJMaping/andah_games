@@ -145,6 +145,37 @@ for (let p = 0; p < deg.length; p++) {
 }
 log(`arcs: ${arcs.length.toLocaleString()}, ${arcs.reduce((s, a) => s + a.pts.length, 0).toLocaleString()} points before simplifying`);
 
+// ------------------------------------------------------ where to write names
+
+// The point to hang a country's name on. d3.geoCentroid is no good here: for a
+// crescent, a country wrapped round a bay, or one spread over an archipelago,
+// the centroid lands in the sea or inside a neighbour. The trace already picked
+// an interior point for every region, so take the one belonging to the
+// country's largest landmass.
+const labelPoint = new Map();
+const labelSpan = new Map();
+{
+  const biggest = new Map();
+  for (const r of meta.regions) {
+    const a = labelled.assignment[r.id];
+    if (!a || !r.interior) continue;
+    const c = indexOf.get(a.name);
+    if (!c) continue;
+    const held = biggest.get(c);
+    if (!held || r.areaKm2 > held.areaKm2) biggest.set(c, r);
+  }
+  for (const [c, r] of biggest) {
+    labelPoint.set(c, [
+      +(((r.interior.x + 0.5) / W) * 360 - 180).toFixed(3),
+      +(90 - ((r.interior.y + 0.5) / H) * 180).toFixed(3),
+    ]);
+    // Width of the landmass at the label, in km, as a rough budget for text.
+    const [x0, , x1] = r.bbox;
+    labelSpan.set(c, Math.round(((x1 - x0) / W) * 40075 * Math.cos((90 - ((r.interior.y / H) * 180)) * Math.PI / 180)));
+  }
+}
+log(`label anchors: ${labelPoint.size}`);
+
 // ------------------------------------------------------- who borders whom
 
 // Each arc already knows the two countries either side of it, so the land
@@ -416,6 +447,13 @@ for (const [c, refs] of byCountry) {
       areaKm2: Math.round(areaKm2),
       polygons: coordinates.length,
       neighbours: neighboursOf.get(c) || [],
+      // Where to write the country's name. A centroid falls outside anything
+      // crescent-shaped or spread across islands, so use the interior point
+      // already computed for the country's largest landmass.
+      label: labelPoint.get(c) || null,
+      // How much of the country the label sits in, so the map can decide
+      // whether there is room to draw it.
+      labelSpanKm: labelSpan.get(c) || 0,
     },
     geometry: { type: 'MultiPolygon', coordinates },
   });
@@ -443,7 +481,7 @@ const vsCanon = areaCheck.map((r) => {
 const med = vsCanon.map((r) => Math.abs(r.pct)).sort((a, b) => a - b)[vsCanon.length >> 1];
 
 const out = { type: 'FeatureCollection', year: YEAR, radiusKm: R_KM, features };
-const outPath = path.join(ROOT, 'data', 'andah-countries.geojson');
+const outPath = path.join(ROOT, 'data', process.argv[3] || 'andah-countries.geojson');
 fs.writeFileSync(outPath, JSON.stringify(out));
 const bytes = fs.statSync(outPath).size;
 const points = features.reduce((s, f) => s + f.geometry.coordinates.reduce((t, poly) => t + poly.reduce((u, r) => u + r.length, 0), 0), 0);
