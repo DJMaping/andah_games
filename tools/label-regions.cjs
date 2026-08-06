@@ -640,6 +640,11 @@ for (const r of [...regions.values()].filter((r) => !assignment.has(r.id)).sort(
     // adopted when it plainly fills a hole: the country must be short by most
     // of what this region would add, which is what tells an offshore territory
     // apart from an unrelated island that merely happens to help the sums.
+    //
+    // Both tiers can still pick the wrong country, because a nation already
+    // over its canonical size is excluded and its own islands then go to
+    // whichever neighbour the sums flatter. Every adoption beyond ISLAND_MAX_KM
+    // is therefore listed in the report for review rather than trusted.
     const tier = km <= ISLAND_MAX_KM ? 0
       : (km <= ISLAND_FAR_KM && shortfallOf(h.name) >= ISLAND_FAR_SHARE * r.areaKm2) ? 1 : -1;
     if (tier < 0) continue;
@@ -890,6 +895,17 @@ for (const o of realOrphans.sort((a, b) => b.areaKm2 - a.areaKm2).slice(0, 40)) 
   md.push(`| ${o.id} | ${o.px.toLocaleString()} | ${f0(o.areaKm2)} | ${o.centroid[0].toFixed(1)}, ${o.centroid[1].toFixed(1)} | ${o.reason} |`);
 }
 md.push('');
+const farAdoptions = adoptions.filter((a) => a.tier === 1).sort((a, b) => b.areaKm2 - a.areaKm2);
+if (farAdoptions.length) {
+  md.push('## Distant islands, worth checking', '',
+    `${farAdoptions.length} regions were adopted from more than ${ISLAND_MAX_KM} km away, on the strength of the area sums alone. That test picks the country whose total the region flatters, which is not the same as the country it belongs to: a nation already over its canonical size is excluded, so its own outlying islands can be handed to a neighbour. Worth a pass in the fix-up page.`, '');
+  md.push('| Region | km² | Given to | Distance | Centre lon,lat |', '|--:|--:|---|--:|---|');
+  for (const a of farAdoptions) {
+    const r = regions.get(a.id);
+    md.push(`| ${a.id} | ${f0(a.areaKm2)} | ${a.name} | ${a.km.toFixed(0)} km | ${r.centroid[0].toFixed(1)}, ${r.centroid[1].toFixed(1)} |`);
+  }
+  md.push('');
+}
 if (adoptions.length) md.push('## Islands adopted', '', ...adoptions.sort((a, b) => b.areaKm2 - a.areaKm2).slice(0, 30).map((a) => `- region ${a.id} (${a.px.toLocaleString()} px) to **${a.name}**, ${a.km.toFixed(0)} km away`), '');
 fs.writeFileSync(path.join(BUILD, 'MAP_TRACE_REPORT.md'), md.join('\n'));
 
