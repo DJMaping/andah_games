@@ -517,18 +517,23 @@
     // Sizing is deliberately belt and braces. The canvas can be measured before
     // the page has been laid out, in which case it reports zero and there is
     // nothing sensible to draw into; retry until it reports a real size.
-    let sized = resize();
     render();
-    if (!sized) {
-      let tries = 0;
-      const again = () => {
-        if (resize()) { sized = true; render(); return; }
-        if (++tries < 60) requestAnimationFrame(again);
-      };
-      requestAnimationFrame(again);
-    }
-    window.addEventListener('resize', () => { if (resize()) render(); });
-    if (window.ResizeObserver) new ResizeObserver(() => { if (resize()) render(); }).observe($('stage'));
+    let tries = 0;
+    const settle = () => {
+      const w = cvs.width;
+      if (resize()) { if (cvs.width !== w) render(); return true; }
+      return false;
+    };
+    // Retry on a timer as well as on animation frames: a browser throttles rAF
+    // to nothing in a background tab, so a page that loads while hidden would
+    // otherwise stay stuck at the canvas default size until something resized
+    // the window.
+    const retry = () => { if (!settle() && ++tries < 40) setTimeout(retry, 120); };
+    retry();
+    requestAnimationFrame(settle);
+    window.addEventListener('resize', settle);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { settle(); render(); } });
+    if (window.ResizeObserver) new ResizeObserver(settle).observe($('stage'));
 
     if (want) { show(want.properties.name); flyTo(want.properties.name); }
     else if (state.alpha === 0) startSpin();
