@@ -244,11 +244,13 @@
   function show(name) {
     state.selected = name;
     const card = $('card'), empty = $('empty');
+    // Set both displays explicitly. Clearing the inline style instead would
+    // simply hand control back to the stylesheet, where #card is display:none.
     if (!name || !data.countries[name]) {
-      card.style.display = 'none'; empty.style.display = ''; draw(); syncUrl(); return;
+      card.style.display = 'none'; empty.style.display = 'block'; draw(); syncUrl(); return;
     }
     const c = data.countries[name];
-    empty.style.display = 'none'; card.style.display = '';
+    empty.style.display = 'none'; card.style.display = 'block';
 
     const stat = (key, label, kind, unit) => {
       const v = c.metrics[key];
@@ -330,7 +332,7 @@
   function drawTray() {
     const tray = $('tray');
     if (!state.pinned.length) { tray.style.display = 'none'; return; }
-    tray.style.display = '';
+    tray.style.display = 'block';
     const keys = [['population', 'Population', 'int'], ['areaKm2', 'Area km²', 'int'],
       ['gdpPPP', 'GDP PPP', 'money'], ['ktdi', 'KTDI', 'dec3']];
     tray.innerHTML = `<h3>Comparing</h3><table><thead><tr><th></th>${keys.map((k) => `<th>${k[1]}</th>`).join('')}<th></th></tr></thead><tbody>`
@@ -378,13 +380,19 @@
     return [(e.clientX - r.left) * sx, (e.clientY - r.top) * sy];
   };
 
-  let drag = null;
+  let drag = null, dragged = false;
   cvs.addEventListener('mousedown', (e) => {
     drag = { x: e.clientX, y: e.clientY, rot: state.rotation.slice(), px: state.panX, py: state.panY, moved: false };
     cvs.classList.add('dragging');
     stopSpin();
   });
-  window.addEventListener('mouseup', () => { drag = null; cvs.classList.remove('dragging'); });
+  // mouseup runs before click, so remember whether this gesture was a drag;
+  // reading it off the (by then discarded) drag object never worked.
+  window.addEventListener('mouseup', () => {
+    dragged = !!(drag && drag.moved);
+    drag = null;
+    cvs.classList.remove('dragging');
+  });
   window.addEventListener('mousemove', (e) => {
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
@@ -415,7 +423,7 @@
   });
   cvs.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
   cvs.addEventListener('click', (e) => {
-    if (drag && drag.moved) return;
+    if (dragged) { dragged = false; return; }
     const [x, y] = toCanvas(e);
     const f = countryAt(x, y);
     show(f ? f.properties.name : null);
@@ -434,7 +442,7 @@
   function drawLegend() {
     const el = $('legend');
     if (!state.metric || !bins) { el.style.display = 'none'; return; }
-    el.style.display = '';
+    el.style.display = 'block';
     const spec = data.metrics.find((m) => m.key === state.metric);
     const edges = [bins.min, ...bins.cuts, bins.max];
     el.innerHTML = `<div class="t">${spec.label}${spec.unit ? ` (${spec.unit})` : ''}</div>`
