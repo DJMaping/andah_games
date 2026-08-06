@@ -221,6 +221,10 @@
 
   function countryAt(px, py) {
     if (morph) return null;
+    // Bring the projection up to date first. It is otherwise only recomputed
+    // while drawing, so a click landing between a gesture and the next frame
+    // would be unprojected through the previous view and hit the wrong country.
+    frame();
     let ll;
     try { ll = projection.invert([px, py]); } catch (e) { return null; }
     if (!ll || !Number.isFinite(ll[0]) || !Number.isFinite(ll[1])) return null;
@@ -267,6 +271,13 @@
     }
     const c = data.countries[name];
     empty.style.display = 'none'; card.style.display = 'block';
+    // Announce the selection, so the map is followable without seeing it.
+    const say = $('say');
+    if (say) {
+      say.textContent = `${name}. Capital ${c.capital || 'unknown'}. `
+        + (typeof c.metrics.population === 'number'
+          ? `Population ${Math.round(c.metrics.population).toLocaleString()}, ${ordinal(c.ranks.population)} of ${data.countryCount}.` : '');
+    }
 
     const stat = (key, label, kind, unit) => {
       const v = c.metrics[key];
@@ -447,10 +458,97 @@
   cvs.addEventListener('wheel', (e) => {
     e.preventDefault();
     stopSpin();
-    state.zoom = Math.max(1, Math.min(40, state.zoom * Math.exp(-e.deltaY * 0.0012)));
+    zoomBy(Math.exp(-e.deltaY * 0.0012));
+  }, { passive: false });
+
+  function zoomBy(factor) {
+    state.zoom = Math.max(1, Math.min(40, state.zoom * factor));
     if (state.zoom === 1) { state.panX = 0; state.panY = 0; }
     draw();
+  }
+
+  // ------------------------------------------------------------------ touch
+
+  // Without these the map is simply unusable on a phone or tablet: a canvas
+  // gets no drag, no zoom and no selection from touch events on its own.
+  let touch = null;
+  const spread = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+  cvs.addEventListener('touchstart', (e) => {
+    stopSpin();
+    const t = e.touches;
+    touch = {
+      moved: false,
+      x: t[0].clientX, y: t[0].clientY,
+      rot: state.rotation.slice(), px: state.panX, py: state.panY,
+      pinch: t.length > 1 ? spread(t) : 0,
+      zoom: state.zoom,
+    };
+  }, { passive: true });
+
+  cvs.addEventListener('touchmove', (e) => {
+    if (!touch) return;
+    e.preventDefault();
+    const t = e.touches;
+    if (t.length > 1 && touch.pinch) {
+      touch.moved = true;
+      state.zoom = Math.max(1, Math.min(40, touch.zoom * (spread(t) / touch.pinch)));
+      if (state.zoom === 1) { state.panX = 0; state.panY = 0; }
+      draw();
+      return;
+    }
+    const dx = t[0].clientX - touch.x, dy = t[0].clientY - touch.y;
+    if (Math.abs(dx) + Math.abs(dy) > 6) touch.moved = true;
+    if (state.alpha < 0.5) {
+      const k = 0.26 / state.zoom;
+      state.rotation = [touch.rot[0] + dx * k, Math.max(-90, Math.min(90, touch.rot[1] - dy * k))];
+    } else {
+      state.panX = touch.px + dx; state.panY = touch.py + dy;
+    }
+    draw();
   }, { passive: false });
+
+  cvs.addEventListener('touchend', (e) => {
+    if (touch && !touch.moved && e.changedTouches.length) {
+      const c = e.changedTouches[0];
+      const b = cvs.getBoundingClientRect();
+      const sx = cvs.width / b.width, sy = cvs.height / b.height;
+      const f = countryAt((c.clientX - b.left) * sx, (c.clientY - b.top) * sy);
+      show(f ? f.properties.name : null);
+    }
+    touch = null;
+  }, { passive: true });
+
+  // --------------------------------------------------------------- keyboard
+
+  // A canvas is invisible to the keyboard by default, which leaves the whole
+  // map unreachable without a pointing device.
+  cvs.setAttribute('tabindex', '0');
+  cvs.setAttribute('role', 'application');
+  cvs.setAttribute('aria-label', 'Map of Andah. Arrow keys turn the globe, plus and minus zoom, Home resets.');
+  cvs.addEventListener('keydown', (e) => {
+    const step = e.shiftKey ? 15 : 5;
+    let used = true;
+    switch (e.key) {
+      case 'ArrowLeft': case 'ArrowRight': case 'ArrowUp': case 'ArrowDown': {
+        stopSpin();
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+        if (state.alpha < 0.5) {
+          state.rotation = [state.rotation[0] + dx, Math.max(-90, Math.min(90, state.rotation[1] - dy))];
+        } else {
+          state.panX -= dx * 4; state.panY -= dy * 4;
+        }
+        draw();
+        break;
+      }
+      case '+': case '=': stopSpin(); zoomBy(1.25); break;
+      case '-': case '_': stopSpin(); zoomBy(1 / 1.25); break;
+      case 'Home': state.zoom = 1; state.panX = 0; state.panY = 0; draw(); break;
+      default: used = false;
+    }
+    if (used) e.preventDefault();
+  });
 
   const metricLabel = (k) => (data.metrics.find((m) => m.key === k) || {}).label || k;
   const metricKind = (k) => (data.metrics.find((m) => m.key === k) || {}).kind || 'int';
