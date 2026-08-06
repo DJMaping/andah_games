@@ -96,25 +96,33 @@ const byId = new Map(F.regions.map(r => [r.id, r]));
 const IGNORE = '__ignore__';
 
 // Overrides survive a page reload, so a long labelling session is not lost.
-const STORE = 'andah-map-overrides';
-let overrides = {};
-try { overrides = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { overrides = null; }
-// Fall back to whatever is already committed in data/map-label-overrides.json,
-// so a fresh browser starts from the decisions already made rather than from
-// the automatic labelling.
-if (!overrides || !Object.keys(overrides).length) overrides = normalise(F.saved || {});
+// Work in progress is stored against this build's fingerprint. Region ids are
+// renumbered whenever the source map changes, so a table saved before a rebuild
+// would otherwise be reapplied to whatever regions inherited those ids.
+const STORE = `andah-map-overrides:${F.fingerprint || 'unknown'}`;
+let overrides = null;
+try {
+  const stored = localStorage.getItem(STORE);
+  // null means nothing has been stored; "{}" means the user has deliberately
+  // cleared every correction, which must not resurrect the committed ones.
+  if (stored !== null) overrides = JSON.parse(stored);
+} catch (e) { overrides = null; }
+if (!overrides) overrides = normalise(F.saved || {});
 
-/** Accept both the plain id->name form and the richer id->{name, at} form. */
+/** Accept the plain id->name form and the richer id->{name, at} form alike. */
 function normalise(table) {
   const out = {};
   for (const [k, v] of Object.entries(table)) {
     if (k.startsWith('_')) continue;
-    out[k] = v && typeof v === 'object' ? v.name : v;
+    // Keep the point. Regenerating it from whichever region currently holds
+    // this id is how a correction gets re-anchored to the wrong country.
+    out[k] = v && typeof v === 'object' ? { name: v.name, at: v.at || null } : { name: v, at: null };
   }
   return out;
 }
+const nameOf = (v) => (v && typeof v === 'object' ? v.name : v);
 
-const effective = (r) => (Object.prototype.hasOwnProperty.call(overrides, r.id) ? overrides[r.id] : r.a);
+const effective = (r) => (Object.prototype.hasOwnProperty.call(overrides, r.id) ? nameOf(overrides[r.id]) : r.a);
 const isReal = (v) => typeof v === 'string' && v !== IGNORE;
 
 // ---------------------------------------------------------------- colours
@@ -214,7 +222,8 @@ function draw() {
     ctx.lineWidth = 2;
     ctx.strokeStyle = '#ff00aa';
     for (const r of F.regions) {
-      if (isReal(effective(r)) || r.px < 40 || !r.i) continue;
+      const v = effective(r);
+      if (isReal(v) || v === IGNORE || r.px < 40 || !r.i) continue;
       const cx = r.i[0] * RW / F.width * view.scale + view.x;
       const cy = r.i[1] * RH / F.height * view.scale + view.y;
       if (cx < -20 || cy < -20 || cx > bufW + 20 || cy > bufH + 20) continue;
@@ -249,7 +258,8 @@ function regionAtEvent(e) {
 const tip = document.getElementById('tip');
 let drag = null;
 cvs.addEventListener('mousedown', (e) => { drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false }; });
-window.addEventListener('mouseup', () => { drag = null; });
+let draggedFixer = false;
+window.addEventListener('mouseup', () => { draggedFixer = !!(drag && drag.moved); drag = null; });
 cvs.addEventListener('mousemove', (e) => {
   if (drag) {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
@@ -270,7 +280,7 @@ cvs.addEventListener('mousemove', (e) => {
   tip.style.top = (e.clientY - b.top + 14) + 'px';
 });
 cvs.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
-cvs.addEventListener('click', (e) => { if (drag && drag.moved) return; select(regionAtEvent(e) || null); });
+cvs.addEventListener('click', (e) => { if (draggedFixer) { draggedFixer = false; return; } select(regionAtEvent(e) || null); });
 cvs.addEventListener('wheel', (e) => {
   e.preventDefault();
   const b = cvs.getBoundingClientRect();
@@ -339,7 +349,14 @@ function select(id) {
     </div>`;
   const pick = document.getElementById('pick');
   pick.focus(); pick.select();
-  const setTo = (val) => { overrides[r.id] = val; persist(); refresh(); select(r.id); };
+  const setTo = (val) => {
+    const kept = overrides[r.id];
+    // Keep the original point if this region already had a correction; it is
+    // what makes the correction survive a future renumbering.
+    const at = (kept && kept.at) || (r.i ? r.i : null);
+    overrides[r.id] = { name: val, at };
+    persist(); refresh(); select(r.id);
+  };
   document.getElementById('apply').onclick = () => {
     const n = pick.value.trim();
     if (!F.countries.includes(n)) { pick.style.borderColor = 'var(--bad)'; return; }
@@ -426,9 +443,12 @@ document.getElementById('save').onclick = () => {
   // Region ids are renumbered whenever the source map gains or loses land, so
   // the point is what actually survives an edit to the artwork.
   const rich = {};
-  for (const [id, name] of Object.entries(overrides)) {
+  for (const [id, v] of Object.entries(overrides)) {
     const r = byId.get(+id);
-    rich[id] = { name, at: r && r.i ? r.i : null };
+    // Emit the point this correction was made against. Re-deriving it from
+    // whichever region now holds this id would re-anchor the correction to a
+    // different country the moment ids shift.
+    rich[id] = { name: nameOf(v), at: (v && v.at) || (r && r.i ? r.i : null) };
   }
   const body = JSON.stringify({
     _note: 'Hand corrections to the automatic map labelling. Keyed by region id, but resolved by "at", a point inside that region, because ids are renumbered whenever the source map changes. null name means unidentified, "__ignore__" means artefact. Read by tools/label-regions.cjs.',
