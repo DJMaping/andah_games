@@ -185,19 +185,35 @@
   function morphTo(target, onDone) {
     stopSpin();
     const from = state.alpha, t0 = performance.now();
-    // A flat map tilted off the equator is skewed and hard to read, so level it
-    // on the way out. Longitude is left alone, which keeps whatever you were
-    // looking at in the middle of the map.
-    const tiltFrom = state.rotation[1], tiltTo = target >= 1 ? 0 : tiltFrom;
+    // Unrolling to a flat map, settle on the natural frame: no tilt, and
+    // centred on the prime meridian. A tilted flat map is skewed and hard to
+    // read, and leaving the longitude wherever the globe happened to be
+    // spun to slices continents in half at both edges. Andah has no land at
+    // the antimeridian, so centred on zero nothing is ever cut.
+    const flattening = target >= 1;
+    const spinFrom = state.rotation[0], tiltFrom = state.rotation[1];
+    let spinDelta = flattening ? -spinFrom : 0;
+    while (spinDelta > 180) spinDelta -= 360;
+    while (spinDelta < -180) spinDelta += 360;
+    const tiltTo = flattening ? 0 : tiltFrom;
+    const panFromX = state.panX, panFromY = state.panY;
     if (morph) cancelAnimationFrame(morph);
     (function step(now) {
       const k = Math.min(1, (now - t0) / MORPH_MS);
       const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;   // ease in and out
       state.alpha = from + (target - from) * e;
-      state.rotation[1] = tiltFrom + (tiltTo - tiltFrom) * e;
+      state.rotation = [spinFrom + spinDelta * e, tiltFrom + (tiltTo - tiltFrom) * e];
+      if (flattening) { state.panX = panFromX * (1 - e); state.panY = panFromY * (1 - e); }
       render();
       if (k < 1) morph = requestAnimationFrame(step);
-      else { morph = null; state.alpha = target; state.rotation[1] = tiltTo; render(); if (onDone) onDone(); }
+      else {
+        morph = null;
+        state.alpha = target;
+        state.rotation = [spinFrom + spinDelta, tiltTo];
+        if (flattening) { state.panX = 0; state.panY = 0; }
+        render();
+        if (onDone) onDone();
+      }
     })(t0);
   }
 
@@ -509,7 +525,7 @@
     if (q.get('p')) { state.flat = q.get('p'); $('proj').value = state.flat; }
     if (q.get('m')) { state.metric = q.get('m'); $('metric').value = state.metric; buildBins(); drawLegend(); }
     if (q.get('v') === 'flat') {
-      state.alpha = 1; state.rotation[1] = 0; state.spinning = false;
+      state.alpha = 1; state.rotation = [0, 0]; state.spinning = false;
       $('toGlobe').classList.remove('on'); $('toFlat').classList.add('on');
     }
     const want = q.get('c') && features.find((f) => f.id === q.get('c'));
@@ -519,10 +535,14 @@
     // nothing sensible to draw into; retry until it reports a real size.
     render();
     let tries = 0;
+    // Always repaint after sizing. Assigning to canvas.width clears the canvas
+    // even when the value is unchanged, so anything conditional here leaves a
+    // blank map behind.
     const settle = () => {
-      const w = cvs.width;
-      if (resize()) { if (cvs.width !== w) render(); return true; }
-      return false;
+      if (!resize()) return false;
+      render();
+      window.__map = { canvas: [cvs.width, cvs.height], alpha: state.alpha, rotation: state.rotation.slice() };
+      return true;
     };
     // Retry on a timer as well as on animation frames: a browser throttles rAF
     // to nothing in a background tab, so a page that loads while hidden would
