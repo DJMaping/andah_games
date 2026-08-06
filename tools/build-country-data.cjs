@@ -62,6 +62,42 @@ function paramsOf(block) {
   return out;
 }
 
+/**
+ * Percentage breakdowns keep their nesting.
+ *
+ * The infobox writes these as a tree: a top-level share, then indented shares
+ * *of that share*. Flattening it into one line turns "43.5% Kallimethra, of
+ * which 45% Therameth" into two figures that look like they both describe the
+ * whole country and add up to nonsense.
+ */
+function parseBreakdown(raw) {
+  if (!raw) return null;
+  const lines = String(raw)
+    .replace(/<ref[^>]*\/>/gi, '')
+    .replace(/<ref[\s\S]*?<\/ref>/gi, '')
+    .replace(/\{\{\s*(cite|Cite)[\s\S]*?\}\}/g, '')
+    .replace(/\{\{\s*tree list(\/end)?\s*\}\}/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .split('\n');
+
+  const out = [];
+  for (const line of lines) {
+    const stars = (line.match(/^\s*(\*+)/) || [, ''])[1].length;
+    const text = clean(line.replace(/^\s*\*+/, ''));
+    if (!text) continue;
+    const m = text.match(/^([\d.]+)\s*%\s*(.+)$/);
+    const item = m
+      ? { pct: parseFloat(m[1]), label: m[2].trim() }
+      : { pct: null, label: text };
+    if (stars >= 2 && out.length && out[out.length - 1].children) {
+      out[out.length - 1].children.push(item);
+    } else {
+      out.push({ ...item, children: [] });
+    }
+  }
+  return out.length ? out : null;
+}
+
 /** Wikitext to plain readable text. */
 function clean(v) {
   if (!v) return '';
@@ -189,11 +225,22 @@ for (const name of countryNames) {
         }
         // Establishment dates are a numbered series in the infobox.
         const events = [];
-        for (let i = 1; i <= 6; i++) {
+        for (let i = 1; i <= 8; i++) {
           const ev = clean(p[`established_event${i}`]), dt = clean(p[`established_date${i}`]);
           if (ev || dt) events.push({ event: ev, date: dt });
         }
         if (events.length) entry.info.establishedEvents = events;
+
+        // Keep the nesting on the percentage breakdowns.
+        const religion = parseBreakdown(p.religion);
+        if (religion) entry.info.religionBreakdown = religion;
+        const ethnic = parseBreakdown(p.ethnic_groups);
+        if (ethnic) entry.info.ethnicBreakdown = ethnic;
+
+        // A leader slot filled in with "N/a" is not information.
+        for (const k of ['leaderName1', 'leaderName2']) {
+          if (/^(n\/?a|none|tbd|unknown|-|–)$/i.test(entry.info[k] || '')) delete entry.info[k];
+        }
         if (!entry.capital) entry.capital = clean(p.capital) || null;
         withWiki++;
       }

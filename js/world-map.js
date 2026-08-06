@@ -279,81 +279,143 @@
           ? `Population ${Math.round(c.metrics.population).toLocaleString()}, ${ordinal(c.ranks.population)} of ${data.countryCount}.` : '');
     }
 
-    const stat = (key, label, kind, unit) => {
-      const v = c.metrics[key];
-      if (typeof v !== 'number') return '';
-      const rank = c.ranks && c.ranks[key];
-      const share = rank ? (1 - (rank - 1) / data.countryCount) : 0;
-      return `<div class="k">${label}${unit ? ` <span style="opacity:.65">${unit}</span>` : ''}</div>`
-        + `<div class="v">${fmt(v, kind)}${rank ? `<small>${ordinal(rank)}</small>` : ''}</div>`
-        + (rank ? `<div class="bar"><i style="width:${(share * 100).toFixed(1)}%"></i></div>` : '');
-    };
-    const row = (label, value) => (value ? `<dt>${label}</dt><dd>${value}</dd>` : '');
     const i = c.info || {};
     const feature = byName.get(name);
     const nb = (feature && feature.properties.neighbours) || [];
+    const N = data.countryCount;
+
+    // A headline figure: value on its own line, rank underneath. Appending the
+    // rank to the number ran them together into "81,313,72919th".
+    const key = (k, label, kind, unit) => {
+      const v = c.metrics[k];
+      if (typeof v !== 'number') return '';
+      const rank = c.ranks && c.ranks[k];
+      const share = rank ? (1 - (rank - 1) / N) : 0;
+      return `<div class="key">
+        <div class="lab">${label}</div>
+        <div class="num">${fmt(v, kind)}${unit ? `<u>${unit}</u>` : ''}</div>
+        ${rank ? `<div class="rank">${ordinal(rank)} of ${N}</div>
+        <div class="bar"><i style="width:${(share * 100).toFixed(1)}%"></i></div>` : ''}
+      </div>`;
+    };
+    const stat = (k, label, kind, unit) => {
+      const v = c.metrics[k];
+      if (typeof v !== 'number') return '';
+      const rank = c.ranks && c.ranks[k];
+      return `<div class="fact inline"><dt>${label}${unit ? ` ${unit}` : ''}</dt>`
+        + `<dd>${fmt(v, kind)}${rank ? `<span class="rk">${ordinal(rank)}</span>` : ''}</dd></div>`;
+    };
+    const fact = (label, value) => (value ? `<div class="fact"><dt>${label}</dt><dd>${value}</dd></div>` : '');
+    const inline = (label, value) => (value ? `<div class="fact inline"><dt>${label}</dt><dd>${value}</dd></div>` : '');
+    const split = (list) => (!list || !list.length ? '' : `<div class="split">`
+      + list.map((r) => `<div class="s">
+          <div class="t"><b>${r.label}</b><span>${r.pct !== null ? r.pct + '%' : ''}</span></div>
+          ${r.pct !== null ? `<div class="g"><i style="width:${Math.min(100, r.pct).toFixed(1)}%"></i></div>` : ''}
+        </div>`
+        + (r.children || []).map((s) => `<div class="s sub">
+            <div class="t"><b>${s.label}</b><span>${s.pct !== null ? s.pct + '%' : ''}</span></div>
+            ${s.pct !== null ? `<div class="g"><i style="width:${Math.min(100, s.pct).toFixed(1)}%"></i></div>` : ''}
+          </div>`).join('')).join('')
+      + `</div>`);
 
     card.innerHTML = `
       <div class="head">
         <div class="top">
-          ${c.flag ? `<img src="${c.flag}" alt="">` : ''}
-          <div>
+          ${c.flag ? `<img src="${c.flag}" alt="Flag of ${name}">` : ''}
+          <div class="who">
             <h2>${name}</h2>
             ${i.longName && i.longName !== name ? `<div class="long">${i.longName}</div>` : ''}
             ${c.pronunciation ? `<div class="say">${c.pronunciation}</div>` : ''}
+            ${c.continent ? `<div class="where"><b>${c.continent}</b>${c.geoscheme ? ` · ${c.geoscheme}` : ''}</div>` : ''}
           </div>
         </div>
         <div class="links">
-          <a class="btn" href="${c.wiki}" target="_blank" rel="noopener">Wiki article</a>
-          <button class="btn" id="pin">${state.pinned.includes(name) ? 'Unpin' : 'Compare'}</button>
+          <a class="btn" href="${c.wiki}" target="_blank" rel="noopener">Wiki article ↗</a>
+          <button class="btn" id="pin">${state.pinned.includes(name) ? 'Remove from compare' : 'Compare'}</button>
         </div>
       </div>
-      <div class="stats">
-        ${stat('population', 'Population', 'int')}
-        ${stat('areaKm2', 'Area', 'int', 'km²')}
-        ${stat('gdpPPP', 'GDP (PPP)', 'money', 'lahn')}
-        ${stat('ktdi', 'Development index', 'dec3')}
+
+      <div class="keys">
+        ${key('population', 'Population', 'int')}
+        ${key('areaKm2', 'Area', 'int', 'km²')}
+        ${key('gdpPPP', 'GDP (PPP)', 'money', 'lahn')}
+        ${key('ktdi', 'Development', 'dec3')}
       </div>
+
       <details open>
         <summary>Identity</summary>
         <div class="body">
-          ${row('Capital', c.capital)}${row('Largest city', i.largestCity)}
-          ${row('Continent', c.continent)}${row('Region', c.geoscheme)}
-          ${row('Demonym', c.demonym)}${row('Languages', i.officialLanguages)}
-          ${row('Currency', i.currency)}${row('Domain', c.domain)}
-          ${row('Calling code', i.callingCode)}${row('Drives on', i.drivesOn)}
-          ${row('Time zone', i.timeZone)}
+          ${inline('Capital', c.capital)}
+          ${i.largestCity && i.largestCity !== c.capital ? inline('Largest city', i.largestCity) : ''}
+          ${inline('Demonym', c.demonym)}
+          ${fact('Official languages', i.officialLanguages)}
+          ${i.regionalLanguages ? fact('Regional languages', i.regionalLanguages) : ''}
+          ${fact('Currency', i.currency)}
+          ${inline('Internet domain', c.domain || i.cctld)}
+          ${inline('Calling code', i.callingCode)}
+          ${inline('Drives on', i.drivesOn)}
+          ${fact('Time zone', i.timeZone)}
         </div>
       </details>
-      <details${nb.length ? '' : ' hidden'}>
-        <summary>Borders ${nb.length ? `(${nb.length})` : ''}</summary>
+
+      ${nb.length ? `<details>
+        <summary>Borders (${nb.length})</summary>
         <div class="chips">
           ${nb.map((n) => `<button class="chip" data-go="${n.name}">${n.name}<span>${n.km.toLocaleString()} km</span></button>`).join('')}
         </div>
-      </details>
-      ${nb.length ? '' : '<div class="lone">No land borders — an island nation.</div>'}
+      </details>` : '<div class="lone">No land borders — an island nation.</div>'}
+
       <details>
-        <summary>Economy and people</summary>
-        <div class="stats">
-          ${stat('density', 'Density', 'dec1', '/km²')}
-          ${stat('gdpNominal', 'GDP (nominal)', 'money', 'lahn')}
-          ${stat('gdpPPPPerCapita', 'GDP per head (PPP)', 'money0', 'lahn')}
-          ${stat('gdpNomPerCapita', 'GDP per head (nominal)', 'money0', 'lahn')}
-          ${stat('militaryNominal', 'Military spending', 'money', 'lahn')}
+        <summary>Economy</summary>
+        <div class="body">
+          ${stat('gdpNominal', 'GDP (nominal)', 'money', '· lahn')}
+          ${stat('gdpPPPPerCapita', 'GDP per head (PPP)', 'money0', '· lahn')}
+          ${stat('gdpNomPerCapita', 'GDP per head (nominal)', 'money0', '· lahn')}
+          ${stat('militaryNominal', 'Military spending', 'money', '· lahn')}
         </div>
-        <div class="body">${row('Ethnic groups', i.ethnicGroups)}${row('Religion', i.religion)}</div>
       </details>
+
+      <details>
+        <summary>People</summary>
+        <div class="body">
+          ${stat('density', 'Density', 'dec1', '· per km²')}
+          ${i.ethnicBreakdown ? `<div class="fact"><dt>Ethnic groups</dt><dd>${split(i.ethnicBreakdown)}</dd></div>`
+            : fact('Ethnic groups', i.ethnicGroups)}
+          ${i.religionBreakdown ? `<div class="fact"><dt>Religion</dt><dd>${split(i.religionBreakdown)}</dd></div>`
+            : fact('Religion', i.religion)}
+        </div>
+      </details>
+
       <details>
         <summary>Government</summary>
-        <div class="stats">${stat('gdi', 'Democratic integrity', 'dec2')}</div>
         <div class="body">
-          ${row('Government', i.government)}${row('Legislature', i.legislature)}
-          ${row(i.leaderTitle1 || 'Leader', i.leaderName1)}${row(i.leaderTitle2 || '', i.leaderTitle2 ? i.leaderName2 : '')}
-          ${row('Upper house', i.upperHouse)}${row('Lower house', i.lowerHouse)}
-          ${row('Established', i.established)}
-          ${(i.establishedEvents || []).map((e) => row(e.event || 'Event', e.date)).join('')}
+          ${fact('System', i.government)}
+          ${stat('gdi', 'Democratic integrity', 'dec2')}
+          ${fact('Legislature', i.legislature)}
+          ${i.upperHouse ? inline('Upper house', i.upperHouse) : ''}
+          ${i.lowerHouse ? inline('Lower house', i.lowerHouse) : ''}
+          ${i.leaderName1 ? inline(i.leaderTitle1 || 'Leader', i.leaderName1) : ''}
+          ${i.leaderName2 ? inline(i.leaderTitle2 || 'Deputy', i.leaderName2) : ''}
         </div>
-      </details>`;
+      </details>
+
+      ${(i.establishedEvents && i.establishedEvents.length) || i.established ? `<details>
+        <summary>History</summary>
+        <div class="body">
+          ${i.established ? inline('Established', i.established) : ''}
+          ${(i.establishedEvents || []).length ? `<div class="tl">
+            ${i.establishedEvents.map((e) => `<div class="e"><time>${e.date || ''}</time><span>${e.event || ''}</span></div>`).join('')}
+          </div>` : ''}
+        </div>
+      </details>` : ''}
+
+      ${i.motto || i.anthem ? `<details>
+        <summary>Symbols</summary>
+        <div class="body">
+          ${fact('Motto', i.motto)}
+          ${fact('Anthem', i.anthem)}
+        </div>
+      </details>` : ''}`;
 
     card.querySelectorAll('[data-go]').forEach((el) => {
       el.onclick = () => { show(el.dataset.go); flyTo(el.dataset.go); };
