@@ -92,9 +92,23 @@ const geo = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'andah-countries.
 const countryNames = geo.features.map((f) => f.properties.name);
 log(`${countryNames.length} countries from the GeoJSON`);
 
+// countries.json holds more than one record per country: the real one, plus an
+// ALL-CAPS or differently-cased duplicate carrying no figures at all. Keying on
+// the lowercased name and letting later entries win silently replaced ten
+// countries, Estijan and Areoix Lie among them, with empty records. Keep
+// whichever entry actually has the most in it.
 const cj = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'countries.json'), 'utf8'));
 const source = new Map();
-for (const c of cj.countries) source.set(c.name.toLowerCase(), c);
+const weight = (c) => Object.keys(c.metrics || {}).length + Object.keys(c.categorical || {}).length;
+let collisions = 0;
+for (const c of cj.countries) {
+  const key = c.name.toLowerCase();
+  const held = source.get(key);
+  if (!held) { source.set(key, c); continue; }
+  collisions++;
+  if (weight(c) > weight(held)) source.set(key, c);
+}
+if (collisions) log(`countries.json: ${collisions} duplicate names, kept the fullest record of each`);
 
 const flags = new Set(fs.readdirSync(path.join(ROOT, 'flags')).map((f) => f.replace(/\.png$/i, '')));
 const havePages = fs.existsSync(PAGES);
