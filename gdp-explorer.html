@@ -177,17 +177,10 @@
 
 <div class="gdp-shell">
     <h1>GDP Explorer</h1>
-    <p class="gdp-summary">Population history loads from <code>data/gdp-history.json</code>; you author each country's
-        <strong>GDP/cap growth</strong> right here in <strong>Edit</strong> mode. Per-capita history compounds backward
-        from each country's 2015 anchor. Save with <em>Download gdp-growth.json</em> and commit the file.</p>
+    <p class="gdp-summary">Explore Andah's GDP over time and across countries. Data loads from
+        <code>data/gdp-history.json</code> and <code>data/gdp-growth.json</code>; per-capita history compounds
+        backward from each country's 1765 anchor.</p>
     <p class="gdp-status" id="gdp-status">Loading…</p>
-
-    <div class="gdp-modes" role="tablist" aria-label="Mode">
-        <button type="button" id="mode-view" aria-selected="true">View</button>
-        <button type="button" id="mode-edit" aria-selected="false">✎ Edit</button>
-    </div>
-    <p class="gdp-dirty gdp-hidden" id="gdp-dirty">You have <strong>unsaved edits</strong> (kept in this browser only).
-        Click <em>Download gdp-growth.json</em> below and commit it to make them durable.</p>
 
     <div id="gdp-main" class="gdp-hidden">
         <div class="gdp-tabs" role="tablist">
@@ -198,11 +191,11 @@
         <!-- global controls (apply across both views) -->
         <div class="gdp-controls" id="gdp-global-controls">
             <label>Currency
-                <select id="ctl-currency" title="Both use the lahn symbol; 1 lahn = 8 new lahn">
+                <select id="ctl-currency" title="Lahn is the official figure (8 × old lahn); Old lahn is the original unit. All lahn units share the same symbol.">
                     <option value="lahn" selected>Lahn</option>
-                    <option value="newlahn">New lahn (×8)</option>
-                    <option value="grandlahn">Grand lahn (×0.25)</option>
-                    <option value="dollar">$ Dollar (×1.75)</option>
+                    <option value="oldlahn">Old lahn (1 = 8 lahn)</option>
+                    <option value="grandlahn">Grand lahn (1 = 32 lahn)</option>
+                    <option value="dollar">$ Dollar</option>
                 </select>
             </label>
         </div>
@@ -210,9 +203,10 @@
         <!-- ============ View 1: all countries, one year ============ -->
         <section id="view-year">
             <div class="gdp-controls">
-                <label>Earth Year
+                <label>Year
+                    <!-- slider values are Earth years (the data key); the label shows the Andah year -->
                     <input type="range" id="ctl-year" min="1950" max="2015" step="1" value="2015">
-                    <span class="gdp-year-value" id="ctl-year-label">2015 (1765)</span>
+                    <span class="gdp-year-value" id="ctl-year-label">1765</span>
                 </label>
                 <label>Play
                     <button type="button" id="ctl-play" aria-pressed="false" title="Animate through the years">▶</button>
@@ -353,36 +347,6 @@
                     </select>
                 </label>
             </div>
-
-            <!-- authoring panel (Edit mode only) -->
-            <div class="gdp-edit-panel gdp-hidden" id="edit-panel">
-                <div class="gdp-edit-row">
-                    <strong><span class="lahn-sym" role="img" aria-label="lahn"></span> checkpoints</strong>
-                    <span class="gdp-note">Pin an exact per-capita <span class="lahn-sym" role="img" aria-label="lahn"></span> amount at a few years, then interpolate — the tool solves a smooth growth curve between pins (the 2015 anchor is one end).</span>
-                </div>
-                <div class="gdp-edit-row">
-                    <label>Earth Year <input type="number" id="edit-pin-year" min="1950" max="2015" step="1" value="1950" style="width:5rem"></label>
-                    <button type="button" id="edit-addpin">Add / edit <span class="lahn-sym" role="img" aria-label="lahn"></span> pin…</button>
-                    <button type="button" id="edit-interpolate" class="primary">Interpolate between pins</button>
-                    <span id="edit-pins" class="gdp-note"></span>
-                </div>
-                <div class="gdp-edit-row">
-                    <strong>Paste a column</strong>
-                    <span class="gdp-note">Copy the <b>GDP/cap growth</b> column from Excel, click the year cell in the table below to start at (e.g. <b>2015</b>, the top), then paste (<b>Ctrl+V</b>) — values fill straight down. A <code>%</code> sign or numbers like <code>3</code> = 3%; a column of small decimals like <code>0.03</code> is auto-read as 3%. Blank cells clear that year.</span>
-                </div>
-                <div class="gdp-edit-row">
-                    <span id="paste-status" class="gdp-note"></span>
-                </div>
-                <div class="gdp-edit-row">
-                    <strong>Quick shapes</strong>
-                    <select id="ctl-archetype"></select>
-                    <span class="gdp-note">Applies a template growth curve you can then fine-tune by dragging the purple line or editing the table.</span>
-                </div>
-                <div class="gdp-edit-row">
-                    <button type="button" id="edit-clearcountry">Reset this country's edits</button>
-                    <span class="gdp-note">Drag the <b>“GDP/cap growth (drag me)”</b> points on the chart, or type % directly in the table below.</span>
-                </div>
-            </div>
             <div class="gdp-charts">
                 <div class="gdp-chart-card">
                     <h3>Total GDP &amp; GDP per capita</h3>
@@ -396,26 +360,17 @@
             <div class="gdp-chart-card gdp-hidden" id="compare-card" style="margin-top:1.25rem">
                 <h3 id="compare-title">Compare countries</h3>
                 <p class="gdp-note">Pick one or more countries in “Compare with” above to overlay them against the selected
-                    country. View mode only — hidden while editing.</p>
+                    country.</p>
                 <div class="gdp-tall-wrap"><canvas id="chart-compare"></canvas></div>
             </div>
             <div class="gdp-table-wrap">
                 <table class="gdp-table" id="country-table"></table>
             </div>
         </section>
-
-        <div class="gdp-actions">
-            <button type="button" id="gdp-export">Download gdp-growth.json</button>
-            <button type="button" id="gdp-clear">Discard unsaved edits</button>
-        </div>
-        <p class="gdp-note">Edits autosave to <em>this browser only</em> (localStorage) so they survive a refresh.
-            The durable source is <code>data/gdp-growth.json</code> — click <em>Download gdp-growth.json</em>, replace the
-            file in <code>data/</code>, and commit it to deploy.</p>
     </div>
 </div>
 
 <script src="js/vendor/chart.umd.min.js"></script>
-<script src="js/vendor/chartjs-plugin-dragdata.min.js"></script>
 <script src="js/script.js"></script>
 <script type="module" src="js/gdp-explorer.js"></script>
 </body>

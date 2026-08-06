@@ -59,11 +59,16 @@ const state = {
 // SHOWN — money display = base × factor — so switching never touches stored
 // values or authored edits (which stay in lahn). Both currencies share the
 // same lahn glyph; only the unit size differs.
+// Factors are relative to the internal base unit the data is STORED in. The GDP
+// data is now stored in OFFICIAL lahn (the ×8 redenomination lives in the workbook,
+// andah-stats.js, and gdp-history.json anchors), so Lahn = factor 1 and the other
+// units are fractions of it. Displayed numbers stay identical to before — the stored
+// data went ×8 and these factors went ÷8, so they cancel.
 const CURRENCIES = {
-    lahn:      { label: 'Lahn',       factor: 1,    symbol: 'lahn' },
-    newlahn:   { label: 'New lahn',   factor: 8,    symbol: 'lahn' },  // 1 lahn = 8 new lahn
-    grandlahn: { label: 'Grand lahn', factor: 0.25, symbol: 'lahn' },  // 1 grand lahn = 4 lahn
-    dollar:    { label: 'Dollar',     factor: 1.75, symbol: '$'    },  // 1 lahn = $1.75; shows "$", not the lahn glyph
+    lahn:      { label: 'Lahn',       factor: 1,       symbol: 'lahn' },  // OFFICIAL: the data is stored in lahn
+    oldlahn:   { label: 'Old lahn',   factor: 0.125,   symbol: 'lahn' },  // 1 old lahn = 8 lahn (pre-redenomination unit)
+    grandlahn: { label: 'Grand lahn', factor: 0.03125, symbol: 'lahn' },  // 1 grand lahn = 32 lahn
+    dollar:    { label: 'Dollar',     factor: 0.21875, symbol: '$'    },  // shows "$", not the lahn glyph; $1 ≈ 4.57 lahn
 };
 function currentCurrency() { return CURRENCIES[state.currency] || CURRENCIES.lahn; }
 function moneyFactor() { return currentCurrency().factor; }
@@ -340,6 +345,36 @@ function yearRange() {
     return isFinite(min) ? { min, max } : { min: 1950, max: 2015 };
 }
 
+// ---------- Andah year (display only) ----------
+// Earth year stays the internal key everywhere: gdp-history rows, gdp-growth
+// keys, the year slider, and every chart's labels[] array. The Andah year is a
+// translation applied at the very last moment — axis ticks, tooltip titles,
+// headings — so nothing downstream of andahYear() can feed back into the data.
+let andahMap = null;    // earthYear -> Andah year, read off the history rows
+let andahOffset = 250;  // fallback for years outside the history range
+function andahYear(earthYear) {
+    const e = Number(earthYear);
+    if (!isFinite(e)) return earthYear;
+    if (!andahMap || !andahMap.size) {
+        andahMap = new Map();
+        for (const h of state.history) {
+            for (const [ey, ay] of h.rows) if (ay != null && !andahMap.has(ey)) andahMap.set(ey, ay);
+        }
+        const first = andahMap.entries().next().value;
+        if (first) andahOffset = first[0] - first[1];
+    }
+    const a = andahMap.get(e);
+    return a != null ? a : e - andahOffset;
+}
+// Category x-axis whose labels are Earth years but which reads as Andah years.
+function yearScale(tc, maxTicksLimit) {
+    const ticks = { color: tc.muted, callback(v) { return andahYear(this.getLabelForValue(v)); } };
+    if (maxTicksLimit) ticks.maxTicksLimit = maxTicksLimit;
+    return { ticks, grid: { display: false } };
+}
+// Tooltip heading for those charts — the Andah year, not the Earth year behind it.
+const yearTitle = (items) => (items.length ? String(andahYear(items[0].label)) : '');
+
 // ========================================================================
 //  View 1: all countries, one year
 // ========================================================================
@@ -368,9 +403,9 @@ function renderYearView(opts = {}) {
         if (!ok || r.perCap == null) { hidden++; continue; }
         entries.push({ name: c.name, row: r });
     }
-    $('ctl-year-label').textContent = `${year}${fictionalYear != null ? ` (${fictionalYear})` : ''}`;
-    // Chart titles lead with the Andah year and show the Earth year in brackets.
-    const titleYear = fictionalYear != null ? `${fictionalYear} (${year})` : `${year}`;
+    // Everything the reader sees is the Andah year; `year` stays the Earth-year key.
+    const titleYear = `${fictionalYear != null ? fictionalYear : andahYear(year)}`;
+    $('ctl-year-label').textContent = titleYear;
 
     const valueOf = (e) => metric === 'gdp' ? e.row.gdp : metric === 'perCap' ? e.row.perCap : e.row.gdpGrowth;
     entries.sort((a, b) => (valueOf(b) ?? -Infinity) - (valueOf(a) ?? -Infinity));
@@ -381,7 +416,7 @@ function renderYearView(opts = {}) {
     $('year-summary').innerHTML = entries.length
         ? `${scope} (of ${entries.length} countries with data): total GDP ${lahnMoney(worldGdp)} · GDP per capita ${lahnMoney(worldPop ? worldGdp / worldPop : null)}`
         : `No countries have GDP data for this year yet${state.continentFilter === 'all' ? '' : ` in ${state.continentFilter}`} — switch to Edit and author some growth curves.`;
-    $('year-hidden').textContent = hidden ? `(${hidden} countries hidden — GDP not yet determined for ${year}. Blank growth years compound as 0%; a year counts as determined only when every year back from 2015 has a growth rate or an override pin.)` : '';
+    $('year-hidden').textContent = hidden ? `(${hidden} countries hidden — GDP not yet determined for ${titleYear}. Blank growth years compound as 0%; a year counts as determined only when every year back from ${andahYear(yearRange().max)} has a growth rate or an override pin.)` : '';
 
     // ----- bar (real HTML list: selectable/searchable names + <img> flags) -----
     const shown = showAll ? entries : entries.slice(0, topN);
@@ -497,7 +532,7 @@ function renderCountryView() {
     const tc = themeColors();
     const editing = state.mode === 'edit';
     const filled = rows.filter((r) => r.determined).length;
-    $('country-status').innerHTML = `${filled}/${rows.length} years determined · anchor ${lahnMoney(state.anchors.get(name))} per capita (2015)`;
+    $('country-status').innerHTML = `${filled}/${rows.length} years determined · anchor ${lahnMoney(state.anchors.get(name))} per capita (${andahYear(yearRange().max)})`;
 
     destroyChart('lineGdp');
     state.charts.lineGdp = new Chart($('chart-line-gdp'), {
@@ -523,10 +558,10 @@ function renderCountryView() {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: tc.text } },
-                tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` } },
+                tooltip: { callbacks: { title: yearTitle, label: (ctx) => ` ${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` } },
             },
             scales: {
-                x: { ticks: { color: tc.muted }, grid: { display: false } },
+                x: yearScale(tc),
                 y: { position: 'left', lahn: true, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
                 y1: { position: 'right', lahn: true, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { display: false } },
             },
@@ -578,10 +613,10 @@ function renderGrowthChart(name, asc, tc, editing) {
         interaction: { mode: 'index', intersect: false },
         plugins: {
             legend: { labels: { color: tc.text } },
-            tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}` } },
+            tooltip: { callbacks: { title: yearTitle, label: (ctx) => ` ${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}` } },
         },
         scales: {
-            x: { ticks: { color: tc.muted }, grid: { display: false } },
+            x: yearScale(tc),
             y: { ticks: { color: tc.muted, callback: (v) => fmtPct(v) }, grid: { color: tc.grid } },
         },
     };
@@ -609,7 +644,7 @@ function renderGrowthChart(name, asc, tc, editing) {
 
 function renderCountryTable(name, rows, editing) {
     const table = $('country-table');
-    const head = `<tr><th>Earth Year</th><th>Year</th><th>Population</th><th>GDP/cap growth${editing ? ' ✎' : ' (input)'}</th><th>GDP per Capita</th><th>Total GDP</th><th>GDP growth (total)</th></tr>`;
+    const head = `<tr><th>Year</th><th>Earth Year</th><th>Population</th><th>GDP/cap growth</th><th>GDP per Capita</th><th>Total GDP</th><th>GDP growth (total)</th></tr>`;
     const minYear = yearRange().min;
     const body = rows.map((r) => {
         const growthCell = editing && r.earthYear !== minYear
@@ -620,7 +655,7 @@ function renderCountryTable(name, rows, editing) {
             : `<td class="${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Pinned by override' : ''}">${lahnMoney(r.perCap)}</td>`;
         return `
         <tr class="${r.determined ? '' : 'undetermined'}">
-            <td>${r.earthYear}</td><td>${r.year ?? '–'}</td>
+            <td>${r.year ?? '–'}</td><td>${r.earthYear}</td>
             <td>${fmtInt(r.pop)}</td>
             ${growthCell}
             ${pcCell}
@@ -668,7 +703,7 @@ function promptPin(name, year) {
     const rows = state.computed.get(name);
     const r = rows.find((x) => x.earthYear === year);
     const current = r && r.perCap != null ? Math.round(r.perCap) : '';
-    const val = window.prompt(`Pin exact GDP per capita (in lahn) for ${name} in Earth Year ${year}:\n(blank to remove pin)`, current);
+    const val = window.prompt(`Pin exact GDP per capita (in lahn) for ${name} in ${andahYear(year)}:\n(blank to remove pin)`, current);
     if (val === null) return;
     const t = val.trim();
     if (t === '') delete editsFor(name).overrides[year];
@@ -750,7 +785,7 @@ function interpolatePins(name) {
 
     const years = [...pins.keys()].sort((a, b) => a - b); // ascending (old -> new)
     if (years.length < 2) {
-        window.alert('Add at least one per-capita lahn pin (📌) — the 2015 anchor is the other end. Then interpolate.');
+        window.alert(`Add at least one per-capita lahn pin (📌) — the ${andahYear(max)} anchor is the other end. Then interpolate.`);
         return;
     }
 
@@ -814,14 +849,6 @@ function withAlpha(hex, a) {
     const n = parseInt(m, 16);
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
-// fictional (Andah) year label for an Earth year, e.g. "1765 (2015)"
-function labelYear(earthYear) {
-    for (const c of state.countries) {
-        const r = rowFor(c.name, earthYear);
-        if (r && r.year != null) return `${r.year} (${earthYear})`;
-    }
-    return `${earthYear}`;
-}
 // diverging growth colour: negative→red, ~0→grey, positive→green
 function growthColor(v, max = 0.15) {
     if (v == null || !isFinite(v)) return '#6b7078';
@@ -870,7 +897,7 @@ function renderBubble() {
         maxGdp = Math.max(maxGdp, r.gdp || 0);
         pts.push({ name: c.name, x: r.perCap, y: r.pop, gdp: r.gdp, color: colorOf(c.name) });
     }
-    const t = $('bubble-title'); if (t) t.textContent = `Development landscape — ${labelYear(year)}`;
+    const t = $('bubble-title'); if (t) t.textContent = `Development landscape — ${andahYear(year)}`;
     const data = pts.map((p) => ({ x: p.x, y: p.y, r: 4 + 26 * Math.sqrt((p.gdp || 0) / (maxGdp || 1)), _p: p }));
     state.charts.bubble = new Chart(canvas, {
         type: 'bubble',
@@ -1042,10 +1069,10 @@ function renderContinentArea() {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: tc.text, boxWidth: 12, font: { size: 10 } } },
-                tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${mode === 'share' ? ctx.parsed.y.toFixed(1) + '%' : fmtMoney(ctx.parsed.y)}` } },
+                tooltip: { callbacks: { title: yearTitle, label: (ctx) => ` ${ctx.dataset.label}: ${mode === 'share' ? ctx.parsed.y.toFixed(1) + '%' : fmtMoney(ctx.parsed.y)}` } },
             },
             scales: {
-                x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+                x: yearScale(tc, 14),
                 y: Object.assign({ stacked: true, beginAtZero: true, min: 0, lahn: mode !== 'share', ticks: { color: tc.muted, callback: yFmt }, grid: { color: tc.grid } }, mode === 'share' ? { max: 100 } : {}),
             },
         },
@@ -1113,7 +1140,7 @@ function renderCagr() {
     const topN = Math.max(3, Math.min(list.length || 3, Number($('ctl-topn').value) || 18));
     const shown = list.slice(0, topN);
     const t = $('cagr-title');
-    if (t) t.textContent = `Long-run growth champions — per-capita CAGR ${min}→${max} (top ${shown.length})`;
+    if (t) t.textContent = `Long-run growth champions — per-capita CAGR ${andahYear(min)}→${andahYear(max)} (top ${shown.length})`;
     renderHBars(container, shown.map((e) => ({ name: e.name, value: e.cagr, color: colorOf(e.name) })), true);
 }
 
@@ -1161,12 +1188,12 @@ function renderCompare() {
     const t = $('compare-title'); if (t) t.textContent = `Compare — ${metricLabel}`;
     const scales = dual
         ? {
-            x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+            x: yearScale(tc, 14),
             y: { position: 'left', beginAtZero: true, lahn: true, title: { display: true, text: 'Total GDP (dashed)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
             y1: { position: 'right', beginAtZero: true, lahn: true, title: { display: true, text: 'GDP per capita (solid)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { display: false } },
         }
         : {
-            x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+            x: yearScale(tc, 14),
             y: { lahn: metric !== 'growth', ticks: { color: tc.muted, callback: (v) => fmt(v) }, grid: { color: tc.grid } },
         };
     state.charts.compare = new Chart($('chart-compare'), {
@@ -1178,7 +1205,7 @@ function renderCompare() {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: tc.text } },
-                tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } },
+                tooltip: { callbacks: { title: yearTitle, label: (ctx) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } },
             },
             scales,
         },
@@ -1236,7 +1263,7 @@ function renderConvergence(isSnapshot) {
     }
 
     const t = $('conv-title');
-    if (t) t.textContent = `Do poor nations catch up? — per-capita growth ${start}→${end}`;
+    if (t) t.textContent = `Do poor nations catch up? — per-capita growth ${andahYear(start)}→${andahYear(end)}`;
     const sub = $('conv-sub');
     if (sub) sub.textContent = slope == null ? 'Not enough determined data in this window yet.'
         : slope < 0 ? '↓ Downward trend = convergence: poorer countries grew faster.'
@@ -1252,7 +1279,7 @@ function renderConvergence(isSnapshot) {
         existing.data.datasets[0].data = pointData;
         existing.data.datasets[0].pointBackgroundColor = pointColors;
         existing.data.datasets[1].data = line;
-        existing.options.scales.x.title.text = `GDP per capita in ${start}`;
+        existing.options.scales.x.title.text = `GDP per capita in ${andahYear(start)}`;
         existing.update('none');
         return;
     }
@@ -1279,7 +1306,7 @@ function renderConvergence(isSnapshot) {
             scales: {
                 x: {
                     type: 'logarithmic', lahn: true,
-                    title: { display: true, text: `GDP per capita in ${start}`, color: tc.muted },
+                    title: { display: true, text: `GDP per capita in ${andahYear(start)}`, color: tc.muted },
                     // declutter the log axis: only label 1/2/5 × 10ⁿ (also limits the lahn glyphs)
                     ticks: { color: tc.muted, autoSkip: false, maxRotation: 0, callback: (v) => { const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; return (Math.abs(m - 1) < 0.05 || Math.abs(m - 2) < 0.05 || Math.abs(m - 5) < 0.05) ? fmtMoney(v) : ''; } },
                     grid: { color: tc.grid },
@@ -1335,10 +1362,10 @@ function renderInequality() {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: (ctx) => ` Gini: ${ctx.parsed.y == null ? '–' : ctx.parsed.y.toFixed(3)}` } },
+                tooltip: { callbacks: { title: yearTitle, label: (ctx) => ` Gini: ${ctx.parsed.y == null ? '–' : ctx.parsed.y.toFixed(3)}` } },
             },
             scales: {
-                x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+                x: yearScale(tc, 14),
                 y: { min: 0, ticks: { color: tc.muted, callback: (v) => v.toFixed(2) }, grid: { color: tc.grid }, title: { display: true, text: '0 = equal · 1 = unequal', color: tc.muted } },
             },
         },
@@ -1383,10 +1410,10 @@ function renderSabove() {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: tc.text, boxWidth: 12, font: { size: 10 } } },
-                tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y == null ? '–' : ctx.parsed.y.toFixed(1) + '%'}` } },
+                tooltip: { callbacks: { title: yearTitle, label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y == null ? '–' : ctx.parsed.y.toFixed(1) + '%'}` } },
             },
             scales: {
-                x: { ticks: { color: tc.muted, maxTicksLimit: 14 }, grid: { display: false } },
+                x: yearScale(tc, 14),
                 y: { min: 0, max: 100, ticks: { color: tc.muted, callback: (v) => v + '%' }, grid: { color: tc.grid } },
             },
         },
@@ -1404,17 +1431,6 @@ function rerenderAll() {
     if (!state.countries.length) return;
     renderYearView();
     if (!$('view-country').classList.contains('gdp-hidden')) renderCountryView();
-}
-
-function setMode(mode) {
-    if (mode === 'edit') stopPlay();
-    state.mode = mode;
-    $('mode-view').setAttribute('aria-selected', String(mode === 'view'));
-    $('mode-edit').setAttribute('aria-selected', String(mode === 'edit'));
-    $('edit-panel').classList.toggle('gdp-hidden', mode !== 'edit');
-    // editing lives in the country view — switch to it when entering Edit mode
-    if (mode === 'edit') switchTab('country');
-    else renderCountryView();
 }
 
 function initControls() {
@@ -1446,12 +1462,6 @@ function initControls() {
         }
     }
 
-    const arch = $('ctl-archetype');
-    if (arch && !arch.dataset.filled) {
-        arch.innerHTML = '<option value="">Archetype…</option>' +
-            Object.entries(ARCHETYPES).map(([k, a]) => `<option value="${k}">${a.label}</option>`).join('');
-        arch.dataset.filled = '1';
-    }
 }
 
 function bindEvents() {
@@ -1487,34 +1497,6 @@ function bindEvents() {
 
     $('tab-year').addEventListener('click', () => switchTab('year'));
     $('tab-country').addEventListener('click', () => switchTab('country'));
-
-    $('mode-view').addEventListener('click', () => setMode('view'));
-    $('mode-edit').addEventListener('click', () => setMode('edit'));
-
-    // authoring actions
-    $('edit-interpolate').addEventListener('click', () => interpolatePins(selectedCountry()));
-    $('edit-addpin').addEventListener('click', () => {
-        const y = Number($('edit-pin-year').value);
-        const { min, max } = yearRange();
-        if (!(y >= min && y <= max)) { window.alert(`Enter an Earth Year between ${min} and ${max}.`); return; }
-        promptPin(selectedCountry(), y);
-    });
-    $('ctl-archetype').addEventListener('change', (e) => {
-        if (e.target.value) { applyArchetype(selectedCountry(), e.target.value); e.target.value = ''; }
-    });
-    $('edit-clearcountry').addEventListener('click', () => {
-        const name = selectedCountry();
-        delete state.edits[name];
-        refreshCountry(name);
-    });
-
-    $('gdp-export').addEventListener('click', exportGrowthJson);
-    $('gdp-clear').addEventListener('click', () => {
-        if (!window.confirm('Discard ALL unsaved edits and revert to the committed gdp-growth.json?')) return;
-        state.edits = {};
-        localStorage.removeItem(DRAFT_KEY);
-        computeAll(); rerenderAll(); updateDirty();
-    });
 
     new MutationObserver(rerenderAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }
@@ -1578,12 +1560,10 @@ async function boot() {
         if (gRes.ok) { const g = await gRes.json(); state.baseGrowth = g.countries || {}; }
     } catch (e) { /* no committed growth yet — start blank */ }
 
-    loadDraft();
     buildCountries();
     computeAll();
     initControls();
     bindEvents();
-    updateDirty();
     $('gdp-status').textContent = `${state.history.length} countries loaded · ${Object.keys(state.baseGrowth).length} with committed growth data.`;
     $('gdp-main').classList.remove('gdp-hidden');
     rerenderAll();
