@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Andah</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('andah-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Every outline is fitted to the same box, so nothing is given away by
+           how big a country is - the question is only ever about its shape. */
+        .outline-stage {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 18px 12px;
+            margin: 4px 0 6px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border-soft);
+            border-radius: 2px;
+            min-height: 320px;
+        }
+        .outline-stage svg { display: block; width: 100%; max-width: 440px; height: auto; }
+        .outline-shape { fill: var(--bg-sunken); stroke: var(--text); stroke-width: 1.6; stroke-linejoin: round; }
+        .outline-capital { fill: var(--wrong-border); }
+        .outline-capital-ring { fill: none; stroke: var(--bg); stroke-width: 2; }
+
+        .quiz-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 18px;
+            margin: 0 0 14px;
+        }
+        .hint-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.92rem;
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+        }
+        .hint-toggle input { width: 16px; height: 16px; cursor: pointer; }
+        .hint-note { font-size: 0.82rem; color: var(--note-text); }
+
+        /* Flag answers: the picture is the button, so they need to be big
+           enough to actually tell apart. */
+        .flag-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .flag-btn {
+            border: 1px solid var(--border);
+            background: var(--bg-soft);
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 2px;
+            font: inherit;
+        }
+        .flag-btn:hover { background: var(--bg-sunken); border-color: var(--text); }
+        /* Every flag gets the same box. Left at their natural heights the four
+           buttons came out different sizes, which clipped the captions and, worse,
+           made the shape of the button itself a clue. */
+        .flag-btn img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 3 / 2;
+            object-fit: contain;
+            background: var(--bg);
+            border: 1px solid var(--border-soft);
+        }
+
+        .type-answer { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+        .type-answer input {
+            flex: 1 1 220px;
+            min-height: 44px;
+            padding: 10px 14px;
+            font: inherit;
+            color: var(--text);
+            background: var(--bg-soft);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+        }
+        .type-answer input:focus { outline: none; border-color: var(--text); }
+        .type-answer button {
+            min-height: 44px;
+            padding: 10px 20px;
+            font: inherit;
+            cursor: pointer;
+            color: var(--text);
+            background: var(--bg-sunken);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+        }
+        .verdict { min-height: 24px; margin: 4px 0 0; font-size: 0.95rem; }
+        .verdict.right { color: var(--correct-text); }
+        .verdict.wrong { color: var(--wrong-text); }
+        .verdict b { font-weight: 600; }
+        [data-theme="dark"] .verdict.right { color: var(--correct-border); }
+        [data-theme="dark"] .verdict.wrong { color: var(--wrong-border); }
+    </style>
+</head>
+<body>
+
+<header class="site-bar">
+    <div class="site-bar-inner">
+        <a class="site-brand" href="index.html">Andah Games</a>
+        <nav class="site-nav" aria-label="Site">
+            <a href="index.html">Main page</a>
+            <button type="button" class="theme-toggle" aria-label="Toggle theme">☾ Dark</button>
+        </nav>
+    </div>
+</header>
+
+<div class="page-shell">
+    <article class="page-card">
+        <div class="page-header">
+            <p class="eyebrow">From the Andah Map collection</p>
+            <h1 class="huge-title">Guess the Outline</h1>
+            <p class="subtitle">Every nation of Andah drawn as a bare shape. Name it from the outline alone, by picking a name, picking a flag, or typing it.</p>
+        </div>
+
+        <div class="mode-tabs" role="tablist" aria-label="How to answer">
+            <button type="button" class="mode-tab active" data-mode="names" role="tab">Pick the name</button>
+            <button type="button" class="mode-tab" data-mode="flags" role="tab">Pick the flag</button>
+            <button type="button" class="mode-tab" data-mode="type" role="tab">Type it</button>
+        </div>
+
+        <div class="quiz-controls">
+            <label class="hint-toggle">
+                <input type="checkbox" id="show-capital">
+                Mark the capital
+            </label>
+            <span class="hint-note" id="capital-note"></span>
+        </div>
+
+        <div id="game-area">
+            <div class="outline-stage" id="stage">
+                <p class="hint-note" id="loading">Loading the map…</p>
+            </div>
+            <p class="verdict" id="verdict"></p>
+            <div id="answers"></div>
+        </div>
+
+        <div id="summary" class="game-summary" hidden>
+            <h3>Round complete</h3>
+            <div class="summary-score" id="summary-score"></div>
+            <div class="summary-percent" id="summary-percent"></div>
+            <button type="button" id="play-again">Play again</button>
+        </div>
+
+        <div class="score-panel">
+            <div class="score-block"><label>Correct</label><strong id="score">0</strong></div>
+            <div class="score-block"><label>Round</label><strong id="round-progress">0 / 0</strong></div>
+            <div class="score-block"><label>Best</label><strong id="highscore">0</strong></div>
+        </div>
+
+        <button class="back-button" type="button" onclick="window.location.href='index.html'">Back to main page</button>
+    </article>
+
+    <footer>
+        <p>Data sourced from <a href="https://andah.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Andah Miraheze Wiki</a>.</p>
+        <div class="footer-meta">
+            <p>Made by <strong>DJMapping</strong>.</p>
+            <p>&copy; 2026 Andah Games. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+<datalist id="nation-list"></datalist>
+
+<script src="js/script.js"></script>
+<script src="js/vendor/d3-array.min.js"></script>
+<script src="js/vendor/d3-geo.min.js"></script>
+<script>
+/**
+ * Guess the Outline.
+ *
+ * The shape comes from the same vector geometry the world map uses, drawn in
+ * azimuthal equal area centred on the country itself. Centring per country
+ * matters: a world projection would hand a polar nation a smeared shape that
+ * looks nothing like the one on the map, and the whole game is the shape.
+ * Every outline is then fitted to the same box, so size never leaks the answer.
+ */
+(function () {
+    'use strict';
+
+    var ROUNDS = 10;
+    var BOX = [420, 300];
+    var STORE = 'outlineQuizHighScore';
+
+    var byName = new Map();     // name -> geojson feature
+    var info = null;            // andah-map-data.json
+    var capitals = new Map();   // "<nation> <city>" -> [lon, lat]
+    var names = [];             // playable names, in map order
+
+    var mode = 'names';
+    var showCapital = false;
+    var queue = [];
+    var current = null;
+    var correct = 0;
+    var attempted = 0;
+    var locked = false;
+    var highScore = 0;
+
+    var $ = function (id) { return document.getElementById(id); };
+
+    // ---------------------------------------------------------------- drawing
+
+    function outlineSvg(feature, capitalLL) {
+        var centre = d3.geoCentroid(feature);
+        var proj = d3.geoAzimuthalEqualArea().rotate([-centre[0], -centre[1]]);
+        proj.fitExtent([[10, 10], [BOX[0] - 10, BOX[1] - 10]], feature);
+        var path = d3.geoPath(proj);
+        var d = path(feature) || '';
+
+        var dot = '';
+        if (capitalLL) {
+            var q = proj(capitalLL);
+            if (q && isFinite(q[0]) && isFinite(q[1])) {
+                dot = '<circle class="outline-capital-ring" cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="5.5"></circle>'
+                    + '<circle class="outline-capital" cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="4"></circle>';
+            }
+        }
+        return '<svg viewBox="0 0 ' + BOX[0] + ' ' + BOX[1] + '" role="img" aria-label="Outline of a nation of Andah">'
+            + '<path class="outline-shape" d="' + d + '"></path>' + dot + '</svg>';
+    }
+
+    function drawStage() {
+        if (!current) return;
+        var ll = showCapital ? capitals.get(current.name + ' ' + (info.countries[current.name].capital || '')) : null;
+        $('stage').innerHTML = outlineSvg(current.feature, ll || null);
+        // Be honest when the hint has nothing to show rather than leaving the
+        // reader wondering whether they have missed a dot.
+        $('capital-note').textContent = (showCapital && !ll)
+            ? 'No capital position recorded for this one.' : '';
+    }
+
+    // ---------------------------------------------------------------- answers
+
+    function shuffle(a) {
+        for (var k = a.length - 1; k > 0; k--) {
+            var j = Math.floor(Math.random() * (k + 1));
+            var t = a[k]; a[k] = a[j]; a[j] = t;
+        }
+        return a;
+    }
+
+    /**
+     * Three wrong answers, drawn from the same continent where possible. Picked
+     * at random from all 172 the game gives itself away: a Quian outline beside
+     * three Ayuman names is answerable without looking at the shape.
+     */
+    function distractors(name) {
+        var mine = (info.countries[name].continent || '').split('/')[0].trim();
+        var sameSea = names.filter(function (n) {
+            return n !== name && (info.countries[n].continent || '').split('/')[0].trim() === mine;
+        });
+        var rest = names.filter(function (n) { return n !== name && sameSea.indexOf(n) < 0; });
+        var pool = shuffle(sameSea).concat(shuffle(rest));
+        return pool.slice(0, 3);
+    }
+
+    function renderAnswers() {
+        var box = $('answers');
+        if (!current) { box.innerHTML = ''; return; }
+
+        if (mode === 'type') {
+            box.innerHTML = '<div class="type-answer">'
+                + '<input id="guess" list="nation-list" autocomplete="off" spellcheck="false" '
+                + 'placeholder="Name the nation…" aria-label="Name the nation">'
+                + '<button type="button" id="submit-guess">Answer</button></div>';
+            var input = $('guess');
+            input.disabled = locked;
+            $('submit-guess').onclick = function () { judge(input.value); };
+            input.onkeydown = function (e) { if (e.key === 'Enter') judge(input.value); };
+            if (!locked) input.focus();
+            return;
+        }
+
+        var opts = current.options;
+        if (mode === 'flags') {
+            box.innerHTML = '<div class="flag-options">' + opts.map(function (n) {
+                var flag = info.countries[n].flag;
+                // The label has to stay off the screen: naming the flag would
+                // hand over the answer it is asking for.
+                return '<button type="button" class="flag-btn" data-name="' + n.replace(/"/g, '&quot;') + '" '
+                    + 'aria-label="Flag option ' + (opts.indexOf(n) + 1) + ' of ' + opts.length + '">'
+                    + (flag ? '<img src="' + flag + '" alt="" loading="lazy">' : '') + '</button>';
+            }).join('') + '</div>';
+        } else {
+            box.innerHTML = '<div class="options">' + opts.map(function (n) {
+                return '<button type="button" class="option-button" data-name="' + n.replace(/"/g, '&quot;') + '">' + n + '</button>';
+            }).join('') + '</div>';
+        }
+        Array.prototype.forEach.call(box.querySelectorAll('[data-name]'), function (b) {
+            b.onclick = function () { judge(b.dataset.name); };
+        });
+    }
+
+    // ----------------------------------------------------------------- rounds
+
+    var normalise = function (s) {
+        return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9]+/g, ' ').trim();
+    };
+
+    function judge(guess) {
+        if (locked || !current) return;
+        var right = normalise(guess) === normalise(current.name);
+        if (!normalise(guess)) return;
+        locked = true;
+        attempted++;
+        if (right) correct++;
+
+        var v = $('verdict');
+        v.className = 'verdict ' + (right ? 'right' : 'wrong');
+        v.innerHTML = right ? 'Correct — <b>' + current.name + '</b>.'
+            : 'Not quite. That was <b>' + current.name + '</b>.';
+
+        // Mark the buttons in the two picking modes, the way the other quizzes do.
+        Array.prototype.forEach.call($('answers').querySelectorAll('[data-name]'), function (b) {
+            b.disabled = true;
+            if (b.dataset.name === current.name) b.classList.add('correct');
+            else if (normalise(b.dataset.name) === normalise(guess)) b.classList.add('wrong');
+        });
+        var input = $('guess');
+        if (input) input.disabled = true;
+
+        // The capital is worth seeing once the answer is out, whether or not the
+        // hint was on for the guess.
+        if (!showCapital) {
+            var ll = capitals.get(current.name + ' ' + (info.countries[current.name].capital || ''));
+            if (ll) $('stage').innerHTML = outlineSvg(current.feature, ll);
+        }
+
+        paintScore();
+        setTimeout(next, right ? 900 : 1900);
+    }
+
+    function next() {
+        locked = false;
+        $('verdict').textContent = '';
+        $('verdict').className = 'verdict';
+        if (!queue.length) return finish();
+        var name = queue.shift();
+        current = {
+            name: name,
+            feature: byName.get(name),
+            options: shuffle([name].concat(distractors(name))),
+        };
+        drawStage();
+        renderAnswers();
+        paintScore();
+    }
+
+    function paintScore() {
+        $('score').textContent = correct;
+        $('round-progress').textContent = attempted + ' / ' + ROUNDS;
+        $('highscore').textContent = highScore;
+    }
+
+    function finish() {
+        current = null;
+        $('game-area').hidden = true;
+        $('summary').hidden = false;
+        $('summary-score').textContent = correct + ' of ' + ROUNDS;
+        $('summary-percent').textContent = Math.round((correct / ROUNDS) * 100) + '%';
+        if (correct > highScore) {
+            highScore = correct;
+            try { localStorage.setItem(STORE, String(highScore)); } catch (e) { /* private mode */ }
+        }
+        paintScore();
+    }
+
+    function start() {
+        correct = 0;
+        attempted = 0;
+        queue = shuffle(names.slice()).slice(0, ROUNDS);
+        $('game-area').hidden = false;
+        $('summary').hidden = true;
+        next();
+    }
+
+    // ------------------------------------------------------------------ setup
+
+    Promise.all([
+        // The full mesh, not the coarse one the map uses while it is moving.
+        // Shape is the entire question here, and the simplified outlines lose
+        // exactly the detail a player would recognise a country by.
+        fetch('data/andah-countries.geojson').then(function (r) { return r.json(); })
+            .catch(function () { return fetch('data/andah-countries.min.geojson').then(function (r) { return r.json(); }); }),
+        fetch('data/andah-map-data.json').then(function (r) { return r.json(); }),
+        fetch('data/flight-cities.json').then(function (r) { return r.json(); }).catch(function () { return null; })
+    ]).then(function (res) {
+        var geo = res[0];
+        info = res[1];
+        var city = res[2];
+
+        // The GeoJSON spec winds exterior rings counterclockwise; d3 reads a ring
+        // as the region on its left in spherical terms, which is the opposite way
+        // round, and fed spec-compliant data decides each country is everything
+        // except itself. Detect rather than assume - the same fix the world map
+        // applies to this file.
+        geo.features.forEach(function (f) {
+            if (d3.geoArea(f) > 2 * Math.PI) {
+                f.geometry.coordinates.forEach(function (poly) {
+                    poly.forEach(function (ring) { ring.reverse(); });
+                });
+            }
+        });
+        geo.features.forEach(function (f) { byName.set(f.properties.name, f); });
+
+        if (city && city.map) {
+            city.cities.forEach(function (c) {
+                if (!c.city || !c.nation) return;
+                capitals.set(c.nation + ' ' + c.city, [
+                    (c.x / city.map.width) * 360 - 180,
+                    90 - (c.y / city.map.height) * 180
+                ]);
+            });
+        }
+
+        // Only nations the game can actually draw and score.
+        names = Object.keys(info.countries).filter(function (n) { return byName.has(n); });
+        $('nation-list').innerHTML = names.slice().sort().map(function (n) {
+            return '<option value="' + n.replace(/"/g, '&quot;') + '">';
+        }).join('');
+
+        try { highScore = Number(localStorage.getItem(STORE)) || 0; } catch (e) { highScore = 0; }
+        $('loading').remove();
+        start();
+    }).catch(function (err) {
+        $('stage').innerHTML = '<p class="hint-note">Could not load the map data.<br>' + err
+            + '<br><br>This page reads its data with fetch, so it needs to be served over http rather than opened straight off disk.</p>';
+    });
+
+    // Switching how you answer keeps the question you are on - it changes the
+    // input, not the round.
+    Array.prototype.forEach.call(document.querySelectorAll('.mode-tab'), function (tab) {
+        tab.onclick = function () {
+            Array.prototype.forEach.call(document.querySelectorAll('.mode-tab'), function (t) {
+                t.classList.toggle('active', t === tab);
+                t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+            });
+            mode = tab.dataset.mode;
+            renderAnswers();
+        };
+    });
+
+    $('show-capital').onchange = function (e) {
+        showCapital = e.target.checked;
+        drawStage();
+    };
+    $('play-again').onclick = start;
+})();
+</script>
+</body>
+</html>
