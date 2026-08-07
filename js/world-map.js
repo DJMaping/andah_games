@@ -22,8 +22,17 @@
   const PAD = 14;
   const MORPH_MS = 900;
 
+  // Each continent gets a hue; countries within it vary by +/-17 degrees so
+  // neighbours stay apart. The bands are spaced to leave no overlap once that
+  // jitter is applied.
   const CONTINENT_HUE = {
-    Ayuma: 205, Atirha: 145, Acrola: 35, Mahea: 285, Massir: 5, Quia: 250, 'New Ayre': 90,
+    Ayuma: 2,        // red
+    Atirha: 212,     // blue
+    Acrola: 40,      // orange
+    Mahea: 320,      // pink
+    Massir: 140,     // green
+    Quia: 278,       // purple
+    'New Ayre': 90,  // yellow-green
   };
   const RAMP = ['#e8f1fb', '#c3dcf1', '#96c3e4', '#6aa8d6', '#4189c4', '#2668aa', '#134a83'];
 
@@ -119,7 +128,10 @@
       return RAMP[i];
     }
     const c = data.countries[name];
-    const hue = (CONTINENT_HUE[c && c.continent] ?? 210);
+    // Heiso is listed as "Ayuma/Acrola". Take the first named continent rather
+    // than falling through to a default that would collide with Atirha's blue.
+    const cont = (c && c.continent) ? c.continent.split('/')[0].trim() : '';
+    const hue = (CONTINENT_HUE[cont] ?? 40);
     const dark = document.documentElement.dataset.theme !== 'light';
     let h = 0; for (let k = 0; k < name.length; k++) h = (h * 31 + name.charCodeAt(k)) >>> 0;
     return `hsl(${hue + (h % 34) - 17} ${dark ? 42 : 48}% ${dark ? 40 + (h % 16) : 62 + (h % 16)}%)`;
