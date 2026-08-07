@@ -26,13 +26,13 @@
   // neighbours stay apart. The bands are spaced to leave no overlap once that
   // jitter is applied.
   const CONTINENT_HUE = {
-    Ayuma: 2,        // red
-    Atirha: 212,     // blue
-    Acrola: 40,      // orange
-    Mahea: 320,      // pink
-    Massir: 140,     // green
-    Quia: 278,       // purple
-    'New Ayre': 90,  // yellow-green
+    Ayuma: 2,          // red
+    Atirha: 214,       // blue
+    Acrola: 40,        // orange
+    Mahea: 320,        // pink
+    Massir: 138,       // green
+    Quia: 278,         // purple
+    'New Ayre': 176,   // turquoise
   };
   const RAMP = ['#e8f1fb', '#c3dcf1', '#96c3e4', '#6aa8d6', '#4189c4', '#2668aa', '#134a83'];
 
