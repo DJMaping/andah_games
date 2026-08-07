@@ -19,24 +19,80 @@
   const $ = (id) => document.getElementById(id);
   const cvs = $('map'), ctx = cvs.getContext('2d');
   const tip = $('tip');
-  const PAD = 14;
+  const PAD = 18;
   const MORPH_MS = 900;
 
-  // Each continent gets a hue; countries within it vary by +/-17 degrees so
-  // neighbours stay apart. The bands are spaced to leave no overlap once that
-  // jitter is applied.
-  const CONTINENT_HUE = {
-    Ayuma: 2,          // red
-    Atirha: 214,       // blue
-    Acrola: 40,        // orange
-    Mahea: 320,        // pink
-    Massir: 138,       // green
-    Quia: 278,         // purple
-    'New Ayre': 176,   // turquoise
+  // Device pixels per CSS pixel. The canvas backing store is sized by the ratio
+  // but the context transform is left at identity, so every font size, stroke
+  // width and dot radius below is in device pixels and has to be scaled by this
+  // or it comes out a third too small on a hidpi screen - which is most of the
+  // reason the labels looked like fine print.
+  let px = 1;
+
+  /**
+   * Continent tints, as hue/saturation/lightness so neighbours can be separated
+   * without leaving the family.
+   *
+   * These used to be seven fully saturated hues with +/-17 degrees of jitter,
+   * which put lime beside magenta beside salmon and made the plate read as a
+   * quiz board. A printed atlas separates its territories with washes: the
+   * saturation stays under a quarter, the hues stay inside an earth range, and
+   * the work of telling two countries apart is done by lightness and by the
+   * border between them, not by shouting. Hue jitter is +/-4 degrees for the
+   * same reason - enough to see a seam, not enough to break the family.
+   */
+  const LAND = {
+    dark: {
+      Ayuma: [18, 20, 36],        // terracotta
+      Atirha: [205, 18, 37],      // slate
+      Acrola: [44, 28, 37],       // ochre
+      Mahea: [340, 15, 38],       // dusty rose
+      Massir: [128, 14, 35],      // sage
+      Quia: [268, 13, 39],        // heather
+      'New Ayre': [176, 17, 34],  // verdigris
+    },
+    light: {
+      Ayuma: [20, 34, 79],
+      Atirha: [205, 27, 81],
+      Acrola: [44, 40, 79],
+      Mahea: [340, 29, 82],
+      Massir: [124, 21, 79],
+      Quia: [266, 23, 83],
+      'New Ayre': [176, 25, 79],
+    },
   };
-  const RAMP = ['#e8f1fb', '#c3dcf1', '#96c3e4', '#6aa8d6', '#4189c4', '#2668aa', '#134a83'];
+  const FALLBACK = { dark: [40, 10, 36], light: [40, 18, 80] };
+
+  // Choropleth ramps. Sepia on ink and sepia on paper, so switching a metric on
+  // stays inside the plate's own palette instead of dropping a web-blue scale
+  // on top of it.
+  // The floor of the dark ramp has to stay clearly lighter and warmer than the
+  // ocean. Taken any darker, the lowest bin stops reading as a low value and
+  // starts reading as a hole in the plate.
+  const RAMPS = {
+    dark: ['#413a2d', '#54492f', '#6a5b34', '#82703b', '#9b8544', '#b79c50', '#d6b465'],
+    light: ['#f2eadb', '#e4d7ba', '#d4bf95', '#c1a570', '#aa8951', '#8e6b38', '#6f5023'],
+  };
+  const themeKey = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+  const ramp = () => RAMPS[themeKey()];
 
   let geo = null, data = null, cities = [], features = [], byName = new Map(), bounds = new Map();
+  // Alphabetical position, printed on each plate. Pure flavour, but it is the
+  // sort of detail that separates a reference work from a page of statistics.
+  const plateNo = new Map();
+  // How much of its own bounding box a country actually fills (near 1 for a
+  // solid landmass, near 0 for islands scattered across an ocean), and the
+  // angular radius in degrees of a disc of the same area, which is the only
+  // honest measure of size for the scattered ones.
+  const compact = new Map();
+  const discDeg = new Map();
+  const SCATTERED = 0.25;
+  // "<nation> <city>" -> [lon, lat]. Only used to mark the capital on a plate's
+  // silhouette; the city file covers 112 of the 172 nations, so it is always
+  // treated as optional.
+  const cityIndex = new Map();
+  // The coarse geometry by name, for the plate silhouettes.
+  const byNameLow = new Map();
   // Largest first, so the countries that matter most claim their space before
   // the small ones try to fit into what is left.
   let labelOrder = [];
@@ -92,7 +148,7 @@
       .scale(1).translate([0, 0]);
     const b = path.bounds(SPHERE);
     const bw = Math.max(1e-6, b[1][0] - b[0][0]), bh = Math.max(1e-6, b[1][1] - b[0][1]);
-    const s = Math.min((w - PAD * 2) / bw, (h - PAD * 2) / bh) * state.zoom;
+    const s = Math.min((w - PAD * px * 2) / bw, (h - PAD * px * 2) / bh) * state.zoom;
     const cx = (b[0][0] + b[1][0]) / 2, cy = (b[0][1] + b[1][1]) / 2;
     projection.scale(s).translate([w / 2 - cx * s + state.panX, h / 2 - cy * s + state.panY]);
   }
@@ -102,6 +158,29 @@
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   let bins = null;
 
+  /**
+   * The plate's colours, read once per theme.
+   *
+   * Every one of these lives in the stylesheet so the two themes stay in one
+   * place, but resolving a custom property means a getComputedStyle call, and
+   * the render path now wants a dozen of them per frame while the globe is
+   * spinning at sixty. Cached here and dropped whenever the theme changes.
+   */
+  let paint = null;
+  function palette() {
+    if (paint) return paint;
+    const g = getComputedStyle(document.documentElement);
+    const v = (n) => g.getPropertyValue(n).trim();
+    paint = {
+      ocean: v('--ocean'), oceanLit: v('--ocean-lit'), oceanDeep: v('--ocean-deep'),
+      shelf: v('--shelf'), limb: v('--limb'), graticule: v('--graticule'),
+      border: v('--border'), coast: v('--coast'),
+      label: v('--label'), halo: v('--label-halo'), city: v('--city'),
+      line: v('--line'), dim: v('--dim'), accent: v('--accent'),
+    };
+    return paint;
+  }
+
   function buildBins() {
     bins = null;
     if (!state.metric) return;
@@ -109,32 +188,40 @@
       .map((f) => valueOf(f.properties.name, state.metric))
       .filter((v) => typeof v === 'number' && Number.isFinite(v))
       .sort((a, b) => a - b);
-    if (vals.length < RAMP.length) return;
+    const steps = ramp().length;
+    if (vals.length < steps) return;
     const cuts = [];
-    for (let i = 1; i < RAMP.length; i++) cuts.push(vals[Math.floor((i * vals.length) / RAMP.length)]);
+    for (let i = 1; i < steps; i++) cuts.push(vals[Math.floor((i * vals.length) / steps)]);
     bins = { cuts, min: vals[0], max: vals[vals.length - 1] };
   }
   const valueOf = (name, key) => {
     const c = data.countries[name];
     return c && c.metrics ? c.metrics[key] : undefined;
   };
+  const hashOf = (s) => {
+    let h = 0;
+    for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) >>> 0;
+    return h;
+  };
+
   function colourOf(f) {
     const name = f.properties.name;
     if (state.metric) {
       const v = valueOf(name, state.metric);
-      if (typeof v !== 'number' || !bins) return css('--line');
+      if (typeof v !== 'number' || !bins) return palette().line;
       let i = 0;
       while (i < bins.cuts.length && v >= bins.cuts[i]) i++;
-      return RAMP[i];
+      return ramp()[i];
     }
     const c = data.countries[name];
     // Heiso is listed as "Ayuma/Acrola". Take the first named continent rather
-    // than falling through to a default that would collide with Atirha's blue.
+    // than falling through to a default that would collide with Atirha's slate.
     const cont = (c && c.continent) ? c.continent.split('/')[0].trim() : '';
-    const hue = (CONTINENT_HUE[cont] ?? 40);
-    const dark = document.documentElement.dataset.theme !== 'light';
-    let h = 0; for (let k = 0; k < name.length; k++) h = (h * 31 + name.charCodeAt(k)) >>> 0;
-    return `hsl(${hue + (h % 34) - 17} ${dark ? 42 : 48}% ${dark ? 40 + (h % 16) : 62 + (h % 16)}%)`;
+    const key = themeKey();
+    const base = LAND[key][cont] || FALLBACK[key];
+    const h = hashOf(name);
+    // Lightness carries the separation, hue barely moves.
+    return `hsl(${base[0] + (h % 9) - 4} ${base[1]}% ${base[2] + ((h >> 4) % 11) - 5}%)`;
   }
 
   // ----------------------------------------------------------------- render
@@ -142,21 +229,118 @@
   // Moving: anything that will be redrawn again immediately.
   const inMotion = () => !!(morph || drag || touch || (state.spinning && state.alpha === 0));
 
+  /**
+   * The water, and the thing that makes it a planet.
+   *
+   * The ocean used to be a flat fill one shade off the page background, which
+   * left the globe with no edge: the continents simply hung in the window. Three
+   * passes fix that, all of them keyed to the projected disc:
+   *
+   *   1. a cast shadow, so the sphere sits in front of the page rather than in it
+   *   2. a lit fill, brighter towards the upper left, so the water has a light
+   *      source and therefore a form
+   *   3. a limb - the darkening in the last fifth of the radius plus a fine
+   *      bright line right on the edge - which is what the eye actually reads
+   *      as curvature
+   *
+   * Pass 3 is drawn after the land so the terminator falls across the
+   * continents too; a globe shaded only in its water looks like a sticker on a
+   * ball. All of it fades out as alpha unrolls the sphere into a flat plate,
+   * where curvature would be a lie.
+   */
+  function discOf() {
+    const b = path.bounds(SPHERE);
+    return {
+      cx: (b[0][0] + b[1][0]) / 2,
+      cy: (b[0][1] + b[1][1]) / 2,
+      r: Math.max(1, (b[1][0] - b[0][0]) / 2),
+    };
+  }
+
+  function paintOcean(round) {
+    const P = palette();
+    const d = discOf();
+    ctx.beginPath(); path(SPHERE);
+    if (round > 0.01) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.55)';
+      ctx.shadowBlur = 34 * px * round;
+      ctx.shadowOffsetY = 12 * px * round;
+      ctx.fillStyle = P.ocean;
+      ctx.fill();
+      ctx.restore();
+      const g = ctx.createRadialGradient(
+        d.cx - d.r * 0.34, d.cy - d.r * 0.4, d.r * 0.05,
+        d.cx, d.cy, d.r * 1.25,
+      );
+      g.addColorStop(0, P.oceanLit);
+      g.addColorStop(0.55, P.ocean);
+      g.addColorStop(1, P.oceanDeep);
+      ctx.fillStyle = g;
+    } else {
+      ctx.fillStyle = P.ocean;
+    }
+    ctx.fill();
+  }
+
+  function paintLimb(round) {
+    const P = palette();
+    const d = discOf();
+    if (round > 0.01) {
+      ctx.save();
+      ctx.beginPath(); path(SPHERE); ctx.clip();
+      // Held to the outer fifth of the disc, and ramped rather than linear. Taken
+      // any further in it reads as curvature but costs the countries near the limb
+      // their colour, and a plate you cannot read is not worth the illusion.
+      const g = ctx.createRadialGradient(d.cx, d.cy, d.r * 0.80, d.cx, d.cy, d.r);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(0.6, `rgba(0,0,0,${(0.10 * round).toFixed(3)})`);
+      g.addColorStop(1, `rgba(0,0,0,${(0.36 * round).toFixed(3)})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(d.cx - d.r, d.cy - d.r, d.r * 2, d.r * 2);
+      ctx.restore();
+    }
+    // Always outlined. On the globe this line is the limb; unrolled flat it is
+    // the plate's own edge, which the flat map had no way of showing at all.
+    ctx.beginPath(); path(SPHERE);
+    ctx.strokeStyle = P.limb;
+    ctx.lineWidth = 1.1 * px;
+    ctx.stroke();
+  }
+
   function render() {
     const w = cvs.width, h = cvs.height;
     frame();
     ctx.clearRect(0, 0, w, h);
 
-    ctx.beginPath(); path(SPHERE);
-    ctx.fillStyle = css('--ocean'); ctx.fill();
+    const P = palette();
+    // 1 on the globe, 0 on the flat plate, and everything between while morphing.
+    const round = 1 - Math.min(1, Math.max(0, state.alpha));
+    const moving = inMotion();
+    const drawSet = (moving && featuresLow) ? featuresLow : features;
+
+    paintOcean(round);
 
     ctx.beginPath(); path(graticule);
-    ctx.strokeStyle = css('--graticule'); ctx.lineWidth = 0.6; ctx.stroke();
+    ctx.strokeStyle = P.graticule; ctx.lineWidth = 0.6 * px; ctx.stroke();
 
-    const stroke = css('--border');
-    ctx.lineWidth = state.zoom > 3 ? 0.8 : 0.5;
-    ctx.strokeStyle = stroke;
-    const drawSet = (inMotion() && featuresLow) ? featuresLow : features;
+    // The sea shelf: a soft light band hugging every coast, which is how an
+    // atlas separates land from water without a heavy outline. Skipped while the
+    // map is turning, where it costs a second pass over the whole geometry and
+    // nobody can see it anyway.
+    if (!moving) {
+      ctx.save();
+      ctx.beginPath();
+      for (const f of drawSet) path(f);
+      ctx.shadowColor = P.shelf;
+      ctx.shadowBlur = 9 * px;
+      ctx.fillStyle = P.ocean;
+      ctx.fill(); ctx.fill();      // twice: one pass of shadow is too faint to read
+      ctx.restore();
+    }
+
+    ctx.lineWidth = (state.zoom > 3 ? 0.7 : 0.5) * px;
+    ctx.strokeStyle = P.border;
     for (const f of drawSet) {
       ctx.beginPath(); path(f);
       ctx.fillStyle = colourOf(f);
@@ -164,34 +348,71 @@
       ctx.stroke();
     }
 
+    // Coastline over the top of the fills, a touch stronger than the internal
+    // borders: on a plate the sea edge always outranks a land frontier.
+    if (!moving) {
+      ctx.beginPath();
+      for (const f of drawSet) path(f);
+      ctx.strokeStyle = P.coast;
+      ctx.lineWidth = 0.6 * px;
+      ctx.stroke();
+    }
+
     for (const name of state.pinned) {
       const f = byName.get(name);
       if (!f) continue;
       ctx.beginPath(); path(f);
-      ctx.strokeStyle = css('--dim'); ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.strokeStyle = P.dim; ctx.lineWidth = 1.6 * px; ctx.stroke();
     }
     if (state.selected && byName.has(state.selected)) {
       ctx.beginPath(); path(byName.get(state.selected));
-      ctx.strokeStyle = css('--accent'); ctx.lineWidth = 2.2; ctx.stroke();
+      ctx.strokeStyle = P.accent; ctx.lineWidth = 2.2 * px; ctx.stroke();
     }
 
-    // Labels are skipped while moving: they cannot be read anyway, and placing
-    // them costs a full pass of collision tests.
-    if (state.showLabels && !inMotion()) drawLabels();
+    if (state.showCities && cities.length) drawCities();
 
-    if (state.showCities && cities.length) {
-      ctx.fillStyle = css('--ink');
-      for (const c of cities) {
-        if (state.alpha < 0.5 && d3.geoDistance(c.ll, centre()) > Math.PI / 2) continue;
-        const p = projection(c.ll);
-        if (!p) continue;
-        const r = Math.max(0.7, Math.min(4, Math.sqrt(c.population / 1e6) * 0.9) * Math.min(2, state.zoom));
-        ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 6.283); ctx.fill();
-      }
+    // Curvature goes on last so it falls across the land as well as the water.
+    paintLimb(round);
+
+    // Labels are skipped while moving: they cannot be read anyway, and placing
+    // them costs a full pass of collision tests. They also sit above the limb,
+    // since a name half-swallowed by the terminator is just illegible.
+    if (state.showLabels && !moving) drawLabels();
+  }
+
+  // Settlements as ringed dots rather than blobs of ink: a pale core inside a
+  // dark ring stays visible over a light wash and a dark one alike.
+  function drawCities() {
+    const ring = palette().halo;
+    const core = palette().city;
+    for (const c of cities) {
+      if (state.alpha < 0.5 && d3.geoDistance(c.ll, centre()) > Math.PI / 2) continue;
+      const p = projection(c.ll);
+      if (!p || !Number.isFinite(p[0])) continue;
+      const r = Math.max(1, Math.min(4.4, Math.sqrt(c.population / 1e6) * 0.95) * Math.min(2, state.zoom)) * px;
+      ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 6.283);
+      ctx.fillStyle = core; ctx.fill();
+      ctx.lineWidth = 0.9 * px; ctx.strokeStyle = ring; ctx.stroke();
     }
   }
 
   const centre = () => [-state.rotation[0], -state.rotation[1]];
+
+  const SERIF = 'Constantia, "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif';
+  const SANS = 'ui-sans-serif, system-ui, "Segoe UI", sans-serif';
+
+  // Canvas has no letter-spacing that can be relied on across browsers, so the
+  // spaced caps an atlas uses for its major territories are set by hand. Halo
+  // and fill run as separate passes, or the halo of one letter eats the letter
+  // before it.
+  const spacedWidth = (text, sp) => ctx.measureText(text).width + sp * Math.max(0, text.length - 1);
+  function drawSpaced(text, cx, cy, sp) {
+    const start = cx - spacedWidth(text, sp) / 2;
+    let x = start;
+    for (const ch of text) { ctx.strokeText(ch, x, cy); x += ctx.measureText(ch).width + sp; }
+    x = start;
+    for (const ch of text) { ctx.fillText(ch, x, cy); x += ctx.measureText(ch).width + sp; }
+  }
 
   /**
    * Country names, largest country first, dropped whenever they will not fit.
@@ -199,15 +420,53 @@
    * A label is only drawn if it fits inside the country's own projected extent
    * and does not collide with one already placed, so zooming in reveals more
    * names rather than the map showing a hundred overlapping words at once.
+   *
+   * Size alone is not hierarchy. Every name used to be set in the same face at
+   * within five points of the same size, so a nation of 260 million and an
+   * island of forty thousand carried identical weight and the plate read as
+   * noise. Three tiers now: the major territories in spaced capitals, the
+   * middle rank in the text serif, the rest in a small sans held back a little
+   * so it reads as a footnote to the plate rather than competing with it.
    */
+  const TIERS = [
+    { min: 12.6, caps: true, sp: 0.15, font: (s) => `600 ${s}px ${SERIF}`, alpha: 1 },
+    { min: 11.0, caps: false, sp: 0.02, font: (s) => `500 ${s}px ${SERIF}`, alpha: 0.95 },
+    { min: 0, caps: false, sp: 0, font: (s) => `500 ${s}px ${SANS}`, alpha: 0.76 },
+  ];
+
+  /**
+   * Is this label actually on the plate?
+   *
+   * An archipelago's name is set right across its islands, which is correct for
+   * an atlas, but it means the anchor sits in open water and the name can run
+   * wider than any one island. Unrolled flat, a projection's outline is narrower
+   * than its bounding box everywhere except the equator, so such a name can end
+   * up printed on the page beside the plate rather than on it - Ashain ran off
+   * the eastern edge of the Robinson.
+   *
+   * Tested against the outline itself rather than by unprojecting the ends:
+   * whether a raw projection's inverse reports a point beyond its own outline is
+   * up to each projection, and there are five of them here. The sphere path is
+   * laid down once by the caller and left as the current path for the whole
+   * label pass, which costs one extra stream of the outline per frame.
+   */
+  const onPlate = (rect, y) =>
+    ctx.isPointInPath(rect[0], y) && ctx.isPointInPath(rect[0] + rect[2], y);
+
   function drawLabels() {
     const placed = [];
-    const dark = document.documentElement.dataset.theme !== 'light';
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
     const onGlobe = state.alpha < 0.5;
     const eye = centre();
+    const halo = palette().halo;
+    const ink = palette().label;
+    const cull = 40 * px;
+    // The plate outline, left as the current path for onPlate to test against.
+    // Nothing below starts a new path: strokeText and fillText do not use one.
+    if (!onGlobe) { ctx.beginPath(); path(SPHERE); }
 
     for (const f of labelOrder) {
       const anchor = f.properties.label;
@@ -215,29 +474,60 @@
       if (onGlobe && d3.geoDistance(anchor, eye) > Math.PI / 2) continue;
       const p = projection(anchor);
       if (!p || !Number.isFinite(p[0])) continue;
-      if (p[0] < -40 || p[1] < -20 || p[0] > cvs.width + 40 || p[1] > cvs.height + 20) continue;
+      if (p[0] < -cull || p[1] < -cull || p[0] > cvs.width + cull || p[1] > cvs.height + cull) continue;
 
-      // How big is this country on screen? Projecting the corners of its
-      // longitude/latitude bounds is four operations, against streaming the
-      // whole outline again for an exact box.
-      const b = bounds.get(f.properties.name);
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      for (const c of [[b[0][0], b[0][1]], [b[1][0], b[0][1]], [b[0][0], b[1][1]], [b[1][0], b[1][1]]]) {
-        const q = projection(c);
+      /*
+       * How big is this country on screen, and may its name overrun it?
+       *
+       * Two regimes. A solid landmass is measured by projecting the four
+       * corners of its bounds - four operations, against streaming the whole
+       * outline again for an exact box - and its name has to fit inside that
+       * box or it is dropped.
+       *
+       * A country of scattered islands has no meaningful box: the bounds cover
+       * mostly open water, which sized Ashain's name as though it were the
+       * largest nation on the plate, and for a country straddling the
+       * antimeridian the box is split across both edges of a flat map and means
+       * nothing at all. Those are measured instead by the screen size of a disc
+       * of the same area, taken along a line of longitude because latitude
+       * never wraps. They are also exempt from the fit test: setting an
+       * archipelago's name right across its islands is what an atlas does.
+       */
+      const name = f.properties.name;
+      const scattered = (compact.get(name) ?? 1) < SCATTERED;
+      let boxW, boxH;
+      if (scattered) {
+        const q = projection([anchor[0], Math.min(89, anchor[1] + discDeg.get(name))]);
         if (!q || !Number.isFinite(q[0])) continue;
-        if (q[0] < minX) minX = q[0]; if (q[0] > maxX) maxX = q[0];
-        if (q[1] < minY) minY = q[1]; if (q[1] > maxY) maxY = q[1];
+        boxW = boxH = 2 * Math.hypot(q[0] - p[0], q[1] - p[1]);
+      } else {
+        const b = bounds.get(name);
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const c of [[b[0][0], b[0][1]], [b[1][0], b[0][1]], [b[0][0], b[1][1]], [b[1][0], b[1][1]]]) {
+          const q = projection(c);
+          if (!q || !Number.isFinite(q[0])) continue;
+          if (q[0] < minX) minX = q[0]; if (q[0] > maxX) maxX = q[0];
+          if (q[1] < minY) minY = q[1]; if (q[1] > maxY) maxY = q[1];
+        }
+        boxW = maxX - minX; boxH = maxY - minY;
       }
-      const boxW = maxX - minX, boxH = maxY - minY;
-      if (!Number.isFinite(boxW) || boxH < 11) continue;
+      if (!Number.isFinite(boxW) || boxH < 11 * px) continue;
 
-      const size = Math.max(10, Math.min(15, 9 + Math.sqrt(boxW) * 0.28));
-      ctx.font = `500 ${size.toFixed(1)}px ui-sans-serif, system-ui, "Segoe UI", sans-serif`;
-      const text = f.properties.name;
-      const tw = ctx.measureText(text).width;
-      if (tw > boxW * 0.92) continue;                       // no room inside the country
+      // Sized in CSS pixels, then scaled, so a hidpi screen gets a bigger
+      // backing store rather than smaller type.
+      //
+      const cssSize = Math.max(10, Math.min(17.5, 9.4 + Math.sqrt(boxW / px) * 0.30));
+      const tier = TIERS.find((t) => cssSize >= t.min) || TIERS[TIERS.length - 1];
+      const size = cssSize * px;
+      ctx.font = tier.font(size.toFixed(1));
+      const text = tier.caps ? name.toUpperCase() : name;
+      const sp = tier.sp * size;
+      const tw = spacedWidth(text, sp);
+      if (!scattered && tw > boxW * 0.92) continue;         // no room inside the country
 
-      const rect = [p[0] - tw / 2 - 3, p[1] - size * 0.7, tw + 6, size * 1.4];
+      const pad = 3 * px;
+      const rect = [p[0] - tw / 2 - pad, p[1] - size * 0.72, tw + pad * 2, size * 1.44];
+      if (!onGlobe && !onPlate(rect, p[1])) continue;
       let clash = false;
       for (const r of placed) {
         if (rect[0] < r[0] + r[2] && rect[0] + rect[2] > r[0] && rect[1] < r[1] + r[3] && rect[1] + rect[3] > r[1]) { clash = true; break; }
@@ -245,11 +535,12 @@
       if (clash) continue;
       placed.push(rect);
 
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = dark ? 'rgba(6,12,20,.85)' : 'rgba(255,255,255,.9)';
-      ctx.strokeText(text, p[0], p[1]);
-      ctx.fillStyle = dark ? '#eef5fb' : '#16222e';
-      ctx.fillText(text, p[0], p[1]);
+      ctx.lineWidth = 2.7 * px;
+      ctx.strokeStyle = halo;
+      ctx.fillStyle = ink;
+      ctx.globalAlpha = tier.alpha;
+      drawSpaced(text, p[0], p[1], sp);
+      ctx.globalAlpha = 1;
     }
     ctx.textAlign = 'start';
     ctx.textBaseline = 'alphabetic';
@@ -352,13 +643,73 @@
 
   // ---------------------------------------------------------------- the panel
 
+  // ---------------------------------------------------------------- the plate
+
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const SIL = [172, 126], LOC = 88;
+
+  /**
+   * The country's own outline, drawn at the head of its plate.
+   *
+   * Azimuthal equal area centred on the country itself, so a nation near a pole
+   * is not handed the smeared shape a world projection would give it, and two
+   * plates can be read against each other without one of them lying about its
+   * size. Fitted to the box, so the shape fills the space whatever its aspect.
+   */
+  function silhouette(f) {
+    // The coarse mesh, where there is one. At 172 pixels across, the full
+    // outline is 60KB of path data spent on detail no one can see.
+    const g = byNameLow.get(f.properties.name) || f;
+    const c = d3.geoCentroid(f);
+    const proj = d3.geoAzimuthalEqualArea().rotate([-c[0], -c[1]]);
+    proj.fitExtent([[4, 4], [SIL[0] - 4, SIL[1] - 4]], g);
+    return { d: d3.geoPath(proj)(g) || '', proj };
+  }
+
+  /** A thumbnail globe turned to face the country, so the shape has a place. */
+  function locator(f) {
+    const c = d3.geoCentroid(f);
+    const proj = d3.geoOrthographic().rotate([-c[0], -c[1]]).clipAngle(90)
+      .fitExtent([[2, 2], [LOC - 2, LOC - 2]], { type: 'Sphere' });
+    const p = d3.geoPath(proj);
+    const land = [];
+    for (const x of (featuresLow || features)) { const s = p(x); if (s) land.push(s); }
+    // An island nation is a speck at this size, and a locator that does not
+    // locate anything is just a picture of a globe. Ring it when the shape is
+    // too small to see on its own.
+    let ring = null;
+    const b = p.bounds(f);
+    if (Math.max(b[1][0] - b[0][0], b[1][1] - b[0][1]) < 14) {
+      const q = proj(c);
+      if (q && Number.isFinite(q[0])) ring = q;
+    }
+    return {
+      sphere: p({ type: 'Sphere' }) || '', grat: p(graticule) || '',
+      land: land.join(''), here: p(f) || '', ring,
+    };
+  }
+
+  /** Where the capital sits on the silhouette, when the city file knows it. */
+  function capitalAt(nation, capital, proj) {
+    const ll = cityIndex.get(nation + ' ' + capital);
+    if (!ll) return null;
+    const q = proj(ll);
+    return (q && Number.isFinite(q[0]) && Number.isFinite(q[1])) ? q : null;
+  }
+
+  // Stepped opacities of the one accent. A composition of eight groups in eight
+  // hues would out-shout the map; in one hue it stays a diagram.
+  const OPAC = [1, .78, .62, .5, .4, .32, .26, .21, .17, .14];
+
   function show(name) {
     state.selected = name;
     const card = $('card'), empty = $('empty');
     // Set both displays explicitly. Clearing the inline style instead would
     // simply hand control back to the stylesheet, where #card is display:none.
     if (!name || !data.countries[name]) {
-      card.style.display = 'none'; empty.style.display = 'block'; draw(); syncUrl(); return;
+      card.style.display = 'none'; empty.style.display = 'flex'; draw(); syncUrl(); return;
     }
     const c = data.countries[name];
     empty.style.display = 'none'; card.style.display = 'block';
@@ -372,149 +723,217 @@
 
     const i = c.info || {};
     const feature = byName.get(name);
-    const nb = (feature && feature.properties.neighbours) || [];
+    const nb = ((feature && feature.properties.neighbours) || []).slice().sort((a, b) => b.km - a.km);
     const N = data.countryCount;
 
-    // A headline figure: value on its own line, rank underneath. Appending the
-    // rank to the number ran them together into "81,313,72919th".
-    const key = (k, label, kind, unit) => {
+    // --- the rank device ----------------------------------------------------
+    // Every figure that has a rank is drawn against the other 171. A number on
+    // its own is trivia; a number with its position is information.
+    const at = (rank) => ((rank - 1) / Math.max(1, N - 1)) * 100;
+    const track = (rank, ends) =>
+      `<div class="track${ends ? ' ends' : ''}"${ends ? ` data-last="${ordinal(N)}"` : ''}>`
+      + `<u></u><i style="left:${at(rank).toFixed(2)}%"></i></div>`;
+
+    const hero = (k, label, kind, unit) => {
       const v = c.metrics[k];
       if (typeof v !== 'number') return '';
       const rank = c.ranks && c.ranks[k];
-      const share = rank ? (1 - (rank - 1) / N) : 0;
-      return `<div class="key">
-        <div class="lab">${label}</div>
-        <div class="num">${fmt(v, kind)}${unit ? `<u>${unit}</u>` : ''}</div>
-        ${rank ? `<div class="rank">${ordinal(rank)} of ${N}</div>
-        <div class="bar"><i style="width:${(share * 100).toFixed(1)}%"></i></div>` : ''}
+      return `<div class="hero">
+        <div class="lab">${esc(label)}</div>
+        <div class="num">${fmt(v, kind)}${unit ? `<u>${esc(unit)}</u>` : ''}</div>
+        ${rank ? `<div class="rank">${track(rank)}<div class="pos"><b>${ordinal(rank)}</b> of ${N}</div></div>` : ''}
       </div>`;
     };
-    const stat = (k, label, kind, unit) => {
-      const v = c.metrics[k];
+
+    const strip = (m) => {
+      const v = c.metrics[m.key];
       if (typeof v !== 'number') return '';
-      const rank = c.ranks && c.ranks[k];
-      return `<div class="fact inline"><dt>${label}${unit ? ` ${unit}` : ''}</dt>`
-        + `<dd>${fmt(v, kind)}${rank ? `<span class="rk">${ordinal(rank)}</span>` : ''}</dd></div>`;
+      const rank = c.ranks && c.ranks[m.key];
+      return `<li>
+        <div class="top">
+          <span class="n">${esc(m.label)}</span>
+          <span class="v">${fmt(v, m.kind)}${m.unit ? `<s>${esc(m.unit)}</s>` : ''}</span>
+        </div>
+        ${rank ? `<div class="scale">${track(rank)}`
+          // Clamped, so the label still reads as a label at either extreme
+          // instead of hanging half off the edge of the column.
+          + `<span class="ord" style="left:${Math.min(93, Math.max(7, at(rank))).toFixed(2)}%">${ordinal(rank)}</span></div>` : ''}
+      </li>`;
     };
-    const fact = (label, value) => (value ? `<div class="fact"><dt>${label}</dt><dd>${value}</dd></div>` : '');
-    const inline = (label, value) => (value ? `<div class="fact inline"><dt>${label}</dt><dd>${value}</dd></div>` : '');
-    const split = (list) => (!list || !list.length ? '' : `<div class="split">`
-      + list.map((r) => `<div class="s">
-          <div class="t"><b>${r.label}</b><span>${r.pct !== null ? r.pct + '%' : ''}</span></div>
-          ${r.pct !== null ? `<div class="g"><i style="width:${Math.min(100, r.pct).toFixed(1)}%"></i></div>` : ''}
-        </div>`
-        + (r.children || []).map((s) => `<div class="s sub">
-            <div class="t"><b>${s.label}</b><span>${s.pct !== null ? s.pct + '%' : ''}</span></div>
-            ${s.pct !== null ? `<div class="g"><i style="width:${Math.min(100, s.pct).toFixed(1)}%"></i></div>` : ''}
-          </div>`).join('')).join('')
-      + `</div>`);
+
+    // "None" is the wiki's way of saying the field is empty. Printed as a value
+    // it reads as content and costs a row.
+    const EMPTY = /^(none|n\/a|unknown|-|—)$/i;
+    const fact = (label, value, stack) => (value == null || value === '' || EMPTY.test(String(value).trim()) ? ''
+      : `<div${stack ? ' class="stack"' : ''}><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`);
+
+    const pct = (v) => (+v).toFixed(1).replace(/\.0$/, '') + '%';
+    const comp = (list) => {
+      if (!list || !list.length) return '';
+      const rows = list.slice(0, 10).filter((r) => r && r.label);
+      if (!rows.length) return '';
+      return `<div class="comp">${rows.map((r, k) =>
+        `<span style="width:${Math.max(0, Math.min(100, +r.pct || 0)).toFixed(2)}%;opacity:${OPAC[k] || .12}"></span>`).join('')}</div>`
+        + `<div class="key">${rows.map((r, k) =>
+          `<div><i style="opacity:${OPAC[k] || .12}"></i><b>${esc(r.label)}</b>`
+          + `<s>${r.pct != null ? pct(r.pct) : ''}</s></div>`).join('')}</div>`;
+    };
+
+    // --- territory ----------------------------------------------------------
+    const sil = feature ? silhouette(feature) : null;
+    const loc = feature ? locator(feature) : null;
+    const cap = (sil && c.capital) ? capitalAt(name, c.capital, sil.proj) : null;
+    const water = i.percentWater == null ? NaN : parseFloat(i.percentWater);
+    const events = i.establishedEvents || [];
+    const widest = nb.length ? Math.max(...nb.map((n) => n.km)) : 0;
 
     card.innerHTML = `
-      <div class="head">
-        <div class="top">
-          ${c.flag ? `<img src="${c.flag}" alt="Flag of ${name}">` : ''}
-          <div class="who">
-            <h2>${name}</h2>
-            ${i.longName && i.longName !== name ? `<div class="long">${i.longName}</div>` : ''}
-            ${c.pronunciation ? `<div class="say">${c.pronunciation}</div>` : ''}
-            ${c.continent ? `<div class="where"><b>${c.continent}</b>${c.geoscheme ? ` · ${c.geoscheme}` : ''}</div>` : ''}
+      <article class="plate">
+        <header class="mast">
+          <div class="strap">
+            <span class="no">Plate ${String(plateNo.get(name) || 0).padStart(3, '0')}</span>
+            ${c.continent ? `<span class="where">${esc(c.continent)}${c.geoscheme ? ` · ${esc(c.geoscheme)}` : ''}</span>` : ''}
           </div>
-        </div>
+          <div class="row">
+            ${c.flag ? `<figure class="ensign">
+              <img src="${esc(c.flag)}" alt="Flag of ${esc(name)}">
+              <figcaption>Ensign</figcaption>
+            </figure>` : ''}
+            <div class="titles">
+              <h2>${esc(name)}</h2>
+              ${i.longName && i.longName !== name ? `<p class="long">${esc(i.longName)}</p>` : ''}
+              ${/*
+                  info.nativeName, info.motto and info.anthem are deliberately
+                  not shown. On 171 of the 174 country pages the wiki infobox
+                  has national_motto holding the pronunciation respelling,
+                  national_anthem holding the IPA, and native_name holding
+                  "''__'' - <demonym>". Printing them under their own labels
+                  would put a pronunciation guide where a motto should be. The
+                  two respellings are real, so they are shown as what they are.
+                */''}
+              ${c.pronunciation || c.ipa ? `<p class="ipa">${esc(c.pronunciation || '')}`
+                + `${c.pronunciation && c.ipa ? ' &middot; ' : ''}${esc(c.ipa || '')}</p>` : ''}
+            </div>
+          </div>
+        </header>
+
         <div class="links">
-          <a class="btn" href="${c.wiki}" target="_blank" rel="noopener">Wiki article ↗</a>
+          <a class="btn" href="${esc(c.wiki)}" target="_blank" rel="noopener">Wiki article ↗</a>
           <button class="btn" id="pin">${state.pinned.includes(name) ? 'Remove from compare' : 'Compare'}</button>
         </div>
-      </div>
 
-      <div class="keys">
-        ${key('population', 'Population', 'int')}
-        ${key('areaKm2', 'Area', 'int', 'km²')}
-        ${key('gdpPPP', 'GDP (PPP)', 'money', 'lahn')}
-        ${key('ktdi', 'Development', 'dec3')}
-      </div>
+        ${sil ? `<section class="fig">
+          <h3>Territory <em>${fmt(c.metrics.areaKm2, 'int')} km²</em></h3>
+          <div class="shape">
+            <svg width="${SIL[0]}" height="${SIL[1]}" viewBox="0 0 ${SIL[0]} ${SIL[1]}" role="img"
+                 aria-label="Outline of ${esc(name)}">
+              <path class="outline" d="${sil.d}"></path>
+              ${cap ? `<circle class="capring" cx="${cap[0].toFixed(1)}" cy="${cap[1].toFixed(1)}" r="3.6"></circle>
+                       <circle class="cap" cx="${cap[0].toFixed(1)}" cy="${cap[1].toFixed(1)}" r="2.1"></circle>` : ''}
+            </svg>
+            ${loc ? `<svg width="${LOC}" height="${LOC}" viewBox="0 0 ${LOC} ${LOC}" role="img"
+                 aria-label="${esc(name)} located on the globe">
+              <path class="globe-sea" d="${loc.sphere}"></path>
+              <path class="grat" d="${loc.grat}"></path>
+              <path class="globe-land" d="${loc.land}"></path>
+              <path class="globe-here" d="${loc.here}"></path>
+              ${loc.ring ? `<circle class="globe-ring" cx="${loc.ring[0].toFixed(1)}" cy="${loc.ring[1].toFixed(1)}" r="7"></circle>` : ''}
+            </svg>` : ''}
+          </div>
+          ${/* Area and density belong to "Where it stands", which gives them
+                their rank as well. Repeating them here without one was the
+                same fact told twice and told worse. */''}
+          <dl class="facts">
+            ${fact('Capital', c.capital)}
+            ${i.largestCity && i.largestCity !== c.capital ? fact('Largest city', i.largestCity) : ''}
+          </dl>
+          ${Number.isFinite(water) ? `<p class="comp-note" style="margin:20px 0 10px">Land and water</p>
+          <div class="lw">
+            <span class="land" style="width:${(100 - water).toFixed(2)}%"></span>
+            <span class="water" style="width:${water.toFixed(2)}%"></span>
+          </div>
+          <p class="comp-note">Land ${pct(100 - water)} · Water ${pct(water)}</p>` : ''}
+        </section>` : ''}
 
-      <details open>
-        <summary>Identity</summary>
-        <div class="body">
-          ${inline('Capital', c.capital)}
-          ${i.largestCity && i.largestCity !== c.capital ? inline('Largest city', i.largestCity) : ''}
-          ${inline('Demonym', c.demonym)}
-          ${fact('Official languages', i.officialLanguages)}
-          ${i.regionalLanguages ? fact('Regional languages', i.regionalLanguages) : ''}
-          ${fact('Currency', i.currency)}
-          ${inline('Internet domain', c.domain || i.cctld)}
-          ${inline('Calling code', i.callingCode)}
-          ${inline('Drives on', i.drivesOn)}
-          ${fact('Time zone', i.timeZone)}
-        </div>
-      </details>
+        <section class="fig">
+          <h3>At a glance</h3>
+          <div class="heroes">
+            ${hero('population', 'Population', 'int')}
+            ${hero('gdpPPP', 'GDP (PPP)', 'money', 'lahn')}
+            ${hero('gdpPPPPerCapita', 'Per head (PPP)', 'money0', 'lahn')}
+            ${hero('ktdi', 'Development', 'dec3')}
+          </div>
+        </section>
 
-      ${nb.length ? `<details>
-        <summary>Borders (${nb.length})</summary>
-        <div class="chips">
-          ${nb.map((n) => `<button class="chip" data-go="${n.name}">${n.name}<span>${n.km.toLocaleString()} km</span></button>`).join('')}
-        </div>
-      </details>` : '<div class="lone">No land borders — an island nation.</div>'}
+        <section class="fig">
+          <h3>Where it stands <em>among ${N}</em></h3>
+          <ol class="strips">${data.metrics.map(strip).join('')}</ol>
+        </section>
 
-      <details>
-        <summary>Economy</summary>
-        <div class="body">
-          ${stat('gdpNominal', 'GDP (nominal)', 'money', '· lahn')}
-          ${stat('gdpPPPPerCapita', 'GDP per head (PPP)', 'money0', '· lahn')}
-          ${stat('gdpNomPerCapita', 'GDP per head (nominal)', 'money0', '· lahn')}
-          ${stat('militaryNominal', 'Military spending', 'money', '· lahn')}
-        </div>
-      </details>
+        ${(i.ethnicBreakdown && i.ethnicBreakdown.length) || (i.religionBreakdown && i.religionBreakdown.length)
+          || i.ethnicGroups || i.religion ? `<section class="fig">
+          <h3>People</h3>
+          ${i.ethnicBreakdown && i.ethnicBreakdown.length
+            ? `<p class="comp-note" style="margin:0 0 11px">Ethnic groups</p>${comp(i.ethnicBreakdown)}`
+            : (i.ethnicGroups ? `<p class="comp-note">${esc(i.ethnicGroups)}</p>` : '')}
+          ${i.religionBreakdown && i.religionBreakdown.length
+            ? `<p class="comp-note" style="margin:22px 0 11px">Religion</p>${comp(i.religionBreakdown)}`
+            : (i.religion ? `<p class="comp-note">${esc(i.religion)}</p>` : '')}
+        </section>` : ''}
 
-      <details>
-        <summary>People</summary>
-        <div class="body">
-          ${stat('density', 'Density', 'dec1', '· per km²')}
-          ${i.ethnicBreakdown ? `<div class="fact"><dt>Ethnic groups</dt><dd>${split(i.ethnicBreakdown)}</dd></div>`
-            : fact('Ethnic groups', i.ethnicGroups)}
-          ${i.religionBreakdown ? `<div class="fact"><dt>Religion</dt><dd>${split(i.religionBreakdown)}</dd></div>`
-            : fact('Religion', i.religion)}
-        </div>
-      </details>
+        <section class="fig">
+          <h3>State</h3>
+          <dl class="facts">
+            ${fact('System', i.government, true)}
+            ${fact('Legislature', i.legislature, true)}
+            ${fact('Upper house', i.upperHouse)}
+            ${fact('Lower house', i.lowerHouse)}
+            ${fact('Official languages', i.officialLanguages, true)}
+            ${fact('Regional languages', i.regionalLanguages, true)}
+          </dl>
+        </section>
 
-      <details>
-        <summary>Government</summary>
-        <div class="body">
-          ${fact('System', i.government)}
-          ${stat('gdi', 'Democratic integrity', 'dec2')}
-          ${fact('Legislature', i.legislature)}
-          ${i.upperHouse ? inline('Upper house', i.upperHouse) : ''}
-          ${i.lowerHouse ? inline('Lower house', i.lowerHouse) : ''}
-          ${i.leaderName1 ? inline(i.leaderTitle1 || 'Leader', i.leaderName1) : ''}
-          ${i.leaderName2 ? inline(i.leaderTitle2 || 'Deputy', i.leaderName2) : ''}
-        </div>
-      </details>
+        ${events.length ? `<section class="fig">
+          <h3>Chronology</h3>
+          <div class="tl">
+            ${events.map((e) => `<div class="e"><time>${esc(e.date || '')}</time>${esc(e.event || '')}</div>`).join('')}
+          </div>
+        </section>` : ''}
 
-      ${(i.establishedEvents && i.establishedEvents.length) || i.established ? `<details>
-        <summary>History</summary>
-        <div class="body">
-          ${i.established ? inline('Established', i.established) : ''}
-          ${(i.establishedEvents || []).length ? `<div class="tl">
-            ${i.establishedEvents.map((e) => `<div class="e"><time>${e.date || ''}</time><span>${e.event || ''}</span></div>`).join('')}
-          </div>` : ''}
-        </div>
-      </details>` : ''}
+        <section class="fig">
+          <h3>Borders ${nb.length ? `<em>${nb.length}</em>` : ''}</h3>
+          ${nb.length ? `<ol class="nb">${nb.map((n) => `<li>
+            <button data-go="${esc(n.name)}">
+              <div class="top"><b>${esc(n.name)}</b><s>${n.km.toLocaleString()} km</s></div>
+              <div class="g"><i style="width:${widest ? (n.km / widest * 100).toFixed(1) : 0}%"></i></div>
+            </button>
+          </li>`).join('')}</ol>`
+            : '<p class="lone">No land borders. An island nation, bounded on every side by water.</p>'}
+        </section>
 
-      ${i.motto || i.anthem ? `<details>
-        <summary>Symbols</summary>
-        <div class="body">
-          ${fact('Motto', i.motto)}
-          ${fact('Anthem', i.anthem)}
-        </div>
-      </details>` : ''}`;
+        <section class="fig">
+          <h3>Practicalities</h3>
+          <dl class="facts">
+            ${fact('Demonym', c.demonym)}
+            ${fact('Currency', i.currency)}
+            ${fact('Time zone', i.timeZone)}
+            ${fact('Date format', i.dateFormat)}
+            ${fact('Drives on', i.drivesOn)}
+            ${fact('Calling code', i.callingCode)}
+            ${fact('Internet domain', c.domain || i.cctld)}
+          </dl>
+        </section>
 
+      </article>`;
+
+    card.scrollTop = 0;
     card.querySelectorAll('[data-go]').forEach((el) => {
       el.onclick = () => { show(el.dataset.go); flyTo(el.dataset.go); };
     });
     const pin = $('pin');
     if (pin) pin.onclick = () => {
-      const at = state.pinned.indexOf(name);
-      if (at >= 0) state.pinned.splice(at, 1);
+      const at2 = state.pinned.indexOf(name);
+      if (at2 >= 0) state.pinned.splice(at2, 1);
       else { state.pinned.push(name); if (state.pinned.length > 3) state.pinned.shift(); }
       drawTray(); show(name);
     };
@@ -534,6 +953,40 @@
       }).join('') + '</tbody></table>';
     tray.querySelectorAll('.x').forEach((el) => {
       el.onclick = () => { state.pinned = state.pinned.filter((n) => n !== el.dataset.n); drawTray(); if (state.selected) show(state.selected); draw(); };
+    });
+  }
+
+  /**
+   * Three ways in, offered on the empty plate.
+   *
+   * The column previously held a star and two sentences and then four hundred
+   * pixels of nothing, which is what a page looks like before anyone has decided
+   * what it is for. Naming the extremes gives the reader somewhere to go and
+   * quietly teaches what the plates contain.
+   */
+  function fillStarts() {
+    const el = $('starts');
+    if (!el) return;
+    const picks = [
+      ['areaKm2', 'Largest', 'int', ' km²'],
+      ['population', 'Most people', 'int', ''],
+      ['ktdi', 'Best developed', 'dec3', ''],
+    ];
+    const rows = [];
+    for (const [key, label, kind, unit] of picks) {
+      let best = null, top = -Infinity;
+      for (const name of Object.keys(data.countries)) {
+        if (!byName.has(name)) continue;
+        const v = data.countries[name].metrics[key];
+        if (typeof v === 'number' && Number.isFinite(v) && v > top) { top = v; best = name; }
+      }
+      if (!best) continue;
+      rows.push(`<button class="start" data-go="${best}">`
+        + `<i>${label}</i><b>${best}</b><u>${fmt(top, kind)}${unit}</u></button>`);
+    }
+    el.innerHTML = rows.join('');
+    el.querySelectorAll('[data-go]').forEach((b) => {
+      b.onclick = () => { show(b.dataset.go); flyTo(b.dataset.go); };
     });
   }
 
@@ -564,6 +1017,7 @@
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     cvs.width = Math.round(r.width * dpr); cvs.height = Math.round(r.height * dpr);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    px = dpr;
     return true;
   }
   const toCanvas = (e) => {
@@ -725,7 +1179,7 @@
     const spec = data.metrics.find((m) => m.key === state.metric);
     const edges = [bins.min, ...bins.cuts, bins.max];
     el.innerHTML = `<div class="t">${spec.label}${spec.unit ? ` (${spec.unit})` : ''}</div>`
-      + RAMP.map((c, k) => `<div class="row"><i style="background:${c}"></i>`
+      + ramp().map((c, k) => `<div class="row"><i style="background:${c}"></i>`
         + `${fmt(edges[k], spec.kind)} – ${fmt(edges[k + 1], spec.kind)}</div>`).reverse().join('');
   }
 
@@ -744,6 +1198,7 @@
 
   function setTheme(t) {
     document.documentElement.dataset.theme = t;
+    paint = null;                       // the cached plate colours belong to the old theme
     try { localStorage.setItem('andah-map-theme', t); } catch (e) {}
     draw(); drawLegend();
   }
@@ -771,7 +1226,26 @@
     }
     if (flipped) console.info(`world-map: reversed winding on ${flipped} of ${features.length} features for d3`);
 
-    for (const f of features) { byName.set(f.properties.name, f); bounds.set(f.properties.name, d3.geoBounds(f)); }
+    const RAD = Math.PI / 180;
+    for (const f of features) {
+      const name = f.properties.name;
+      const b = d3.geoBounds(f);
+      byName.set(name, f);
+      bounds.set(name, b);
+      // Spherical area of the bounding box: the longitude span in radians times
+      // the difference of the sines of the latitudes. Ashain straddles the
+      // antimeridian, so d3 reports its bounds running east from 141 to -160
+      // and the raw span comes out negative; unwrapped it is 59 degrees, not
+      // -301. Left unhandled this made every size derived from it NaN.
+      let lonSpan = b[1][0] - b[0][0];
+      if (lonSpan < 0) lonSpan += 360;
+      const box = lonSpan * RAD * (Math.sin(b[1][1] * RAD) - Math.sin(b[0][1] * RAD));
+      const area = d3.geoArea(f);
+      compact.set(name, box > 1e-9 ? Math.min(1, area / box) : 1);
+      discDeg.set(name, Math.sqrt(area / Math.PI) / RAD);
+    }
+    features.map((f) => f.properties.name).sort((a, b) => a.localeCompare(b))
+      .forEach((n, k) => plateNo.set(n, k + 1));
     labelOrder = features.slice().sort((a, b) => b.properties.areaKm2 - a.properties.areaKm2);
     if (low && low.features) {
       for (const f of low.features) {
@@ -780,14 +1254,18 @@
       // Draw in the same order, so colours and overlaps match the full mesh.
       const order = new Map(features.map((f, k) => [f.properties.name, k]));
       featuresLow = low.features.slice().sort((a, b) => order.get(a.properties.name) - order.get(b.properties.name));
+      for (const f of featuresLow) byNameLow.set(f.properties.name, f);
     }
     if (city && city.map) {
-      cities = city.cities.map((c) => ({
-        population: c.population || 0,
-        ll: [(c.x / city.map.width) * 360 - 180, 90 - (c.y / city.map.height) * 180],
-      })).sort((a, b) => b.population - a.population);
+      const ll = (c) => [(c.x / city.map.width) * 360 - 180, 90 - (c.y / city.map.height) * 180];
+      cities = city.cities.map((c) => ({ population: c.population || 0, ll: ll(c) }))
+        .sort((a, b) => b.population - a.population);
+      for (const c of city.cities) {
+        if (c.city && c.nation) cityIndex.set(c.nation + ' ' + c.city, ll(c));
+      }
     }
 
+    fillStarts();
     $('countrylist').innerHTML = features.map((f) => `<option value="${f.properties.name}">`).join('');
     $('metric').innerHTML = '<option value="">Colour by continent</option>'
       + data.metrics.map((m) => `<option value="${m.key}">${m.label}</option>`).join('');
@@ -796,11 +1274,16 @@
     try { setTheme(localStorage.getItem('andah-map-theme') || 'dark'); } catch (e) { setTheme('dark'); }
     const q = new URLSearchParams(location.search);
     if (q.get('p')) { state.flat = q.get('p'); $('proj').value = state.flat; }
-    if (q.get('m')) { state.metric = q.get('m'); $('metric').value = state.metric; buildBins(); drawLegend(); }
+    if (q.get('m')) {
+      state.metric = q.get('m'); $('metric').value = state.metric;
+      $('metric').classList.add('on');
+      buildBins(); drawLegend();
+    }
     if (q.get('v') === 'flat') {
       state.alpha = 1; state.rotation = [0, 0]; state.spinning = false;
       $('toGlobe').classList.remove('on'); $('toFlat').classList.add('on');
     }
+    syncProj();
     const want = q.get('c') && features.find((f) => f.id === q.get('c'));
 
     // Sizing is deliberately belt and braces. The canvas can be measured before
@@ -835,17 +1318,24 @@
       + '<br><br>This page reads its data with fetch, so it needs to be served over http rather than opened straight off disk.';
   });
 
+  // The projection picker governs the flat plate only, so it is live only there.
+  const syncProj = () => { $('proj').disabled = state.alpha < 0.5; };
   $('toGlobe').onclick = () => {
     $('toGlobe').classList.add('on'); $('toFlat').classList.remove('on');
     state.panX = 0; state.panY = 0;
-    morphTo(0, syncUrl);
+    morphTo(0, () => { syncProj(); syncUrl(); });
   };
   $('toFlat').onclick = () => {
     $('toFlat').classList.add('on'); $('toGlobe').classList.remove('on');
+    syncProj();
     morphTo(1, syncUrl);
   };
   $('proj').onchange = (e) => { state.flat = e.target.value; draw(); syncUrl(); };
-  $('metric').onchange = (e) => { state.metric = e.target.value; buildBins(); drawLegend(); draw(); syncUrl(); };
+  $('metric').onchange = (e) => {
+    state.metric = e.target.value;
+    $('metric').classList.toggle('on', !!state.metric);
+    buildBins(); drawLegend(); draw(); syncUrl();
+  };
   $('cities').onclick = () => { state.showCities = !state.showCities; $('cities').classList.toggle('on', state.showCities); draw(); };
   $('labels').onclick = () => { state.showLabels = !state.showLabels; $('labels').classList.toggle('on', state.showLabels); draw(); };
   $('theme').onclick = () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
