@@ -857,10 +857,13 @@
 
         <section class="fig">
           <h3>At a glance</h3>
+          ${/* Nominal, not PPP. Both are in "Where it stands" with their ranks;
+                the four headline tiles carry the figures actually quoted for a
+                country, and nominal is the one this atlas quotes. */''}
           <div class="heroes">
             ${hero('population', 'Population', 'int')}
-            ${hero('gdpPPP', 'GDP (PPP)', 'money', 'lahn')}
-            ${hero('gdpPPPPerCapita', 'Per head (PPP)', 'money0', 'lahn')}
+            ${hero('gdpNominal', 'GDP (nominal)', 'money', 'lahn')}
+            ${hero('gdpNomPerCapita', 'Per head (nominal)', 'money0', 'lahn')}
             ${hero('ktdi', 'Development', 'dec3')}
           </div>
         </section>
