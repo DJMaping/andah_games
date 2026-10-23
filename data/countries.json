@@ -8360,7 +8360,7 @@
       "history": {}
     },
     {
-      "name": "lasri",
+      "name": "Lasri",
       "slug": "lasri",
       "wikiTitle": "Lasri",
       "metrics": {
@@ -8398,7 +8398,18 @@
         "300 meters +\n": 0,
         "rank": 99,
         "adjustedPoints": 1151.31,
-        "population": 2170550
+        "population": 2170550,
+        "1753": 9.1,
+        "1754": 7.9,
+        "1756": 9.1,
+        "1757": 9.7,
+        "1758": 8.4,
+        "1759": 8.5,
+        "1760": 8.1,
+        "1761": 8.4,
+        "1762": 8.5,
+        "1763": 9.1,
+        "1764": 6.9
       },
       "categorical": {
         "Pronunciation": "LAHS-ree",
@@ -8411,29 +8422,7 @@
         "Reserves": "–",
         "Tallest City": "Rukara",
         "continent": "Atirha",
-        "sportEarth": "Football"
-      },
-      "history": {}
-    },
-    {
-      "name": "Lasri",
-      "slug": "lasri",
-      "wikiTitle": "Lasri",
-      "metrics": {
-        "1753": 9.1,
-        "1754": 7.9,
-        "1756": 9.1,
-        "1757": 9.7,
-        "1758": 8.4,
-        "1759": 8.5,
-        "1760": 8.1,
-        "1761": 8.4,
-        "1762": 8.5,
-        "1763": 9.1,
-        "1764": 6.9,
-        ".": 29
-      },
-      "categorical": {
+        "sportEarth": "Football",
         "1765": "-"
       },
       "history": {}

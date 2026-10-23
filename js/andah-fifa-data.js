@@ -882,7 +882,7 @@ const andahFifaData = [
     "debuff": 0
   },
   {
-    "name": "lasri",
+    "name": "Lasri",
     "continent": "Atirha",
     "adjustedPoints": 1151.31,
     "rank": 99,
