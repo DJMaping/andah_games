@@ -84,12 +84,36 @@ for (let fy = 0; fy < FH; fy++) for (let fx = 0; fx < FW; fx++) {
 // Carry any corrections already committed, so reopening the page shows the
 // decisions rather than starting from the automatic labelling again.
 const OVERRIDES = path.join(ROOT, 'data', 'map-label-overrides.json');
-let saved = {};
+const saved = {};
+let resolvedByPoint = 0, staleIds = 0;
 if (fs.existsSync(OVERRIDES)) {
   const raw = JSON.parse(fs.readFileSync(OVERRIDES, 'utf8'));
   const table = raw.overrides || raw;
-  for (const [k, v] of Object.entries(table)) if (!k.startsWith('_')) saved[k] = v;
+  for (const [k, v] of Object.entries(table)) {
+    if (k.startsWith('_')) continue;
+    // Re-key onto the ids of THIS build, the same way label-regions.cjs does.
+    // Region ids are renumbered whenever the source map changes, so handing the
+    // page a stale id would show the correction against the wrong country and,
+    // worse, let it be saved back anchored to that wrong country.
+    const at = v && typeof v === 'object' && Array.isArray(v.at) ? v.at : null;
+    let id = Number(k);
+    if (at && at[0] >= 0 && at[0] < W && at[1] >= 0 && at[1] < H) {
+      const here = labels[at[1] * W + at[0]];
+      if (here) {
+        if (here !== id) staleIds++;
+        id = here;
+        resolvedByPoint++;
+      }
+    }
+    saved[id] = at ? { name: v.name, at } : { name: v && typeof v === 'object' ? v.name : v, at: null };
+  }
+  console.log(`overrides: ${Object.keys(saved).length} loaded, ${resolvedByPoint} located by position, ${staleIds} had a stale id`);
 }
+
+// A fingerprint of this build. The page stores work in progress against it, so
+// corrections made before a rebuild are not silently reapplied to whatever
+// regions happen to hold those ids afterwards.
+const fingerprint = `${W}x${H}-${meta.regions.length}-${meta.regions.reduce((s, r) => s + r.px, 0)}`;
 
 const unassignedReason = new Map(labelled.unassigned.map((u) => [u.id, u.reason]));
 const payload = {
@@ -108,6 +132,7 @@ const payload = {
     why: labelled.assignment[r.id] ? labelled.assignment[r.id].why : (unassignedReason.get(r.id) || 'not identified'),
   })),
   saved,
+  fingerprint,
   ids: dataUri,
 };
 

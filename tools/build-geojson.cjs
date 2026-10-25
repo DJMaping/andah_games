@@ -145,6 +145,72 @@ for (let p = 0; p < deg.length; p++) {
 }
 log(`arcs: ${arcs.length.toLocaleString()}, ${arcs.reduce((s, a) => s + a.pts.length, 0).toLocaleString()} points before simplifying`);
 
+// ------------------------------------------------------ where to write names
+
+// The point to hang a country's name on. d3.geoCentroid is no good here: for a
+// crescent, a country wrapped round a bay, or one spread over an archipelago,
+// the centroid lands in the sea or inside a neighbour. The trace already picked
+// an interior point for every region, so take the one belonging to the
+// country's largest landmass.
+const labelPoint = new Map();
+const labelSpan = new Map();
+{
+  const biggest = new Map();
+  for (const r of meta.regions) {
+    const a = labelled.assignment[r.id];
+    if (!a || !r.interior) continue;
+    const c = indexOf.get(a.name);
+    if (!c) continue;
+    const held = biggest.get(c);
+    if (!held || r.areaKm2 > held.areaKm2) biggest.set(c, r);
+  }
+  for (const [c, r] of biggest) {
+    labelPoint.set(c, [
+      +(((r.interior.x + 0.5) / W) * 360 - 180).toFixed(3),
+      +(90 - ((r.interior.y + 0.5) / H) * 180).toFixed(3),
+    ]);
+    // Width of the landmass at the label, in km, as a rough budget for text.
+    const [x0, , x1] = r.bbox;
+    labelSpan.set(c, Math.round(((x1 - x0) / W) * 40075 * Math.cos((90 - ((r.interior.y / H) * 180)) * Math.PI / 180)));
+  }
+}
+log(`label anchors: ${labelPoint.size}`);
+
+// ------------------------------------------------------- who borders whom
+
+// Each arc already knows the two countries either side of it, so the land
+// frontiers of the whole world fall out of the trace for nothing. Measured
+// before simplification, while the arcs still follow every pixel.
+const frontier = new Map();
+{
+  const rad = Math.PI / 180;
+  const lonAt = (p) => ((p % LW) / W) * 360 - 180;
+  const latAt = (p) => 90 - (((p / LW) | 0) / H) * 180;
+  const hav = (p, q) => {
+    const la1 = latAt(p) * rad, la2 = latAt(q) * rad;
+    const dLa = la2 - la1, dLo = (lonAt(q) - lonAt(p)) * rad;
+    const s = Math.sin(dLa / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLo / 2) ** 2;
+    return 2 * R_KM * Math.asin(Math.min(1, Math.sqrt(s)));
+  };
+  for (const a of arcs) {
+    if (!a.left || !a.right || a.left === a.right) continue;   // coastline, not a frontier
+    let km = 0;
+    for (let i = 1; i < a.pts.length; i++) km += hav(a.pts[i - 1], a.pts[i]);
+    const key = a.left < a.right ? `${a.left}|${a.right}` : `${a.right}|${a.left}`;
+    frontier.set(key, (frontier.get(key) || 0) + km);
+  }
+}
+const neighboursOf = new Map();
+for (const [key, km] of frontier) {
+  const [a, b] = key.split('|').map(Number);
+  if (!neighboursOf.has(a)) neighboursOf.set(a, []);
+  if (!neighboursOf.has(b)) neighboursOf.set(b, []);
+  neighboursOf.get(a).push({ name: names[b], km: Math.round(km) });
+  neighboursOf.get(b).push({ name: names[a], km: Math.round(km) });
+}
+for (const list of neighboursOf.values()) list.sort((x, y) => y.km - x.km);
+log(`land frontiers: ${frontier.size} between ${neighboursOf.size} countries`);
+
 // ------------------------------------------------------------- simplify arcs
 
 /** Visvalingam-Whyatt: drop the point that changes the shape least, repeatedly. */
@@ -376,7 +442,19 @@ for (const [c, refs] of byCountry) {
   features.push({
     type: 'Feature',
     id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    properties: { name, areaKm2: Math.round(areaKm2), polygons: coordinates.length },
+    properties: {
+      name,
+      areaKm2: Math.round(areaKm2),
+      polygons: coordinates.length,
+      neighbours: neighboursOf.get(c) || [],
+      // Where to write the country's name. A centroid falls outside anything
+      // crescent-shaped or spread across islands, so use the interior point
+      // already computed for the country's largest landmass.
+      label: labelPoint.get(c) || null,
+      // How much of the country the label sits in, so the map can decide
+      // whether there is room to draw it.
+      labelSpanKm: labelSpan.get(c) || 0,
+    },
     geometry: { type: 'MultiPolygon', coordinates },
   });
   areaCheck.push({ name, vector: areaKm2, polygons: coordinates.length, holes: polys.reduce((s, p) => s + p.holes.length, 0) });
@@ -403,7 +481,7 @@ const vsCanon = areaCheck.map((r) => {
 const med = vsCanon.map((r) => Math.abs(r.pct)).sort((a, b) => a - b)[vsCanon.length >> 1];
 
 const out = { type: 'FeatureCollection', year: YEAR, radiusKm: R_KM, features };
-const outPath = path.join(ROOT, 'data', 'andah-countries.geojson');
+const outPath = path.join(ROOT, 'data', process.argv[3] || 'andah-countries.geojson');
 fs.writeFileSync(outPath, JSON.stringify(out));
 const bytes = fs.statSync(outPath).size;
 const points = features.reduce((s, f) => s + f.geometry.coordinates.reduce((t, poly) => t + poly.reduce((u, r) => u + r.length, 0), 0), 0);

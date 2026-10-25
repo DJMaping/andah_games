@@ -1,5 +1,5 @@
-// Andah country capitals.
-// Used by capital-quiz.html. Country names should match those in andah-stats.js.
+// Andah country capitals (written by Andah Studio from canon).
+// Used by capital-quiz.html. Country names match those in andah-stats.js.
 const andahCapitals = [
     { name: "Acetoa", capital: "Yezhito" },
     { name: "Acrana", capital: "Samaru" },
@@ -76,7 +76,7 @@ const andahCapitals = [
     { name: "Koruch", capital: "Basturah" },
     { name: "Kusierna", capital: "Mikavasi" },
     { name: "Laselteh", capital: "Dariya" },
-    { name: "Lasri", capital: "Rukara" },
+    { name: "Lasri", capital: "Tukara" },
     { name: "Letan", capital: "Actilica" },
     { name: "Lieri", capital: "Nabruik" },
     { name: "Lycroa", capital: "Jungui" },
@@ -93,13 +93,13 @@ const andahCapitals = [
     { name: "Nheyes Si", capital: "MavagaT" },
     { name: "Nia", capital: "Kovasi" },
     { name: "Niretui and Anulan", capital: "Tarneshi" },
-    { name: "Niul Spijan", capital: "Chludu Ura" },
+    { name: "Niul Spijan", capital: "Cheludu Ura" },
     { name: "North Ayre", capital: "Kokema" },
     { name: "Ocaun", capital: "Kejira" },
     { name: "Ohtina", capital: "Su Sariko" },
-    { name: "Onphello", capital: "Khazor" },
+    { name: "Onphello", capital: "Shibdek" },
     { name: "Oscairia", capital: "Morzelka" },
-    { name: "Othya", capital: "Harlitak" },
+    { name: "Othya", capital: "Zambhori" },
     { name: "Otiiric", capital: "Fyntek" },
     { name: "Oyreain", capital: "Yetembo" },
     { name: "Ozinia", capital: "Nuswi" },
@@ -130,7 +130,7 @@ const andahCapitals = [
     { name: "Selaja", capital: "Selja" },
     { name: "Seytinemas", capital: "Vulna" },
     { name: "Shinam", capital: "Mirzulek" },
-    { name: "Shomjind", capital: "City 1 (Arimoa)" },
+    { name: "Shomjind", capital: "City 1 (Arimota)" },
     { name: "Siana", capital: "Wadika" },
     { name: "Sivoso", capital: "Amrata" },
     { name: "Slyiaduun", capital: "Liaojin" },
@@ -160,7 +160,7 @@ const andahCapitals = [
     { name: "Verste", capital: "Kaimlo" },
     { name: "Verusa", capital: "Huifarn" },
     { name: "Vesozata", capital: "Korvani" },
-    { name: "Viussi", capital: "Zambhori" },
+    { name: "Viussi", capital: "Harlitak" },
     { name: "Volver", capital: "Drolmukhazin" },
     { name: "Walporein", capital: "Sokira" },
     { name: "Welenu Fana", capital: "Skalvira" },

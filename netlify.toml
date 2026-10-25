@@ -7,6 +7,9 @@
   functions = "netlify/functions"
 
 [build.environment]
+  # Andah Studio writes data/countries.json and the js/ data files from canon (decision 2: the sheets are retired),
+  # so the xlsx pipeline no longer runs on deploy.
+  SKIP_DATA = "1"
   NODE_VERSION = "20"
   # MIRAHEZE_USER_AGENT must be set in the Netlify UI (Site settings >
   # Environment variables). Miraheze rejects requests without a descriptive UA.

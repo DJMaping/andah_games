@@ -41,6 +41,19 @@ const R_KM = 6371.0;
 const ISLAND_MAX_KM = 900;
 /** A more distant island may still join if it plainly fills a country's shortfall. */
 const ISLAND_FAR_KM = 3000;
+/** Adoption is vetoed if it takes a country this far past its real area... */
+const ADOPT_OVERSHOOT = 1.30;
+/** ...and the region is at least this large a share of that country. */
+const ADOPT_MINOR_SHARE = 0.05;
+/** Coasts within this much of the closest one are all fair candidates. */
+const ADOPT_BAND_KM = 150;
+/**
+ * Land bigger than this is never adopted automatically. A small island can be
+ * inferred from where it sits; a landmass the size of a country cannot, and
+ * guessing moves hundreds of thousands of square kilometres between nations.
+ * These are reported for a human decision instead.
+ */
+const ADOPT_MAX_KM2 = 50000;
 /** ...meaning the shortfall accounts for at least this much of the island. */
 const ISLAND_FAR_SHARE = 0.6;
 /** Below this an unassigned region is a speck, not a lost island. */
@@ -616,44 +629,138 @@ for (const [id, votes] of cityVotes) {
 
 const adoptions = [];
 const orphans = [];
-const hosts = [...assignment].map(([id, a]) => ({ id, name: a.name, bbox: regions.get(id).bbox }));
 
-// How far an orphan sits from a host's landmass, rather than from its centroid.
-// Centroid distance badly misjudges large countries: an island just off the
-// coast of a 1.5 million km2 nation can be thousands of km from its middle.
-const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
-function distToHostKm(centroid, bbox) {
-  const [x0, y0, x1, y1] = bbox;
-  const lon = clamp(centroid[0], lonOf(x0), lonOf(x1));
-  const lat = clamp(centroid[1], latOf(y1), latOf(y0));
-  return haversineKm(centroid, [lon, lat]);
+/**
+ * For every unassigned region, which countries are nearest and how far.
+ *
+ * Distance is measured coast to coast, by letting a wave spread out across the
+ * sea from every piece of assigned land at once and noting which country
+ * reaches each stretch of water first. Cheaper proxies are badly wrong here:
+ * distance to a country's centroid puts an island just offshore of a large
+ * nation thousands of km away, and distance to its bounding box is barely
+ * better, because a bounding box drawn round an archipelago already covers the
+ * ocean between its islands. Both mistakes hand islands to the wrong country.
+ */
+function nearestByWater(scale = 4) {
+  const cw = Math.ceil(W / scale), ch = Math.ceil(H / scale);
+  const cell = new Uint16Array(cw * ch);          // assigned region id, or 0
+  for (let cy = 0; cy < ch; cy++) {
+    for (let cx = 0; cx < cw; cx++) {
+      let found = 0;
+      for (let y = cy * scale; y < Math.min(H, (cy + 1) * scale) && !found; y++) {
+        for (let x = cx * scale; x < Math.min(W, (cx + 1) * scale); x++) {
+          const id = labels[y * W + x];
+          if (id && assignment.has(id)) { found = id; break; }
+        }
+      }
+      cell[cy * cw + cx] = found;
+    }
+  }
+
+  const owner = new Uint16Array(cw * ch);
+  const dist = new Uint16Array(cw * ch);
+  let queue = new Int32Array(cw * ch);
+  let head = 0, tail = 0;
+  for (let p = 0; p < cell.length; p++) if (cell[p]) { owner[p] = cell[p]; queue[tail++] = p; }
+  while (head < tail) {
+    const p = queue[head++];
+    const y = (p / cw) | 0, x = p - y * cw;
+    const nb = [];
+    if (x > 0) nb.push(p - 1); else nb.push(p + cw - 1);   // wrap east-west
+    if (x < cw - 1) nb.push(p + 1); else nb.push(p - cw + 1);
+    if (y > 0) nb.push(p - cw);
+    if (y < ch - 1) nb.push(p + cw);
+    for (const q of nb) {
+      if (owner[q]) continue;
+      owner[q] = owner[p];
+      dist[q] = dist[p] + 1;
+      queue[tail++] = q;
+    }
+  }
+
+  // Read the field back off each orphan: every country whose wave touches it,
+  // and how far away that country's own coast is.
+  const KM_PER_CELL = (360 / W) * 111.32 * scale;
+  const out = new Map();
+  for (const r of regions.values()) {
+    if (assignment.has(r.id)) continue;
+    const cand = new Map();
+    const [x0, y0, x1, y1] = r.bbox;
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        if (labels[y * W + x] !== r.id) continue;
+        const p = ((y / scale) | 0) * cw + ((x / scale) | 0);
+        const o = owner[p];
+        if (!o || !assignment.has(o)) continue;
+        const name = assignment.get(o).name;
+        const km = dist[p] * KM_PER_CELL * Math.max(0.15, Math.cos(rad(latOf(y))));
+        if (!cand.has(name) || km < cand.get(name)) cand.set(name, km);
+      }
+    }
+    out.set(r.id, [...cand].map(([name, km]) => ({ name, km })).sort((a, b) => a.km - b.km));
+  }
+  return out;
 }
+
+const nearest = nearestByWater();
+log(`  measured sea distances for ${nearest.size} unassigned regions`);
 
 for (const r of [...regions.values()].filter((r) => !assignment.has(r.id)).sort((a, b) => b.areaKm2 - a.areaKm2)) {
   if (anchorsByRegion.has(r.id)) { orphans.push({ ...r, reason: 'holds multiple anchors, needs manual splitting' }); continue; }
   if (r.px < SPECK_PX) { orphans.push({ ...r, reason: 'speck' }); continue; }
+  if (r.areaKm2 > ADOPT_MAX_KM2) {
+    const near = (nearest.get(r.id) || []).slice(0, 3).map((c) => `${c.name} ${c.km.toFixed(0)}km`).join(', ');
+    orphans.push({ ...r, reason: `${Math.round(r.areaKm2).toLocaleString()} km2 is too much land to attribute automatically; nearest coasts ${near}` });
+    continue;
+  }
+  // Work outwards from the nearest coast. Take the first country that can
+  // plausibly own this land: proximity decides, and area only vetoes. Without
+  // the veto a huge region goes to whichever scrap of coast happens to be a few
+  // km nearer; without proximity leading, an island is handed to whichever
+  // distant country its area flatters, which is how Taval's own archipelago
+  // ended up split between its neighbours.
+  const wouldBust = (name, add) => {
+    const canon = canonicalArea.get(name);
+    if (!canon) return false;
+    const after = (areaSoFar.get(name) || 0) + add;
+    return after > canon * ADOPT_OVERSHOOT && add > canon * ADOPT_MINOR_SHARE;
+  };
   let pick = null;
-  for (const h of hosts) {
-    if (improvement(h.name, r.areaKm2) <= 0) continue;
-    const km = distToHostKm(r.centroid, h.bbox);
-    // Nearby land is adopted on the area test alone. Land further out is only
-    // adopted when it plainly fills a hole: the country must be short by most
-    // of what this region would add, which is what tells an offshore territory
-    // apart from an unrelated island that merely happens to help the sums.
-    //
-    // Both tiers can still pick the wrong country, because a nation already
-    // over its canonical size is excluded and its own islands then go to
-    // whichever neighbour the sums flatter. Every adoption beyond ISLAND_MAX_KM
-    // is therefore listed in the report for review rather than trusted.
-    const tier = km <= ISLAND_MAX_KM ? 0
-      : (km <= ISLAND_FAR_KM && shortfallOf(h.name) >= ISLAND_FAR_SHARE * r.areaKm2) ? 1 : -1;
-    if (tier < 0) continue;
-    if (!pick || tier < pick.tier || (tier === pick.tier && km < pick.km)) pick = { name: h.name, km, tier };
+  const ranked = nearest.get(r.id) || [];
+  // Proximity narrows the field; area chooses within it. Nearest alone is not
+  // enough: a 292,000 km2 landmass sat marginally closer to one coast than to
+  // the country whose missing area it exactly accounts for, and taking the
+  // nearest handed it to the wrong nation and broke both. Every coast within a
+  // short hop of the closest is a fair candidate, so let the one whose real
+  // area this land actually accounts for win among them.
+  if (ranked.length) {
+    const band = Math.min(ranked[0].km + ADOPT_BAND_KM, ISLAND_MAX_KM);
+    for (const cand of ranked) {
+      if (cand.km > band) break;
+      if (wouldBust(cand.name, r.areaKm2)) continue;
+      const canon = canonicalArea.get(cand.name);
+      if (!canon) continue;
+      const after = Math.abs((areaSoFar.get(cand.name) || 0) + r.areaKm2 - canon) / canon;
+      if (!pick || after < pick.after) {
+        pick = { name: cand.name, km: cand.km, tier: 0, after, passed: ranked.indexOf(cand) };
+      }
+    }
+  }
+  // Nothing close enough to be obvious. Fall back to the area argument, which
+  // is all that is left at range, and flag it in the report.
+  if (!pick) {
+    for (const cand of ranked) {
+      if (cand.km > ISLAND_FAR_KM) break;
+      if (improvement(cand.name, r.areaKm2) <= 0) continue;
+      if (shortfallOf(cand.name) < ISLAND_FAR_SHARE * r.areaKm2) continue;
+      pick = { name: cand.name, km: cand.km, tier: 1, passed: ranked.indexOf(cand) };
+      break;
+    }
   }
   if (pick) {
     claim(r.id, pick.name, 'island', pick.tier === 0
-      ? `island ${pick.km.toFixed(0)} km from ${pick.name}, improves its area match`
-      : `${pick.km.toFixed(0)} km from ${pick.name} but fills ${(100 * r.areaKm2 / (r.areaKm2 + Math.abs(shortfallOf(pick.name)))).toFixed(0)}% of its missing area`);
+      ? `${pick.name} coast ${pick.km.toFixed(0)} km across water${pick.passed ? `, chosen over ${pick.passed} slightly nearer neighbour(s) on area` : ''}`
+      : `no coast within ${ISLAND_MAX_KM} km; ${pick.name} at ${pick.km.toFixed(0)} km is short by most of this area`);
     adoptions.push({ id: r.id, px: r.px, areaKm2: r.areaKm2, ...pick });
   } else {
     orphans.push({ ...r, reason: cityOnlyRejected.get(r.id) ?? 'no nearby country whose area it would improve' });

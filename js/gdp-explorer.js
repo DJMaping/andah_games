@@ -64,11 +64,20 @@ const state = {
 // andah-stats.js, and gdp-history.json anchors), so Lahn = factor 1 and the other
 // units are fractions of it. Displayed numbers stay identical to before — the stored
 // data went ×8 and these factors went ÷8, so they cancel.
+// The national rates are the wiki's own. They come from RATES at the top of
+// MediaWiki:Common.js, which is what the lahn conversion tooltips use on every
+// article, so a figure converted here and the same figure hovered on the wiki
+// agree. `factor` has the same meaning as the wiki's `per`: units of that
+// currency per one lahn. Update both together if the rates move.
 const CURRENCIES = {
-    lahn:      { label: 'Lahn',       factor: 1,       symbol: 'lahn' },  // OFFICIAL: the data is stored in lahn
-    oldlahn:   { label: 'Old lahn',   factor: 0.125,   symbol: 'lahn' },  // 1 old lahn = 8 lahn (pre-redenomination unit)
-    grandlahn: { label: 'Grand lahn', factor: 0.03125, symbol: 'lahn' },  // 1 grand lahn = 32 lahn
-    dollar:    { label: 'Dollar',     factor: 0.21875, symbol: '$'    },  // shows "$", not the lahn glyph; $1 ≈ 4.57 lahn
+    lahn:    { label: 'Lahn',              factor: 1,      symbol: 'lahn' },  // OFFICIAL: the data is stored in lahn
+    oldlahn: { label: 'Old lahn',          factor: 0.125,  symbol: 'lahn' },  // 1 old lahn = 8 lahn (pre-redenomination unit)
+    dollar:  { label: 'US dollar',         factor: 0.155,  symbol: '$'    },  // out-of-universe reader aid
+    eis:     { label: 'Emaran Islatan',    factor: 0.19,   symbol: 'EIS ' },
+    rka:     { label: 'Raledrian Kasare',  factor: 0.36,   symbol: 'RKA ' },
+    aar:     { label: 'Arten Araik',       factor: 4.20,   symbol: 'AAR ' },
+    por:     { label: 'Pelugrotoan Oran',  factor: 7.75,   symbol: 'POR ' },
+    ezd:     { label: 'Estijan Zundetra',  factor: 61.0,   symbol: 'EZD ' },
 };
 function currentCurrency() { return CURRENCIES[state.currency] || CURRENCIES.lahn; }
 function moneyFactor() { return currentCurrency().factor; }
@@ -484,6 +493,11 @@ function renderYearView(opts = {}) {
         data: { labels: pieLabels, datasets: [{ data: pieValues, backgroundColor: pieColors, borderColor: themeColors().grid, borderWidth: 1 }] },
         options: {
             responsive: true,
+            // The chart is destroyed and rebuilt on every year change, so the
+            // default grow-in animation replayed from nothing each step. Dragging
+            // the slider or playing the years through left it permanently
+            // mid-animation and impossible to read.
+            animation: false,
             plugins: {
                 legend: { display: pieLabels.length <= 12, position: 'bottom', labels: { color: tc.text, boxWidth: 12, font: { size: 10 } } },
                 tooltip: {
@@ -1163,8 +1177,14 @@ function renderCompare() {
     const years = [];
     for (let y = min; y <= max; y++) years.push(y);
     // In per-capita mode, also overlay each country's TOTAL GDP on a second
-    // axis (per capita = solid/right, total = dashed/left, same colour).
-    const dual = metric === 'perCap';
+    // axis, same colour: total is the thick solid line and per capita the dotted
+    // one. The total is the headline series, so it gets the weight; a dashed
+    // line reads as the derived or secondary figure, which is what per capita is.
+    // Per capita can be switched off entirely, leaving totals alone on one axis.
+    const showPerCap = $('ctl-compare-percap') ? $('ctl-compare-percap').checked : true;
+    const dual = metric === 'perCap' && showPerCap;
+    // With per capita hidden, the per-capita comparison is a totals comparison.
+    const totalsOnly = metric === 'perCap' && !showPerCap;
     const seriesVal = (r, which) => {
         if (!r) return null;
         if (which === 'growth') return r.growthDetermined ? r.perCapGrowth : null;
@@ -1177,20 +1197,23 @@ function renderCompare() {
         const byYear = new Map(rows.map((r) => [r.earthYear, r]));
         const col = PALETTE[i % PALETTE.length];
         if (dual) {
-            datasets.push({ label: `${name} · per cap`, data: years.map((y) => seriesVal(byYear.get(y), 'perCap')), yAxisID: 'y1', borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 2, spanGaps: true });
-            datasets.push({ label: `${name} · total`, data: years.map((y) => seriesVal(byYear.get(y), 'gdp')), yAxisID: 'y', borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 1.5, borderDash: [5, 4], spanGaps: true });
+            datasets.push({ label: `${name} · total`, data: years.map((y) => seriesVal(byYear.get(y), 'gdp')), yAxisID: 'y', borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 2.75, spanGaps: true });
+            datasets.push({ label: `${name} · per cap`, data: years.map((y) => seriesVal(byYear.get(y), 'perCap')), yAxisID: 'y1', borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 1.5, borderDash: [2, 3], spanGaps: true });
         } else {
-            datasets.push({ label: name, data: years.map((y) => seriesVal(byYear.get(y), metric)), borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 2, spanGaps: true });
+            const which = totalsOnly ? 'gdp' : metric;
+            datasets.push({ label: name, data: years.map((y) => seriesVal(byYear.get(y), which)), borderColor: col, backgroundColor: col, pointRadius: 0, borderWidth: 2.75, spanGaps: true });
         }
     });
-    const fmt = metric === 'growth' ? fmtPct : fmtMoney;
-    const metricLabel = metric === 'gdp' ? 'Total GDP' : metric === 'growth' ? 'GDP/cap growth' : 'GDP per capita & total';
+    const fmt = (metric === 'growth') ? fmtPct : fmtMoney;
+    const metricLabel = metric === 'gdp' ? 'Total GDP'
+        : metric === 'growth' ? 'GDP/cap growth'
+            : totalsOnly ? 'Total GDP' : 'GDP per capita & total';
     const t = $('compare-title'); if (t) t.textContent = `Compare — ${metricLabel}`;
     const scales = dual
         ? {
             x: yearScale(tc, 14),
-            y: { position: 'left', beginAtZero: true, lahn: true, title: { display: true, text: 'Total GDP (dashed)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
-            y1: { position: 'right', beginAtZero: true, lahn: true, title: { display: true, text: 'GDP per capita (solid)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { display: false } },
+            y: { position: 'left', beginAtZero: true, lahn: true, title: { display: true, text: 'Total GDP (solid)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { color: tc.grid } },
+            y1: { position: 'right', beginAtZero: true, lahn: true, title: { display: true, text: 'GDP per capita (dotted)', color: tc.muted }, ticks: { color: tc.muted, callback: (v) => fmtMoney(v) }, grid: { display: false } },
         }
         : {
             x: yearScale(tc, 14),
@@ -1489,6 +1512,7 @@ function bindEvents() {
     $('ctl-country').addEventListener('change', renderCountryView);
     $('ctl-compare').addEventListener('change', renderCompare);
     $('ctl-compare-metric').addEventListener('change', renderCompare);
+    if ($('ctl-compare-percap')) $('ctl-compare-percap').addEventListener('change', renderCompare);
 
     if ($('ctl-currency')) $('ctl-currency').addEventListener('change', (e) => {
         state.currency = CURRENCIES[e.target.value] ? e.target.value : 'lahn';

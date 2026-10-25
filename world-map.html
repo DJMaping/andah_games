@@ -3,111 +3,534 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Andah World Map</title>
+<title>Andah — Atlas</title>
 <link rel="icon" href="favicon.png">
 <style>
+  /* =======================================================================
+     Andah Atlas
+     Drawn after a printed atlas plate rather than a dashboard: a serif for
+     names, a condensed grotesque for engraved small-caps labels, hairline
+     rules instead of boxes, and one warm brass accent against ink or paper.
+     Every face ships with Windows, so nothing is fetched over the network.
+     ======================================================================= */
   :root {
-    --bg: #0b1016; --panel: #121a23; --line: #223040; --ink: #e2ecf5; --dim: #8ba0b5;
-    --accent: #4aa8ff; --ocean: #08131f; --graticule: #16293c; --border: #0a1119;
-    --shadow: 0 10px 30px rgba(0,0,0,.45);
+    --display: Constantia, "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --ui: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --micro: Bahnschrift, "Segoe UI Semibold", "Segoe UI", system-ui, sans-serif;
+
+    --bg: #080d13;
+    --panel: #101822;
+    --sunk: #0a1017;
+    --line: #22303f;
+    --hair: rgba(236,230,218,.11);
+    --ink: #ece6da;
+    --dim: #8b93a1;
+    --accent: #d3a24c;
+    --accent-soft: rgba(211,162,76,.16);
+    --shadow: 0 18px 44px rgba(0,0,0,.55);
+    --grain: .035;
+
+    /* --- plate: read by the canvas, not by CSS ------------------------------
+       The ocean must sit clearly apart from --bg or the globe has no edge and
+       the continents appear to float in the page. Everything else is keyed to
+       it: the sea shelf is a lift of the ocean, the limb a lift again. */
+    --ocean: #10202e;
+    --ocean-lit: #172f42;        /* sunward side of the sphere */
+    --ocean-deep: #060f18;       /* limb, and the shading that makes it a ball */
+    --shelf: rgba(150,190,214,.34);
+    --limb: rgba(150,192,222,.30);
+    --graticule: rgba(146,186,214,.13);
+    --border: rgba(10,15,21,.72);
+    --coast: rgba(226,236,244,.30);
+    --label: #f2ece0;
+    --label-halo: rgba(6,11,17,.88);
+    --city: #f4ead6;
   }
   :root[data-theme="light"] {
-    --bg: #f4f7fa; --panel: #ffffff; --line: #d8e2ec; --ink: #16222e; --dim: #5f7688;
-    --accent: #0b63ce; --ocean: #dbe9f6; --graticule: #c3d8ea; --border: #ffffff;
-    --shadow: 0 8px 24px rgba(20,40,60,.12);
+    --bg: #e0d7c5;
+    --panel: #f8f4ec;
+    --sunk: #efe8da;
+    --line: #d3c8b3;
+    --hair: rgba(31,27,22,.14);
+    --ink: #1f1b16;
+    --dim: #6d675b;
+    --accent: #8a5a17;
+    --accent-soft: rgba(138,90,23,.12);
+    --shadow: 0 14px 34px rgba(60,48,30,.16);
+    --grain: .05;
+
+    --ocean: #c3d8e3;
+    --ocean-lit: #d8e7ee;
+    --ocean-deep: #9db8c8;
+    --shelf: rgba(96,140,166,.30);
+    --limb: rgba(84,112,132,.34);
+    --graticule: rgba(60,96,120,.16);
+    --border: rgba(74,58,36,.42);
+    --coast: rgba(52,74,90,.42);
+    --label: #241d13;
+    --label-halo: rgba(252,249,242,.90);
+    --city: #2a2116;
   }
+
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; display: flex; flex-direction: column; background: var(--bg); color: var(--ink);
-         font: 14px/1.5 ui-sans-serif, system-ui, "Segoe UI", sans-serif; overflow: hidden; }
-
-  header { display: flex; align-items: center; gap: 10px; padding: 8px 12px;
-           border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
-  header h1 { margin: 0 8px 0 0; font-size: 15px; font-weight: 650; white-space: nowrap; }
-  .ctl { display: flex; align-items: center; gap: 6px; }
-  button, select, input {
-    background: var(--bg); color: var(--ink); border: 1px solid var(--line);
-    border-radius: 7px; padding: 6px 10px; font: inherit;
+  body {
+    margin: 0; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--bg); color: var(--ink);
+    font: 14px/1.55 var(--ui);
+    -webkit-font-smoothing: antialiased;
   }
-  button { cursor: pointer; }
-  button:hover, select:hover { border-color: var(--accent); }
-  button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
-  #search { width: 190px; }
+
+  /* Paper grain over everything. The one detail that stops large flat fills
+     reading as plastic. */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9;
+    opacity: var(--grain); mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+  }
+
+  /* -------------------------------------------------------------- toolbar
+     Scoped to the page's own header. As a bare element selector this also hit
+     the <header> inside a country plate, which inherited display:flex and a
+     fixed 54px height and laid the plate's strapline out beside its flag. */
+  body > header {
+    display: flex; align-items: center; gap: 14px; padding: 0 16px; height: 54px;
+    background: var(--panel); border-bottom: 1px solid var(--line); flex: none;
+    position: relative; z-index: 3;
+  }
+  body > header::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -3px; height: 1px;
+    background: var(--hair);
+  }
+  .mark { display: flex; align-items: baseline; gap: 9px; white-space: nowrap; }
+  .mark b { font: 600 21px/1 var(--display); letter-spacing: .015em; }
+  .mark i {
+    font: 500 10px/1 var(--micro); font-style: normal; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .rule { width: 1px; height: 24px; background: var(--line); flex: none; }
+  .grp { display: flex; align-items: center; gap: 7px; }
   .spacer { flex: 1; }
 
+  input, select, .btnbar button {
+    font: inherit; font-size: 13px; color: var(--ink);
+    background: var(--sunk); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 10px; transition: border-color .15s, color .15s, background .15s;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  #search { width: 200px; }
+  #search::placeholder { color: var(--dim); }
+  select { cursor: pointer; }
+  /* Shading the plate by a statistic changes what every country means, so the
+     control says so rather than sitting at rest like the projection picker. */
+  select.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  /* The projection only governs the flat plate. Left live on the globe it is a
+     control that visibly does nothing. */
+  select:disabled { opacity: .38; cursor: default; }
+
+  /* A joined pair reads as one control with two states; two separate buttons
+     read as two unrelated actions. */
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button {
+    font: 500 11px/1 var(--micro); letter-spacing: .13em; text-transform: uppercase;
+    padding: 8px 14px; border: 0; background: var(--sunk); color: var(--dim);
+    cursor: pointer; transition: color .15s, background .15s;
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button:hover { color: var(--ink); }
+  .seg button.on { background: var(--accent); color: var(--panel); }
+
+  .btnbar { display: inline-flex; gap: 6px; }
+  .btnbar button {
+    font: 500 11px/1 var(--micro); letter-spacing: .13em; text-transform: uppercase;
+    padding: 8px 12px; cursor: pointer; color: var(--dim);
+  }
+  .btnbar button:hover { color: var(--ink); border-color: var(--accent); }
+  .btnbar button.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+  /* ---------------------------------------------------------------- stage */
   main { flex: 1; display: flex; min-height: 0; }
   #stage { flex: 1; position: relative; min-width: 0; }
-  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  /* Neatline. A printed plate is always framed by a pair of rules set in from
+     the trim; without it the map bleeds into the furniture and stops reading as
+     a plate at all. */
+  #stage::before {
+    content: ""; position: absolute; inset: 12px; pointer-events: none; z-index: 5;
+    border: 1px solid var(--hair);
+    outline: 1px solid var(--hair); outline-offset: 3px;
+  }
+  /* A vignette pushes the eye into the middle of the plate. */
+  #stage::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(0,0,0,.30) 100%);
+  }
+  :root[data-theme="light"] #stage::after {
+    background: radial-gradient(ellipse at 50% 45%, transparent 58%, rgba(70,56,34,.14) 100%);
+  }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
   canvas.dragging { cursor: grabbing; }
-  #tip { position: absolute; pointer-events: none; display: none; background: var(--panel);
-         border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px;
-         box-shadow: var(--shadow); white-space: nowrap; }
-  #tip b { color: var(--accent); }
-  #legend { position: absolute; left: 12px; bottom: 12px; background: var(--panel);
-            border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; display: none;
-            box-shadow: var(--shadow); max-width: 260px; }
-  #legend .t { font-size: 12px; color: var(--dim); margin-bottom: 6px; }
-  #legend .row { display: flex; align-items: center; gap: 7px; font-size: 12px;
-                 font-variant-numeric: tabular-nums; }
-  #legend i { width: 15px; height: 11px; border-radius: 2px; display: inline-block; }
-  #hint { position: absolute; right: 12px; bottom: 12px; color: var(--dim); font-size: 12px; }
+  canvas:focus-visible { outline: 1px solid var(--accent); outline-offset: -3px; }
+  .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-  aside { width: 370px; background: var(--panel); border-left: 1px solid var(--line);
-          display: flex; flex-direction: column; overflow: hidden; }
-  #empty { padding: 26px 18px; color: var(--dim); }
-  #card { flex: 1; overflow-y: auto; display: none; }
-  .head { padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
-  .head .top { display: flex; gap: 12px; align-items: flex-start; }
-  .head img { width: 62px; height: auto; border: 1px solid var(--line); border-radius: 3px; }
-  .head h2 { margin: 0; font-size: 19px; line-height: 1.2; }
-  .head .long { color: var(--dim); font-size: 12.5px; margin-top: 2px; }
-  .head .say { color: var(--dim); font-size: 12px; margin-top: 4px; font-style: italic; }
-  .head .links { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
-  .head a.btn, .head button.btn { font-size: 12.5px; padding: 4px 9px; text-decoration: none;
-    display: inline-block; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--bg); }
-  .head a.btn:hover { border-color: var(--accent); color: var(--accent); }
+  #tip {
+    position: absolute; pointer-events: none; display: none; z-index: 4;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 7px;
+    padding: 7px 11px; font-size: 12.5px; box-shadow: var(--shadow); white-space: nowrap;
+  }
+  #tip b { font: 600 14px/1.2 var(--display); color: var(--accent); }
 
-  .stats { padding: 10px 16px; display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; }
-  .stats .k { color: var(--dim); font-size: 12.5px; }
-  .stats .v { text-align: right; font-variant-numeric: tabular-nums; }
-  .stats .v small { color: var(--dim); margin-left: 5px; font-size: 11px; }
-  .bar { grid-column: 1 / -1; height: 3px; background: var(--line); border-radius: 2px; margin: 1px 0 5px; }
-  .bar i { display: block; height: 100%; border-radius: 2px; background: var(--accent); }
+  #legend {
+    position: absolute; left: 26px; bottom: 26px; z-index: 6; display: none;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 14px; box-shadow: var(--shadow); max-width: 250px;
+  }
+  #legend .t {
+    font: 500 9.5px/1 var(--micro); letter-spacing: .18em; text-transform: uppercase;
+    color: var(--dim); margin-bottom: 9px;
+  }
+  #legend .row {
+    display: flex; align-items: center; gap: 9px; font-size: 11.5px;
+    font-variant-numeric: tabular-nums; padding: 1.5px 0;
+  }
+  #legend i { width: 22px; height: 9px; display: inline-block; flex: none; }
+  #hint {
+    position: absolute; right: 26px; bottom: 26px; z-index: 6; color: var(--dim);
+    font: 500 9.5px/1 var(--micro); letter-spacing: .16em; text-transform: uppercase;
+  }
 
-  details { border-top: 1px solid var(--line); }
-  summary { padding: 9px 16px; cursor: pointer; color: var(--dim); font-size: 12px;
-            text-transform: uppercase; letter-spacing: .07em; }
-  summary:hover { color: var(--ink); }
-  details .body { padding: 2px 16px 14px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
-  details .body dt { color: var(--dim); }
-  details .body dd { margin: 0; }
+  /* ---------------------------------------------------------------- plate */
+  aside {
+    /* Wide enough for a chart to be a chart. At 396 the ranking tracks and the
+       composition key were both fighting the gutter. */
+    width: clamp(400px, 30vw, 500px); flex: none; background: var(--panel); border-left: 1px solid var(--line);
+    display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 2;
+  }
 
-  #tray { border-top: 1px solid var(--line); padding: 8px 12px; display: none; }
-  #tray h3 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--dim); }
+  #empty { padding: 0; display: flex; flex-direction: column; height: 100%; }
+  /* Centred while it fits, scrollable once it does not. Below the breakpoint the
+     plate is only a few hundred pixels tall and this column is taller than that,
+     so without the shrink-and-scroll the ways in and the colophon were simply
+     cut off with no way to reach them. */
+  .blank {
+    margin: auto; padding: 34px 30px; text-align: center; width: 100%;
+    flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin;
+  }
+  .blank .rose { color: var(--accent); opacity: .62; display: block; margin: 0 auto 20px; }
+  .blank h3 { margin: 0 0 9px; font: 400 20px/1.25 var(--display); }
+  .blank p { margin: 0; color: var(--dim); font-size: 13px; line-height: 1.65; }
+
+  /* Three plates worth opening, so the column does something at rest instead of
+     being 400px of held breath. */
+  .starts { margin: 26px 0 0; text-align: left; border-top: 1px solid var(--hair); }
+  .start {
+    display: flex; align-items: baseline; gap: 12px; width: 100%; text-align: left;
+    padding: 12px 2px; background: none; border: 0; border-bottom: 1px solid var(--hair);
+    color: var(--ink); font: inherit; cursor: pointer; transition: color .15s;
+  }
+  .start i {
+    flex: none; width: 74px; font: 500 8.5px/1.3 var(--micro); letter-spacing: .16em;
+    text-transform: uppercase; color: var(--dim); font-style: normal;
+  }
+  .start b { flex: 1; font: 400 15px/1.2 var(--display); font-weight: 400; }
+  .start u {
+    text-decoration: none; color: var(--dim); font-size: 11px;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .start:hover { color: var(--accent); }
+  .start:hover i, .start:hover u { color: var(--accent); }
+  .colophon {
+    flex: none; padding: 14px 30px 18px; text-align: center; color: var(--dim);
+    font: 500 8.5px/1.6 var(--micro); letter-spacing: .17em; text-transform: uppercase;
+    border-top: 1px solid var(--hair);
+  }
+
+  #card { flex: 1; overflow-y: auto; display: none; scrollbar-width: thin; }
+  #card::-webkit-scrollbar { width: 9px; }
+  #card::-webkit-scrollbar-thumb { background: var(--line); border-radius: 9px; }
+
+  /* =======================================================================
+     THE NATION PLATE
+
+     Laid out as a page from an atlas of statistics, not as an infobox. A
+     masthead, then a run of titled figures, each ruled off and given room.
+
+     Three rules hold it together:
+
+     1. Nothing is collapsed. Eight of the ten sections used to sit behind
+        disclosure triangles, which is why the plate read as a form to be
+        filled in rather than a page to be read. A book page has no accordions.
+     2. Every number that has a rank is drawn against the other 171. A figure
+        on its own is trivia; a figure with its position is information, and
+        all ten metrics are complete for all 172 nations, so the device never
+        has a hole in it.
+     3. The charts are monochrome, built from the accent at stepped opacity.
+        Colour here would compete with the map, which is the one surface on
+        the screen that has earned it.
+     ======================================================================= */
+
+  .plate { padding-bottom: 30px; animation: rise .34s ease both; }
+
+  /* ------------------------------------------------------------- masthead */
+  .mast { padding: 20px 26px 0; }
+  /* Plate number and region run as a ruled strapline above the title, the way
+     an atlas heads its plate. Below the name (where the region used to sit) it
+     told you where you were only after you had read a name you may not know. */
+  .mast .strap {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 15px;
+    font: 500 9px/1 var(--micro); letter-spacing: .19em; text-transform: uppercase;
+  }
+  .mast .strap .no { color: var(--dim); font-variant-numeric: tabular-nums; flex: none; }
+  /* min-width:0 or the ellipsis never fires: a flex item will not shrink below
+     its content, so a long region name pushed the whole plate sideways. */
+  .mast .strap .where {
+    color: var(--accent); min-width: 0; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .mast .strap::after { content: ""; flex: 1; min-width: 12px; height: 1px; background: var(--hair); }
+
+  .mast .row { display: flex; gap: 18px; align-items: flex-start; }
+  .ensign { margin: 0; flex: none; }
+  /* A mat around the flag, not a bare bitmap: hairline, paper-coloured
+     surround and a cast shadow read as a plate inset. */
+  .ensign img {
+    width: 104px; height: auto; display: block; background: var(--sunk);
+    padding: 4px; border: 1px solid var(--hair); box-shadow: 0 4px 14px rgba(0,0,0,.34);
+  }
+  .ensign figcaption {
+    margin-top: 7px; text-align: center; color: var(--dim);
+    font: 500 8px/1 var(--micro); letter-spacing: .16em; text-transform: uppercase;
+  }
+  .titles { min-width: 0; padding-top: 1px; }
+  .titles h2 {
+    margin: 0; font: 600 30px/1.03 var(--display); letter-spacing: -.012em;
+    overflow-wrap: break-word;
+  }
+  .titles .native { margin: 8px 0 0; font: 400 14px/1.35 var(--display); font-style: italic; color: var(--accent); }
+  .titles .long { margin: 7px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--dim); }
+  .titles .ipa { margin: 6px 0 0; font-size: 11.5px; color: var(--dim); font-variant: small-caps; letter-spacing: .05em; }
+
+  /* The motto, set as an epigraph between rules - the one piece of pure voice
+     on an otherwise numerical page. */
+  .motto {
+    margin: 20px 26px 0; padding: 13px 0; text-align: center;
+    border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair);
+    font: 400 14px/1.5 var(--display); font-style: italic;
+  }
+  .motto::before, .motto::after { content: "\201C"; color: var(--accent); }
+  .motto::after { content: "\201D"; }
+
+  .links { margin: 18px 26px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    font: 500 10px/1 var(--micro); letter-spacing: .14em; text-transform: uppercase;
+    padding: 8px 13px; border: 1px solid var(--line); border-radius: 5px;
+    background: var(--sunk); color: var(--dim); text-decoration: none;
+    display: inline-block; cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+  }
+  .btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+  /* --------------------------------------------------------------- figures */
+  .fig { margin: 26px 26px 0; }
+  .fig > h3 {
+    margin: 0 0 14px; display: flex; align-items: center; gap: 12px;
+    font: 500 9px/1 var(--micro); letter-spacing: .22em; text-transform: uppercase; color: var(--ink);
+  }
+  .fig > h3::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
+  .fig > h3 em { font-style: normal; color: var(--dim); letter-spacing: .13em; }
+
+  /* --- territory: the country's own outline, and where on the world it is - */
+  .shape {
+    display: flex; gap: 20px; align-items: center; justify-content: center;
+    padding: 2px 0 20px;
+  }
+  .shape svg { display: block; flex: none; overflow: visible; }
+  .shape .outline { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.1; stroke-linejoin: round; }
+  .shape .globe-sea { fill: var(--sunk); stroke: var(--hair); stroke-width: 1; }
+  .shape .globe-land { fill: var(--dim); opacity: .5; }
+  .shape .globe-here { fill: var(--accent); }
+  .shape .globe-ring { fill: none; stroke: var(--accent); stroke-width: 1.2; }
+  .shape .grat { fill: none; stroke: var(--hair); stroke-width: .5; }
+  .shape .cap { fill: var(--ink); }
+  .shape .capring { fill: none; stroke: var(--panel); stroke-width: 1.4; }
+
+
+  /* --- headline figures ---------------------------------------------------- */
+  .heroes { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 18px; }
+  .hero .lab { font: 500 8.5px/1 var(--micro); letter-spacing: .19em; text-transform: uppercase; color: var(--dim); }
+  .hero .num {
+    margin-top: 8px; font: 400 25px/1 var(--display); font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hero .num u { text-decoration: none; font-size: 10.5px; color: var(--dim); margin-left: 5px; font-family: var(--ui); }
+
+  /* --- the rank device ------------------------------------------------------
+     One track per statistic, first place at the left and 172nd at the right,
+     filled to the marker. Reading "5th of 172" takes a moment; seeing the
+     marker sitting hard against the left edge takes none. */
+  .rank { margin-top: 9px; }
+  .track { position: relative; height: 3px; background: var(--hair); }
+  /* The median, so the marker has something to be near or far from. No bar is
+     filled: on a rank scale first place is at the left, and a filled bar would
+     make the best countries look like the smallest ones. */
+  .track u { position: absolute; left: 50%; top: -2px; width: 1px; height: 7px; background: var(--dim); opacity: .45; }
+  .track i {
+    position: absolute; top: -3.5px; width: 2px; height: 10px;
+    background: var(--accent); transform: translateX(-1px);
+  }
+  .track.ends::before, .track.ends::after {
+    position: absolute; top: 10px; font: 500 7.5px/1 var(--micro);
+    letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+  }
+  .track.ends::before { content: "1st"; left: 0; }
+  .track.ends::after { content: attr(data-last); right: 0; }
+  .rank .pos {
+    margin-top: 7px; font: 500 8.5px/1 var(--micro); letter-spacing: .13em;
+    text-transform: uppercase; color: var(--dim);
+  }
+  .rank .pos b { color: var(--accent); font-weight: 500; }
+
+  /* --- the full ranking table ---------------------------------------------- */
+  .strips { margin: 0; padding: 0; list-style: none; }
+  .strips li { padding: 11px 0; border-bottom: 1px solid var(--hair); }
+  .strips li:last-child { border-bottom: 0; }
+  .strips .top { display: flex; align-items: baseline; gap: 12px; }
+  .strips .top .n { flex: 1; min-width: 0; font-size: 12.5px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .strips .top .v {
+    font: 400 14px/1.2 var(--display); font-variant-numeric: tabular-nums;
+    white-space: nowrap; flex: none;
+  }
+  .strips .top .v s { text-decoration: none; color: var(--dim); font-size: 10px; margin-left: 4px; font-family: var(--ui); }
+  /* The ordinal rides under its own marker. Set flush right (as it was) a
+     country placed fifth had "5TH" printed at the far end of the scale, which
+     says the opposite of where the marker is. */
+  .strips .scale { position: relative; margin-top: 9px; padding-bottom: 17px; }
+  .strips .ord {
+    position: absolute; top: 9px; transform: translateX(-50%); white-space: nowrap;
+    font: 500 8px/1 var(--micro); letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent); font-variant-numeric: tabular-nums;
+  }
+
+  /* --- composition: one bar, one key --------------------------------------- */
+  .comp { display: flex; height: 11px; overflow: hidden; background: var(--hair); }
+  .comp span { display: block; height: 100%; background: var(--accent); }
+  .comp span + span { border-left: 1px solid var(--panel); }
+  .key {
+    margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 7px 16px;
+  }
+  .key div { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; }
+  .key i { width: 9px; height: 9px; flex: none; background: var(--accent); }
+  .key b { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .key s { text-decoration: none; margin-left: auto; color: var(--dim); font-variant-numeric: tabular-nums; font-size: 11px; flex: none; }
+  .comp-note { margin-top: 11px; font-size: 12.5px; line-height: 1.55; color: var(--dim); }
+
+  /* --- land and water ------------------------------------------------------ */
+  .lw { display: flex; height: 11px; background: var(--hair); }
+  .lw span { display: block; height: 100%; }
+  .lw .land { background: var(--accent); }
+  .lw .water { background: var(--accent); opacity: .22; }
+
+  /* --- facts: label left, value right, both in their own voice ------------- */
+  .facts { margin: 0; }
+  .facts div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--hair); }
+  .facts div:last-child { border-bottom: 0; }
+  .facts dt { font: 500 8.5px/1.3 var(--micro); letter-spacing: .16em; text-transform: uppercase; color: var(--dim); flex: none; }
+  .facts dd { margin: 0; font: 400 14.5px/1.3 var(--display); font-variant-numeric: tabular-nums; text-align: right; min-width: 0; }
+  /* Anything prose-length gets its own line rather than being squeezed into a
+     right-aligned column and wrapping into a ragged block. */
+  .facts div.stack { display: block; }
+  .facts div.stack dd { margin-top: 6px; text-align: left; font-size: 13.5px; line-height: 1.5; }
+
+  /* --- timeline ------------------------------------------------------------ */
+  .tl { margin: 0; position: relative; padding-left: 76px; }
+  .tl::before { content: ""; position: absolute; left: 62px; top: 4px; bottom: 4px; width: 1px; background: var(--hair); }
+  .tl .e { position: relative; padding: 7px 0; font-size: 13px; line-height: 1.4; }
+  .tl .e time {
+    position: absolute; left: -76px; width: 58px; text-align: right; color: var(--accent);
+    font: 500 11px/1.5 var(--micro); font-variant-numeric: tabular-nums; letter-spacing: .04em;
+  }
+  .tl .e::before {
+    content: ""; position: absolute; left: -15px; top: 13px; width: 5px; height: 5px;
+    background: var(--panel); border: 1px solid var(--accent); border-radius: 50%;
+  }
+  .tl .e:last-child::before { background: var(--accent); }
+
+  /* --- neighbours: ranked by how much border they share --------------------- */
+  .nb { margin: 0; padding: 0; list-style: none; }
+  .nb button {
+    display: block; width: 100%; text-align: left; padding: 9px 0; border: 0;
+    background: none; color: var(--ink); font: inherit; cursor: pointer;
+    border-bottom: 1px solid var(--hair); transition: color .15s;
+  }
+  .nb li:last-child button { border-bottom: 0; }
+  .nb .top { display: flex; align-items: baseline; gap: 12px; font-size: 13px; }
+  .nb .top b { font-weight: 400; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nb .top s { text-decoration: none; color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; flex: none; }
+  .nb .g { height: 2px; margin-top: 7px; background: var(--hair); }
+  .nb .g i { display: block; height: 100%; background: var(--accent); opacity: .55; }
+  .nb button:hover { color: var(--accent); }
+  .nb button:hover .g i { opacity: 1; }
+  .lone { color: var(--dim); font-size: 12.5px; font-style: italic; line-height: 1.55; }
+
+  /* --- colophon ------------------------------------------------------------ */
+  .anthem {
+    margin: 26px 26px 0; padding-top: 15px; border-top: 1px solid var(--hair);
+    display: flex; gap: 12px; align-items: baseline;
+  }
+  .anthem dt { font: 500 8.5px/1.4 var(--micro); letter-spacing: .16em; text-transform: uppercase; color: var(--dim); flex: none; }
+  .anthem dd { margin: 0; font: 400 14px/1.4 var(--display); font-style: italic; }
+
+  /* --------------------------------------------------------------- compare */
+  #tray { border-top: 1px solid var(--line); padding: 13px 20px 15px; display: none; background: var(--sunk); }
+  #tray h3 { margin: 0 0 9px; font: 500 9px/1 var(--micro); letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
   #tray table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  #tray th, #tray td { text-align: right; padding: 2px 4px; font-variant-numeric: tabular-nums; }
+  #tray th, #tray td { text-align: right; padding: 4px 5px; font-variant-numeric: tabular-nums; }
   #tray th:first-child, #tray td:first-child { text-align: left; }
-  #tray thead th { color: var(--dim); font-weight: 500; }
-  #tray .x { cursor: pointer; color: var(--dim); }
+  #tray thead th {
+    color: var(--dim); font: 500 8.5px/1 var(--micro); letter-spacing: .12em;
+    text-transform: uppercase; border-bottom: 1px solid var(--hair); padding-bottom: 6px;
+  }
+  #tray tbody tr + tr td { border-top: 1px solid var(--hair); }
+  #tray .x { cursor: pointer; color: var(--dim); width: 18px; }
   #tray .x:hover { color: var(--accent); }
 
-  @media (max-width: 900px) {
+  @keyframes rise { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  @media (max-width: 980px) {
+    body > header { flex-wrap: wrap; height: auto; padding: 10px 12px; gap: 8px; }
     main { flex-direction: column; }
-    aside { width: auto; height: 45%; border-left: 0; border-top: 1px solid var(--line); }
+    aside { width: auto; height: 46%; border-left: 0; border-top: 1px solid var(--line); }
+    #search { width: 150px; }
+    /* The plate is short here; spend the height on the ways in, not on ornament. */
+    .blank { padding: 20px 22px; }
+    .blank .rose { width: 42px; height: 42px; margin-bottom: 12px; }
+    .starts { margin-top: 16px; }
+    .start { padding: 9px 2px; }
+    /* The neatline reads as a frame at desktop size and as clutter at this one. */
+    #stage::before { display: none; }
+    #legend, #hint { left: 14px; right: 14px; bottom: 14px; }
+    #hint { left: auto; }
+    #legend { right: auto; }
   }
 </style>
 </head>
 <body>
+
 <header>
-  <h1>Andah <span style="color:var(--dim);font-weight:400">1765</span></h1>
-  <div class="ctl">
-    <input id="search" list="countrylist" placeholder="Find a nation…" autocomplete="off">
+  <div class="mark"><b>Andah</b><i>Atlas · 1765</i></div>
+  <div class="rule"></div>
+
+  <div class="grp">
+    <input id="search" list="countrylist" placeholder="Find a nation…" autocomplete="off" aria-label="Find a nation">
     <datalist id="countrylist"></datalist>
   </div>
-  <div class="ctl">
-    <button id="toGlobe" class="on" title="Show as a globe">Globe</button>
-    <button id="toFlat" title="Show as a flat map">Map</button>
-    <select id="proj" title="Projection used for the flat map">
+
+  <div class="grp">
+    <div class="seg">
+      <button id="toGlobe" class="on">Globe</button>
+      <button id="toFlat">Map</button>
+    </div>
+    <select id="proj" title="Projection used for the flat map" aria-label="Projection">
       <option value="equirectangular">Equirectangular</option>
       <option value="naturalEarth">Natural Earth</option>
       <option value="robinson">Robinson</option>
@@ -115,12 +538,20 @@
       <option value="winkel3">Winkel Tripel</option>
     </select>
   </div>
-  <div class="ctl">
-    <select id="metric" title="Colour every nation by a statistic"></select>
-  </div>
+
+  <!-- Everything to the left of here chooses what you are looking at; everything
+       to the right chooses how it is drawn. -->
   <div class="spacer"></div>
-  <div class="ctl">
+
+  <div class="grp">
+    <select id="metric" title="Shade every nation by a statistic" aria-label="Shade by statistic"></select>
+  </div>
+  <div class="btnbar">
+    <button id="labels" class="on" title="Show country names">Names</button>
     <button id="cities" title="Show cities">Cities</button>
+  </div>
+  <div class="rule"></div>
+  <div class="btnbar">
     <button id="theme" title="Light or dark">Theme</button>
   </div>
 </header>
@@ -130,10 +561,32 @@
     <canvas id="map"></canvas>
     <div id="tip"></div>
     <div id="legend"></div>
-    <div id="hint">drag to turn · scroll to zoom · click a nation</div>
+    <div id="hint">drag to turn · scroll to zoom</div>
+    <p class="sr" id="say" role="status" aria-live="polite"></p>
   </div>
+
   <aside>
-    <div id="empty">Click any nation to see its figures, or search for one above.</div>
+    <div id="empty">
+      <div class="blank">
+        <svg class="rose" width="66" height="66" viewBox="0 0 100 100" aria-hidden="true">
+          <g fill="none" stroke="currentColor">
+            <circle cx="50" cy="50" r="35" opacity=".3"/>
+            <circle cx="50" cy="50" r="28" opacity=".18"/>
+            <path d="M50 50 74 26M50 50 26 26M50 50 74 74M50 50 26 74" opacity=".34"/>
+          </g>
+          <g fill="currentColor">
+            <path d="M50 9 55 45 50 51 45 45Z"/>
+            <path d="M50 91 45 55 50 49 55 55Z" opacity=".42"/>
+            <path d="M9 50 45 45 51 50 45 55Z" opacity=".42"/>
+            <path d="M91 50 55 55 49 50 55 45Z" opacity=".42"/>
+          </g>
+        </svg>
+        <h3>One hundred and seventy-two nations</h3>
+        <p>Turn the globe and choose a country, or search for one by name. Every plate carries its figures, its borders and its history.</p>
+        <div class="starts" id="starts"></div>
+      </div>
+      <div class="colophon">Andah Atlas · seven continents · figures for 1765</div>
+    </div>
     <div id="card"></div>
     <div id="tray"></div>
   </aside>
@@ -142,6 +595,6 @@
 <script src="js/vendor/d3-array.min.js"></script>
 <script src="js/vendor/d3-geo.min.js"></script>
 <script src="js/vendor/d3-geo-projection.min.js"></script>
-<script src="js/world-map.js"></script>
+<script src="js/world-map.js?v=b0b02530"></script>
 </body>
 </html>
