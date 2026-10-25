@@ -1431,13 +1431,13 @@
     },
     {
         "name": "Trevilla",
-        "population": 10360,
+        "population": 53000,
         "areaKm": 545,
         "areaMi": 210,
         "gdpNominal": 292723825,
         "gdpPpp": 725955087,
-        "gdpPerNominal": 28254,
-        "gdpPerPpp": 70070
+        "gdpPerNominal": 5523,
+        "gdpPerPpp": 13697
     },
     {
         "name": "Trian",
@@ -1451,13 +1451,13 @@
     },
     {
         "name": "Tvecoca",
-        "population": 5165,
+        "population": 43902,
         "areaKm": 129,
         "areaMi": 50,
         "gdpNominal": 385337333,
         "gdpPpp": 755261173,
-        "gdpPerNominal": 74603,
-        "gdpPerPpp": 146222
+        "gdpPerNominal": 8777,
+        "gdpPerPpp": 17203
     },
     {
         "name": "Ucrua",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T00:16:00.055Z",
+  "generatedAt": "2026-10-25T22:17:19.996Z",
   "countries": [
     {
       "name": "Acetoa",
@@ -16895,12 +16895,12 @@
       "slug": "trevilla",
       "wikiTitle": "Trevilla",
       "metrics": {
-        "Population": 10360,
+        "Population": 53000,
         "GDP (Nominal)": 292723825.36,
-        "Per (NOM)": 28253.9683,
+        "Per (NOM)": 5523.091,
         "GDP (PPP)": 725955086.984127,
-        "Per (PPP)": 70069.8413,
-        "Density": 19.01,
+        "Per (PPP)": 13697.2658,
+        "Density": 97.248,
         "Area (Km)": 545,
         "Area (Mi)": 210.4257,
         "KTDI": 0.747,
@@ -16927,7 +16927,7 @@
         "300 meters +\n": 0,
         "rank": 167,
         "adjustedPoints": 629.54,
-        "population": 10360
+        "population": 53000
       },
       "categorical": {
         "Pronunciation": "treh-VILL-ah",
@@ -17203,12 +17203,12 @@
       "slug": "tvecoca",
       "wikiTitle": "Tvecoca",
       "metrics": {
-        "Population": 5165,
+        "Population": 43902,
         "GDP (Nominal)": 385337333.36,
-        "Per (NOM)": 74603.1746,
+        "Per (NOM)": 8777.2159,
         "GDP (PPP)": 755261173.3333333,
-        "Per (PPP)": 146222.2222,
-        "Density": 40.04,
+        "Per (PPP)": 17203.3432,
+        "Density": 340.326,
         "Area (Km)": 129,
         "Area (Mi)": 49.8072,
         "KTDI": 0.822,
@@ -17235,7 +17235,7 @@
         "300 meters +\n": 0,
         "rank": 165,
         "adjustedPoints": 647.13,
-        "population": 5165
+        "population": 43902
       },
       "categorical": {
         "Pronunciation": "tveh-KOH-kah",

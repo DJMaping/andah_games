@@ -1480,7 +1480,7 @@ const andahFifaData = [
         "continent": "New Ayre",
         "adjustedPoints": 647.13,
         "rank": 165,
-        "population": 5165,
+        "population": 43902,
         "sportEarth": "Football",
         "debuff": 0
     },
@@ -1498,7 +1498,7 @@ const andahFifaData = [
         "continent": "Acrola",
         "adjustedPoints": 629.54,
         "rank": 167,
-        "population": 10360,
+        "population": 53000,
         "sportEarth": "Football",
         "debuff": 0
     },
